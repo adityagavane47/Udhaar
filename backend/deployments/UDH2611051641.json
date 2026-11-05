@@ -1,0 +1,111 @@
+{
+  "symbol": "UDH2611051641",
+  "status": "complete",
+  "network": "testnet",
+  "simulatedData": true,
+  "atsVersion": "8.0.0",
+  "factoryId": "0.0.9213391",
+  "resolverId": "0.0.9212226",
+  "isin": "ZZ000TO1FOZ3",
+  "name": "Udhaar demo invoice UDH2611051641",
+  "terms": {
+    "units": "500",
+    "decimals": 0,
+    "faceValue": "1000",
+    "faceValueDecimals": 0,
+    "currency": "INR",
+    "startingDate": "2026-11-05T16:42:23.000Z",
+    "maturityDate": "2026-11-05T16:51:23.000Z",
+    "startingDateUnix": 1793896943,
+    "maturityDateUnix": 1793897483
+  },
+  "bond": {
+    "contractId": "0.0.11327091",
+    "evmAddress": "0x98B23922f774E5C188457EdC70FcA4b8e43c1173",
+    "hashscan": "https://hashscan.io/testnet/contract/0.0.11327091"
+  },
+  "admin": {
+    "id": "0.0.11227777",
+    "evm": "0x38ab3bb38a221c1ddb5cf16d1a61869425d479b8"
+  },
+  "allowlist": [
+    {
+      "name": "business",
+      "id": "0.0.11310318",
+      "evm": "0xfa9aba56d1ac6428cdcd0a4b57812d6a80dc272d"
+    },
+    {
+      "name": "investor",
+      "id": "0.0.11310320",
+      "evm": "0x86cea1de7da9bf05813b8018e4a544ee907abe7f"
+    }
+  ],
+  "notAllowlisted": {
+    "name": "buyer",
+    "id": "0.0.11310319",
+    "evm": "0xbe9f496d198966dfe7dc1628869c49eaf9ff0184"
+  },
+  "balances": {
+    "business": "400",
+    "investor": "100",
+    "buyer": "0"
+  },
+  "steps": [
+    {
+      "label": "Deploy bond",
+      "payer": "admin",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11227777@1793896877.287252446",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793896882.198267883",
+      "gasUsed": 7714063,
+      "feeHbar": 9.41115686
+    },
+    {
+      "label": "Allowlist business",
+      "payer": "admin",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11227777@1793896888.985908366",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793896893.717435104",
+      "gasUsed": 126935,
+      "feeHbar": 0.1548607
+    },
+    {
+      "label": "Allowlist investor",
+      "payer": "admin",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11227777@1793896896.913817798",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793896899.176811446",
+      "gasUsed": 109835,
+      "feeHbar": 0.1339987
+    },
+    {
+      "label": "Issue 500 units to business",
+      "payer": "admin",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11227777@1793896901.835079370",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793896902.609125726",
+      "gasUsed": 452928,
+      "feeHbar": 0.55257216
+    },
+    {
+      "label": "Transfer 100 units business -> investor",
+      "payer": "business",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11310318@1793896906.815136351",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793896909.137014104",
+      "gasUsed": 438652,
+      "feeHbar": 0.53515544
+    },
+    {
+      "label": "Transfer 100 units business -> buyer (expected rejection)",
+      "payer": "business",
+      "status": "CONTRACT_REVERT_EXECUTED",
+      "transactionId": "0.0.11310318@1793896909.498307017",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793896913.758402376",
+      "gasUsed": 78336,
+      "feeHbar": 0.09556992,
+      "revertReason": "AccountIsBlocked(0xbE9F496d198966DFe7Dc1628869c49eaF9FF0184)"
+    }
+  ],
+  "totalFeeHbar": 10.88331378
+}
