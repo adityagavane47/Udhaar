@@ -1,0 +1,136 @@
+{
+  "symbol": "uINR",
+  "name": "Udhaar Rupee",
+  "status": "complete",
+  "network": "testnet",
+  "simulatedData": true,
+  "decimals": 2,
+  "memo": "Simulated test stablecoin. Not real money.",
+  "tokenId": "0.0.11327250",
+  "hashscan": "https://hashscan.io/testnet/token/0.0.11327250",
+  "treasury": "0.0.11227777",
+  "supplyKeyHolder": "admin",
+  "feeScheduleKeyHolder": "admin",
+  "adminKey": null,
+  "fees": [
+    {
+      "collector": "POOL",
+      "collectorId": "0.0.11327247",
+      "rate": "1/100",
+      "netOfTransfers": true,
+      "allCollectorsExempt": true
+    },
+    {
+      "collector": "REPAYMENT",
+      "collectorId": "0.0.11327249",
+      "rate": "1/1000000000000000 (rounds to zero)",
+      "netOfTransfers": false,
+      "allCollectorsExempt": true
+    }
+  ],
+  "accounts": {
+    "POOL": {
+      "id": "0.0.11327247",
+      "hashscan": "https://hashscan.io/testnet/account/0.0.11327247"
+    },
+    "REPAYMENT": {
+      "id": "0.0.11327249",
+      "hashscan": "https://hashscan.io/testnet/account/0.0.11327249"
+    },
+    "investor": {
+      "id": "0.0.11310320",
+      "hashscan": "https://hashscan.io/testnet/account/0.0.11310320"
+    },
+    "buyer": {
+      "id": "0.0.11310319",
+      "hashscan": "https://hashscan.io/testnet/account/0.0.11310319"
+    },
+    "business": {
+      "id": "0.0.11310318",
+      "hashscan": "https://hashscan.io/testnet/account/0.0.11310318"
+    }
+  },
+  "balancesBaseUnits": {
+    "admin": 30000000,
+    "investor": 19919000,
+    "buyer": 49950000,
+    "business": 100000,
+    "POOL": 1000,
+    "REPAYMENT": 30000
+  },
+  "steps": [
+    {
+      "label": "Create POOL account",
+      "payer": "admin",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11227777@1793898062.841435402",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793898066.411614104",
+      "feeHbar": 0.74143639
+    },
+    {
+      "label": "Create REPAYMENT account",
+      "payer": "admin",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11227777@1793898067.085400603",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793898068.935181611",
+      "feeHbar": 0.74143639
+    },
+    {
+      "label": "Create uINR token",
+      "payer": "admin",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11227777@1793898073.576059232",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793898074.167340128",
+      "feeHbar": 29.80870939
+    },
+    {
+      "label": "Mint 10,00,000.00 uINR to treasury",
+      "payer": "admin",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11227777@1793898075.419312702",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793898078.727929250",
+      "feeHbar": 0.01482871
+    },
+    {
+      "label": "Send 2,00,000.00 uINR to investor",
+      "payer": "admin",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11227777@1793898079.345678751",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793898080.630753104",
+      "feeHbar": 0.77109383
+    },
+    {
+      "label": "Send 5,00,000.00 uINR to buyer",
+      "payer": "admin",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11227777@1793898082.246835922",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793898084.110857104",
+      "feeHbar": 0.77109383
+    },
+    {
+      "label": "Test: investor -> business 1,000.00 uINR",
+      "payer": "investor",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11310320@1793898086.802782568",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793898088.735173764",
+      "feeHbar": 0.77109383
+    },
+    {
+      "label": "Test: buyer -> REPAYMENT 500.00 uINR",
+      "payer": "buyer",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11310319@1793898090.842388265",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793898092.184821286",
+      "feeHbar": 0.02965744
+    },
+    {
+      "label": "Test: REPAYMENT -> investor payout 200.00 uINR",
+      "payer": "REPAYMENT",
+      "status": "SUCCESS",
+      "transactionId": "0.0.11327249@1793898092.455085073",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793898096.744356212",
+      "feeHbar": 0.02965744
+    }
+  ],
+  "totalFeeHbar": 33.67900725
+}
