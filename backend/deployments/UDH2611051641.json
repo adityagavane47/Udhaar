@@ -107,5 +107,186 @@
       "revertReason": "AccountIsBlocked(0xbE9F496d198966DFe7Dc1628869c49eaF9FF0184)"
     }
   ],
-  "totalFeeHbar": 10.88331378
+  "totalFeeHbar": 10.88331378,
+  "lifecycle": {
+    "status": "complete",
+    "uinrTokenId": "0.0.11327250",
+    "pauseTest": "passed",
+    "freezeTest": "passed",
+    "transfers": {
+      "top-up": {
+        "status": "confirmed",
+        "from": "0.0.11227777",
+        "to": "0.0.11310319",
+        "amountBaseUnits": 100000,
+        "memo": "UDH2611051641 top-up",
+        "transactionId": "0.0.11227777@1793899957.209000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793899964.158504104",
+        "feeHbar": 0.02965744
+      },
+      "repayment": {
+        "status": "confirmed",
+        "from": "0.0.11310319",
+        "to": "0.0.11327249",
+        "amountBaseUnits": 50000000,
+        "memo": "UDH2611051641",
+        "transactionId": "0.0.11310319@1793899987.136000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793899993.396050426",
+        "feeHbar": 0.02965744
+      },
+      "payout:0.0.11310318": {
+        "status": "confirmed",
+        "from": "0.0.11327249",
+        "to": "0.0.11310318",
+        "amountBaseUnits": 40000000,
+        "memo": "UDH2611051641 payout",
+        "transactionId": "0.0.11327249@1793899997.675000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793900004.356705257",
+        "feeHbar": 0.02965744
+      },
+      "payout:0.0.11310320": {
+        "status": "confirmed",
+        "from": "0.0.11327249",
+        "to": "0.0.11310320",
+        "amountBaseUnits": 10000000,
+        "memo": "UDH2611051641 payout",
+        "transactionId": "0.0.11327249-1793900036-079000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793900042.832523328",
+        "feeHbar": 0.02965744
+      }
+    },
+    "steps": [
+      {
+        "label": "Pause bond",
+        "payer": "admin",
+        "status": "SUCCESS",
+        "transactionId": "0.0.11227777@1793899960.393000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793899967.218845706",
+        "feeHbar": 0.09990162
+      },
+      {
+        "label": "Paused: business -> investor 1 unit",
+        "payer": "business",
+        "status": "CONTRACT_REVERT_EXECUTED",
+        "transactionId": "0.0.11310318@1793899966.057000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793899972.375159104",
+        "feeHbar": 0.06493536,
+        "revertReason": "IsPaused()"
+      },
+      {
+        "label": "Unpause bond",
+        "payer": "admin",
+        "status": "SUCCESS",
+        "transactionId": "0.0.11227777@1793899970.149000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793899976.756601677",
+        "feeHbar": 0.0693756
+      },
+      {
+        "label": "Freeze 50 investor units",
+        "payer": "admin",
+        "status": "SUCCESS",
+        "transactionId": "0.0.11227777@1793899974.166000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793899982.035968104",
+        "feeHbar": 0.20443122
+      },
+      {
+        "label": "Frozen: investor -> business 100 units (includes the frozen 50)",
+        "payer": "investor",
+        "status": "CONTRACT_REVERT_EXECUTED",
+        "transactionId": "0.0.11310320@1793899979.548000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793899986.296994625",
+        "feeHbar": 0.13920858,
+        "revertReason": "InsufficientBalance(0x86CEa1dE7DA9bF05813b8018E4A544eE907ABE7f, 50, 100, 0x0000000000000000000000000000000000000000000000000000000000000001)"
+      },
+      {
+        "label": "Unfreeze 50 investor units",
+        "payer": "admin",
+        "status": "SUCCESS",
+        "transactionId": "0.0.11227777@1793899984.634000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793899990.916765104",
+        "feeHbar": 0.15520932
+      },
+      {
+        "label": "Burn 400 units of business",
+        "payer": "admin",
+        "status": "SUCCESS",
+        "transactionId": "0.0.11227777@1793900030.145000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793900037.037897752",
+        "feeHbar": 0.25123644
+      },
+      {
+        "label": "Burn 100 units of investor",
+        "payer": "admin",
+        "status": "SUCCESS",
+        "transactionId": "0.0.11227777@1793900122.734000000",
+        "hashscan": "https://hashscan.io/testnet/transaction/1793900130.218274104",
+        "feeHbar": 0.23212728
+      }
+    ],
+    "repaymentDetected": {
+      "transactionId": "0.0.11310319-1793899987-136000000",
+      "hashscan": "https://hashscan.io/testnet/transaction/1793899993.396050426",
+      "from": "0.0.11310319",
+      "memo": "UDH2611051641",
+      "amountBaseUnits": 50000000
+    },
+    "holders": [
+      {
+        "name": "business",
+        "evm": "0xfa9aba56d1ac6428cdcd0a4b57812d6a80dc272d",
+        "accountId": "0.0.11310318",
+        "units": "400",
+        "amountBaseUnits": 40000000,
+        "paid": true,
+        "burned": true,
+        "paymentTransactionId": "0.0.11327249@1793899997.675000000",
+        "paymentHashscan": "https://hashscan.io/testnet/transaction/1793900004.356705257",
+        "burnTransactionId": "0.0.11227777@1793900030.145000000",
+        "burnHashscan": "https://hashscan.io/testnet/transaction/1793900037.037897752"
+      },
+      {
+        "name": "investor",
+        "evm": "0x86cea1de7da9bf05813b8018e4a544ee907abe7f",
+        "accountId": "0.0.11310320",
+        "units": "100",
+        "amountBaseUnits": 10000000,
+        "paid": true,
+        "burned": true,
+        "paymentTransactionId": "0.0.11327249-1793900036-079000000",
+        "paymentHashscan": "https://hashscan.io/testnet/transaction/1793900042.832523328",
+        "burnTransactionId": "0.0.11227777@1793900122.734000000",
+        "burnHashscan": "https://hashscan.io/testnet/transaction/1793900130.218274104"
+      }
+    ],
+    "balances": {
+      "admin": {
+        "bondUnits": "0",
+        "uinr": "2,99,000.00"
+      },
+      "business": {
+        "bondUnits": "0",
+        "uinr": "4,01,000.00"
+      },
+      "investor": {
+        "bondUnits": "0",
+        "uinr": "2,99,190.00"
+      },
+      "buyer": {
+        "bondUnits": "0",
+        "uinr": "500.00"
+      },
+      "REPAYMENT": {
+        "bondUnits": "0",
+        "uinr": "300.00"
+      },
+      "POOL": {
+        "bondUnits": "0",
+        "uinr": "10.00"
+      },
+      "risk agent": {
+        "bondUnits": "0",
+        "uinr": "0.00"
+      }
+    }
+  }
 }
