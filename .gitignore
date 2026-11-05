@@ -4,3 +4,4 @@ __pycache__/
 .next/
 *.log
 *.err
+backend/data/
