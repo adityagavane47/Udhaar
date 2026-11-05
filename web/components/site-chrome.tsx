@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { USE_MOCK } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const ROLES = [
@@ -34,7 +35,10 @@ export function Header() {
             </Link>
           ))}
         </nav>
-        <Badge variant="amber">Testnet</Badge>
+        <div className="flex items-center gap-2">
+          {USE_MOCK && <Badge variant="indigo">Mock data</Badge>}
+          <Badge variant="amber">Testnet</Badge>
+        </div>
       </div>
     </header>
   );

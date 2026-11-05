@@ -33,7 +33,7 @@ export default function BuyerPage() {
                         <p className="text-sm text-slate-500">{inr(i.amount)} · due {fmtDate(i.dueDate)}</p>
                       </div>
                       <div className="flex flex-wrap items-start gap-3">
-                        <AsyncButton action={() => confirmInvoice(i.id)} onDone={refresh}>Confirm</AsyncButton>
+                        <AsyncButton action={() => confirmInvoice(i.id)} pendingMessage="Signing and recording buyer confirmation on Hedera…" onDone={refresh}>Confirm</AsyncButton>
                         <AsyncButton variant="outline" action={() => rejectInvoice(i.id)} onDone={refresh}>Reject</AsyncButton>
                       </div>
                     </li>
@@ -62,7 +62,7 @@ export default function BuyerPage() {
                         <p className="text-sm text-slate-500">{inr(i.amount)} · due {fmtDate(i.dueDate)}</p>
                       </div>
                       {i.status === "funded" ? (
-                        <AsyncButton action={() => payInvoice(i.id)} onDone={refresh}>Pay {inr(i.amount)}</AsyncButton>
+                        <AsyncButton action={() => payInvoice(i.id)} pendingMessage="Settling repayment and redeeming holder units on Hedera…" onDone={refresh}>Pay {inr(i.amount)}</AsyncButton>
                       ) : (
                         <Badge>Awaiting funding</Badge>
                       )}

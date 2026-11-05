@@ -15,6 +15,34 @@ export type KycStatus = "pending" | "approved" | "rejected";
 export type Grade = "A" | "B" | "C" | "D";
 export type Confidence = "HIGH" | "MEDIUM" | "LOW";
 
+/** A proof link returned by the backend. */
+export interface Link {
+  label: string;
+  url: string;
+  txId?: string;
+}
+
+export interface RepaymentHolder {
+  name: string;
+  evm: string;
+  accountId: string;
+  units: number;
+  amountBaseUnits: number; // uINR x 100
+  burned: boolean;
+  burnTxId?: string;
+  burnHashscanUrl?: string;
+  paid: boolean;
+  paymentTxId?: string;
+  paymentHashscanUrl?: string;
+}
+
+export interface Repayment {
+  status: "in_progress" | "complete" | "needs_review";
+  reviewReason?: string;
+  detected?: { transactionId: string; hashscanUrl: string; from: string; memo: string; amountBaseUnits: number };
+  holders?: RepaymentHolder[];
+}
+
 export interface Company {
   id: string;
   name: string;
@@ -48,6 +76,14 @@ export interface Invoice {
   riskScore?: number;
   fingerprint?: string; // hash written to the HCS registry
   hashscanUrl?: string; // proof of the latest on-chain step
+  invoiceNumber?: string;
+  links?: Link[]; // every on-chain step so far (backend only)
+  symbol?: string; // bond symbol
+  maturityDate?: string; // ISO; can be earlier than dueDate in demos
+  unitPrice?: number; // discounted price per unit
+  availableUnits?: number; // units still for sale
+  registered?: boolean;
+  repayment?: Repayment;
 }
 
 export interface Holder {
@@ -56,6 +92,9 @@ export interface Holder {
   units: number;
   amountPaid: number; // INR equivalent paid for the units
   frozen: boolean;
+  frozenUnits?: number;
+  hashscanUrl?: string;
+  repaid?: boolean; // units were burned and paid out at maturity
 }
 
 export interface RiskReport {
@@ -79,9 +118,10 @@ export interface KycRequest {
   country: string;
   status: KycStatus;
   submittedAt: string;
-  walletScan: "clean" | "flagged";
+  walletScan: "clean" | "flagged" | "not_checked";
   walletScanNote?: string;
   hashscanUrl?: string;
+  pendingBonds?: string[];
 }
 
 export type TransactionType =
@@ -89,6 +129,7 @@ export type TransactionType =
   | "buyer_confirm"
   | "buyer_reject"
   | "buyer_payment"
+  | "kyc_submit"
   | "kyc_approve"
   | "kyc_reject"
   | "token_create"
@@ -98,7 +139,11 @@ export type TransactionType =
   | "holder_unfreeze"
   | "units_buy"
   | "units_transfer"
-  | "risk_report";
+  | "risk_report"
+  | "duplicate_rejected"
+  | "transfer_rejected"
+  | "units_burn"
+  | "holder_payout";
 
 export interface Transaction {
   id: string;
@@ -107,7 +152,9 @@ export interface Transaction {
   actor: string;
   timestamp: string; // ISO
   hashscanUrl: string;
+  txId?: string;
   invoiceId?: string;
+  status?: "success" | "rejected";
 }
 
 export interface Listing {
@@ -116,7 +163,7 @@ export interface Listing {
   amount: number;
   returnPct: number;
   daysToMaturity: number;
-  grade: Grade;
+  grade?: Grade;
   availableUnits: number;
   unitPrice: number;
   unitFaceValue: number;
@@ -130,12 +177,15 @@ export interface PortfolioItem {
   amountPaid: number;
   expectedPayout: number;
   dueDate: string;
-  grade: Grade;
+  grade?: Grade;
   repaid: boolean;
 }
 
 export interface TokenInfo {
   tokenId: string;
+  symbol?: string;
+  hashscanUrl?: string;
+  repaid?: boolean;
   invoiceId: string;
   buyerName: string;
   totalUnits: number;

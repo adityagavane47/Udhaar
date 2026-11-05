@@ -15,3 +15,8 @@ export const fmtDateTime = (iso: string) =>
 
 export const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong");
 
+
+export const errLink = (e: unknown): string | undefined => {
+  const u = (e as { hashscanUrl?: unknown } | null)?.hashscanUrl;
+  return typeof u === "string" && u ? u : undefined;
+};

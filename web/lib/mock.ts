@@ -12,8 +12,8 @@ const day = 86_400_000;
 export const isoIn = (days: number) => new Date(Date.now() + days * day).toISOString();
 
 export const ACCOUNTS = {
-  business: { companyId: "c-ramesh", accountId: "0.0.11310318" },
-  buyer: { companyId: "c-bigbuild", accountId: "0.0.11310319" },
+  business: { companyId: "0.0.11310318", accountId: "0.0.11310318" },
+  buyer: { companyId: "0.0.11310319", accountId: "0.0.11310319" },
   investor: { accountId: "0.0.11310320", name: "Priya Sharma" },
   admin: { accountId: "0.0.11227777" },
 };
@@ -21,12 +21,12 @@ export const ACCOUNTS = {
 export const PAID_REPORT_FEE_USDC = 0.01;
 
 export const companies: Company[] = [
-  { id: "c-ramesh", name: "Ramesh Cement Traders", type: "supplier", foundedYear: 2011, gstFilingRate: 0.97, city: "Pune", address: "12 MIDC Road, Pune", phone: "+91 98220 11111", hederaAccount: "0.0.11310318", kycVerified: true },
-  { id: "c-bigbuild", name: "BigBuild Ltd", type: "buyer", foundedYear: 2003, gstFilingRate: 0.99, city: "Mumbai", address: "Tower 4, BKC, Mumbai", phone: "+91 22 4000 2000", hederaAccount: "0.0.11310319", kycVerified: true },
-  { id: "c-apex", name: "Apex Infra Pvt Ltd", type: "buyer", foundedYear: 2010, gstFilingRate: 0.88, city: "Nagpur", address: "88 Civil Lines, Nagpur", phone: "+91 712 555 0101", hederaAccount: "0.0.11400101", kycVerified: true },
-  { id: "c-nova", name: "Nova Retail", type: "buyer", foundedYear: 2025, gstFilingRate: 0.6, city: "Nashik", address: "5 College Road, Nashik", phone: "+91 253 555 0199", hederaAccount: "0.0.11400102", kycVerified: true },
-  { id: "c-sand", name: "Shree Sand Traders", type: "supplier", foundedYear: 2015, gstFilingRate: 0.93, city: "Satara", address: "River Road, Satara", phone: "+91 98900 22222", hederaAccount: "0.0.11400103", kycVerified: true },
-  { id: "c-steel", name: "Kumar Steel Works", type: "supplier", foundedYear: 2018, gstFilingRate: 0.9, city: "Kolhapur", address: "Industrial Estate, Kolhapur", phone: "+91 98900 33333", hederaAccount: "0.0.11400104", kycVerified: false },
+  { id: "0.0.11310318", name: "Ramesh Cement Traders", type: "supplier", foundedYear: 2011, gstFilingRate: 0.97, city: "Pune", address: "12 MIDC Road, Pune", phone: "+91 98220 11111", hederaAccount: "0.0.11310318", kycVerified: true },
+  { id: "0.0.11310319", name: "BigBuild Ltd", type: "buyer", foundedYear: 2003, gstFilingRate: 0.99, city: "Mumbai", address: "Tower 4, BKC, Mumbai", phone: "+91 22 4000 2000", hederaAccount: "0.0.11310319", kycVerified: true },
+  { id: "0.0.11400101", name: "Apex Infra Pvt Ltd", type: "buyer", foundedYear: 2010, gstFilingRate: 0.88, city: "Nagpur", address: "88 Civil Lines, Nagpur", phone: "+91 712 555 0101", hederaAccount: "0.0.11400101", kycVerified: true },
+  { id: "0.0.11400102", name: "Nova Retail", type: "buyer", foundedYear: 2025, gstFilingRate: 0.6, city: "Nashik", address: "5 College Road, Nashik", phone: "+91 253 555 0199", hederaAccount: "0.0.11400102", kycVerified: true },
+  { id: "0.0.11310322", name: "Shree Sand Traders", type: "supplier", foundedYear: 2015, gstFilingRate: 0.93, city: "Satara", address: "River Road, Satara", phone: "+91 98900 22222", hederaAccount: "0.0.11310322", kycVerified: true },
+  { id: "0.0.11327247", name: "Kumar Steel Works", type: "supplier", foundedYear: 2018, gstFilingRate: 0.9, city: "Kolhapur", address: "Industrial Estate, Kolhapur", phone: "+91 98900 33333", hederaAccount: "0.0.11327247", kycVerified: false },
 ];
 
 const mk = (id: string, supplierId: string, buyerId: string, amount: number, issue: number, due: number, status: Invoice["status"], extra: Partial<Invoice> = {}): Invoice => {
@@ -43,13 +43,13 @@ const mk = (id: string, supplierId: string, buyerId: string, amount: number, iss
 };
 
 export const invoices: Invoice[] = [
-  mk("INV-0042", "c-ramesh", "c-bigbuild", 500000, -10, 80, "funded", { tokenId: "0.0.7001001", totalUnits: 500, unitFaceValue: 1000, retainedUnits: 100, discountPct: 4, grade: "A", riskScore: 85 }),
-  mk("INV-0043", "c-ramesh", "c-bigbuild", 250000, -1, 90, "submitted"),
-  mk("INV-0044", "c-ramesh", "c-apex", 300000, -5, 75, "risk_checked", { grade: "B", riskScore: 72, discountPct: 6 }),
-  mk("INV-0045", "c-ramesh", "c-nova", 120000, -4, 60, "tokenized", { tokenId: "0.0.7001002", totalUnits: 120, unitFaceValue: 1000, retainedUnits: 0, discountPct: 8, grade: "C", riskScore: 58 }),
-  mk("INV-0047", "c-ramesh", "c-apex", 200000, -6, 70, "tokenized", { tokenId: "0.0.7001003", totalUnits: 200, unitFaceValue: 1000, retainedUnits: 0, discountPct: 6, grade: "B", riskScore: 70 }),
-  mk("INV-0046", "c-sand", "c-bigbuild", 80000, -2, 85, "submitted"),
-  mk("INV-0040", "c-ramesh", "c-bigbuild", 150000, -100, -10, "repaid", { tokenId: "0.0.7000900", totalUnits: 150, unitFaceValue: 1000, discountPct: 4, grade: "A", riskScore: 88 }),
+  mk("INV-0042", "0.0.11310318", "0.0.11310319", 500000, -10, 80, "funded", { tokenId: "0.0.7001001", totalUnits: 500, unitFaceValue: 1000, retainedUnits: 100, discountPct: 4, grade: "A", riskScore: 85 }),
+  mk("INV-0043", "0.0.11310318", "0.0.11310319", 250000, -1, 90, "submitted"),
+  mk("INV-0044", "0.0.11310318", "0.0.11400101", 300000, -5, 75, "risk_checked", { grade: "B", riskScore: 72, discountPct: 6 }),
+  mk("INV-0045", "0.0.11310318", "0.0.11400102", 120000, -4, 60, "tokenized", { tokenId: "0.0.7001002", totalUnits: 120, unitFaceValue: 1000, retainedUnits: 0, discountPct: 8, grade: "C", riskScore: 58 }),
+  mk("INV-0047", "0.0.11310318", "0.0.11400101", 200000, -6, 70, "tokenized", { tokenId: "0.0.7001003", totalUnits: 200, unitFaceValue: 1000, retainedUnits: 0, discountPct: 6, grade: "B", riskScore: 70 }),
+  mk("INV-0046", "0.0.11310322", "0.0.11310319", 80000, -2, 85, "submitted"),
+  mk("INV-0040", "0.0.11310318", "0.0.11310319", 150000, -100, -10, "repaid", { tokenId: "0.0.7000900", totalUnits: 150, unitFaceValue: 1000, discountPct: 4, grade: "A", riskScore: 88 }),
 ];
 
 const h = (accountId: string, name: string, units: number, amountPaid: number): Holder => ({ accountId, name, units, amountPaid, frozen: false });

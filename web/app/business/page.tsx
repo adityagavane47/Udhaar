@@ -4,13 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
-import { Async, AsyncButton, Empty, ErrorNote, Field, GradeBadge, HashscanLink, PageHeader, StatCard, StatusTracker, SuccessNote } from "@/components/common";
+import { Async, AsyncButton, Empty, ErrorNote, Field, GradeBadge, HashscanLink, PageHeader, Pending, StatCard, StatusTracker, SuccessNote } from "@/components/common";
 import { useAsync } from "@/hooks/use-async";
 import {
-  DuplicateInvoiceError, getBusinessInvoices, getBusinessSummary, getCompanies, getSuppliers,
+  getBusinessInvoices, getBusinessSummary, getCompanies, getSuppliers,
   getTransferableInvoices, paySupplierWithUnits, uploadInvoice,
 } from "@/lib/api";
-import { errMsg, fmtDate, inr } from "@/lib/utils";
+import { errLink, errMsg, fmtDate, inr } from "@/lib/utils";
 import type { Invoice } from "@/lib/types";
 
 export default function BusinessPage() {
@@ -25,7 +25,7 @@ export default function BusinessPage() {
       <Async state={summary}>
         {(s) => (
           <div className="grid gap-6 sm:grid-cols-3">
-            <StatCard label="Received" value={inr(s.received)} hint="Funding paid out to you" />
+            <StatCard label="Received" value={inr(s.received)} hint="Credited on sold units, incl. units sent to suppliers" />
             <StatCard label="Pending" value={inr(s.pending)} hint="Invoices not yet funded" />
             <StatCard label="Invoices" value={String(s.invoiceCount)} />
           </div>
@@ -60,7 +60,7 @@ function InvoiceRow({ inv }: { inv: Invoice }) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="font-semibold text-slate-900">{inv.id} · {inv.buyerName}</p>
-            <p className="text-sm text-slate-500">{inr(inv.amount)} · due {fmtDate(inv.dueDate)}</p>
+            <p className="text-sm text-slate-500">{inr(inv.amount)} · due {fmtDate(inv.dueDate)}{inv.invoiceNumber ? ` · #${inv.invoiceNumber}` : ""}</p>
           </div>
           <div className="flex items-center gap-3">
             {inv.grade && <GradeBadge grade={inv.grade} />}
@@ -69,6 +69,11 @@ function InvoiceRow({ inv }: { inv: Invoice }) {
           </div>
         </div>
         <StatusTracker status={inv.status} />
+        {inv.links && inv.links.length > 0 && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {inv.links.map((l) => <HashscanLink key={`${l.label}-${l.url}`} href={l.url} label={`HashScan: ${l.label}`} />)}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -79,31 +84,33 @@ function UploadForm({ onDone, invoices }: { onDone: () => void; invoices: Invoic
   const [buyerId, setBuyerId] = useState("");
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [pdf, setPdf] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [dupUrl, setDupUrl] = useState<string | undefined>();
+  const [errUrl, setErrUrl] = useState<string | undefined>();
   const [ok, setOk] = useState<{ id: string; url: string } | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true); setError(null); setDupUrl(undefined); setOk(null);
+    setLoading(true); setError(null); setErrUrl(undefined); setOk(null);
     try {
-      const { invoice, tx } = await uploadInvoice({ buyerId, amount: Number(amount), dueDate, pdfName: pdf || "invoice.pdf" });
+      const { invoice, tx } = await uploadInvoice({ buyerId, amount: Number(amount), dueDate, pdfName: pdf || "invoice.pdf", invoiceNumber });
       setOk({ id: invoice.id, url: tx.hashscanUrl });
       onDone();
     } catch (err) {
       setError(errMsg(err));
-      if (err instanceof DuplicateInvoiceError) setDupUrl(err.hashscanUrl);
+      setErrUrl(errLink(err));
     } finally {
       setLoading(false);
     }
   }
 
   function fillDuplicate() {
-    const src = invoices.find((i) => i.id === "INV-0042");
+    const src = invoices.find((i) => i.status !== "buyer_rejected");
     if (!src) return;
-    setBuyerId(src.buyerId); setAmount(String(src.amount)); setDueDate(src.dueDate.slice(0, 10)); setPdf("INV-0042.pdf");
+    setBuyerId(src.buyerId); setAmount(String(src.amount)); setDueDate(src.dueDate.slice(0, 10));
+    setInvoiceNumber(src.invoiceNumber ?? ""); setPdf(src.pdfName ?? "");
   }
 
   return (
@@ -117,13 +124,16 @@ function UploadForm({ onDone, invoices }: { onDone: () => void; invoices: Invoic
           <Field label="Buyer">
             <Select required value={buyerId} onChange={(e) => setBuyerId(e.target.value)}>
               <option value="">Select buyer…</option>
-              {(buyers.data ?? []).filter((c) => c.type !== "supplier").map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {(buyers.data ?? []).filter((c) => c.type !== "supplier").map((c) => <option key={c.id} value={c.id}>{c.name} ({c.hederaAccount})</option>)}
             </Select>
           </Field>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Amount (₹)"><Input required type="number" min={1000} step={1000} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="500000" /></Field>
             <Field label="Due date"><Input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></Field>
           </div>
+          <Field label="Invoice number" hint="Identifies this invoice, so two real invoices with the same details are not mistaken for duplicates.">
+            <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="BB-2026-0042" />
+          </Field>
           <Field label="Invoice PDF">
             <Input type="file" accept="application/pdf" onChange={(e) => setPdf(e.target.files?.[0]?.name ?? "")} />
           </Field>
@@ -131,12 +141,8 @@ function UploadForm({ onDone, invoices }: { onDone: () => void; invoices: Invoic
             <Button type="submit" loading={loading}>Upload invoice</Button>
             <Button type="button" variant="ghost" size="sm" onClick={fillDuplicate}>Fill duplicate example</Button>
           </div>
-          {error && (
-            <div className="space-y-1">
-              <ErrorNote message={error} />
-              {dupUrl && <p className="text-xs text-slate-500">First upload&apos;s registry record: <HashscanLink href={dupUrl} /></p>}
-            </div>
-          )}
+          <Pending active={loading} message="Recording the invoice fingerprint on Hedera…" />
+          <ErrorNote message={error} href={errUrl} />
           {ok && <SuccessNote href={ok.url}>{ok.id} submitted to your buyer.</SuccessNote>}
         </form>
       </CardContent>
@@ -185,6 +191,7 @@ function PaySupplierForm({ onDone }: { onDone: () => void }) {
           </div>
           <AsyncButton
             action={() => paySupplierWithUnits({ invoiceId, supplierId, amount: Number(amount), units: Number(units) })}
+            pendingMessage="Transferring bond units on Hedera…"
             onDone={() => { tokens.reload(); onDone(); }}
             disabled={!invoiceId || !supplierId || !units}
           >

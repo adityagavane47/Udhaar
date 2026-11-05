@@ -1,312 +1,281 @@
-// The ONLY file components talk to. Swap the bodies for real backend calls later.
-import {
-  ACCOUNTS, PAID_REPORT_FEE_USDC, companies, holdersByToken, invoices, investorKyc,
-  kycRequests, pausedTokens, riskReports, transactions, unlockedReports,
-} from "./mock";
+// The ONLY file components talk to. Real backend calls by default; mock data
+// (lib/mock-api.ts + lib/mock.ts) only when NEXT_PUBLIC_USE_MOCK=true.
+import { ACCOUNTS, companies as mockCompanies } from "./mock";
+import * as mock from "./mock-api";
+import { ApiError, DuplicateInvoiceError } from "./errors";
 import type {
-  Company, Grade, Holder, Invoice, KycRequest, Listing, PortfolioItem, RiskReport,
-  Transaction, TransactionType, TokenInfo, TxResult,
+  Company, Holder, Invoice, KycRequest, Listing, PortfolioItem, RepaymentHolder,
+  Transaction, TokenInfo, TxResult,
 } from "./types";
 
-const delay = (ms = 600) => new Promise((r) => setTimeout(r, ms));
-const HASHSCAN = "https://hashscan.io/testnet";
-let seq = 100;
+export { ApiError, DuplicateInvoiceError };
 
-export class DuplicateInvoiceError extends Error {
-  hashscanUrl: string;
-  constructor(public originalId: string, hashscanUrl: string) {
-    super("Duplicate invoice: already financed.");
-    this.name = "DuplicateInvoiceError";
-    this.hashscanUrl = hashscanUrl;
-  }
-}
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
-function record(type: TransactionType, description: string, actor: string, invoiceId?: string): TxResult {
-  seq += 1;
-  const payer = `0.0.${11310000 + seq}`;
-  const secs = Math.floor(Date.now() / 1000);
-  const nanos = String(seq).padStart(9, "0");
-  const txId = `${payer}@${secs}.${nanos}`;
-  const hashscanUrl = `${HASHSCAN}/transaction/${payer}-${secs}-${nanos}`;
-  const t: Transaction = { id: `t-${seq}`, type, description, actor, timestamp: new Date().toISOString(), hashscanUrl, invoiceId };
-  transactions.unshift(t);
-  return { txId, hashscanUrl };
-}
+/* ───────── HTTP helpers ───────── */
 
-const find = (id: string) => {
-  const inv = invoices.find((i) => i.id === id);
-  if (!inv) throw new Error(`Invoice ${id} not found`);
-  return inv;
-};
-const setStatus = (inv: Invoice, status: Invoice["status"], url: string) => {
-  inv.status = status;
-  inv.hashscanUrl = url;
-};
-const daysTo = (iso: string) => Math.max(0, Math.round((new Date(iso).getTime() - Date.now()) / 86_400_000));
-const unitPrice = (inv: Invoice) => Math.round((inv.unitFaceValue ?? 1000) * (1 - (inv.discountPct ?? 0) / 100));
-const holdersOf = (inv: Invoice): Holder[] => (inv.tokenId ? (holdersByToken[inv.tokenId] ??= []) : []);
-const available = (inv: Invoice) => (inv.totalUnits ?? 0) - (inv.retainedUnits ?? 0) - holdersOf(inv).reduce((s, x) => s + x.units, 0);
-const clone = <T,>(v: T): T => structuredClone(v);
+interface ErrorBody { error?: { code?: string; message?: string; originalId?: string; hashscanUrl?: string } & Record<string, unknown> }
 
-/* ───────── Shared ───────── */
-export async function getCompanies(): Promise<Company[]> {
-  await delay(200);
-  return clone(companies);
-}
-export async function getInvoice(id: string): Promise<Invoice> {
-  await delay(200);
-  return clone(find(id));
-}
-
-/* ───────── Business ───────── */
-export async function getBusinessInvoices(): Promise<Invoice[]> {
-  await delay(300);
-  return clone(invoices.filter((i) => i.supplierId === ACCOUNTS.business.companyId));
-}
-
-export async function getBusinessSummary() {
-  await delay(300);
-  const mine = invoices.filter((i) => i.supplierId === ACCOUNTS.business.companyId);
-  const received = mine
-    .filter((i) => i.status === "funded" || i.status === "repaid")
-    .reduce((s, i) => s + Math.round(((i.totalUnits ?? 0) - (i.retainedUnits ?? 0)) * unitPrice(i)), 0);
-  const pending = mine.filter((i) => !["funded", "repaid", "buyer_rejected"].includes(i.status)).reduce((s, i) => s + i.amount, 0);
-  return { received, pending, invoiceCount: mine.length };
-}
-
-export async function uploadInvoice(input: { buyerId: string; amount: number; dueDate: string; pdfName: string }): Promise<{ invoice: Invoice; tx: TxResult }> {
-  await delay(900);
-  const fingerprint = `sha256:${input.buyerId}-${input.amount}-${input.dueDate}`;
-  const existing = invoices.find(
-    (i) => i.supplierId === ACCOUNTS.business.companyId && i.buyerId === input.buyerId && i.amount === input.amount && i.dueDate.slice(0, 10) === input.dueDate && i.status !== "buyer_rejected",
-  );
-  if (existing) throw new DuplicateInvoiceError(existing.id, existing.hashscanUrl ?? `${HASHSCAN}/topic/0.0.7000001`);
-  const buyer = companies.find((c) => c.id === input.buyerId);
-  if (!buyer) throw new Error("Choose a buyer");
-  const supplier = companies.find((c) => c.id === ACCOUNTS.business.companyId)!;
-  const id = `INV-${String(48 + invoices.length).padStart(4, "0")}`;
-  const tx = record("invoice_upload", `${id} fingerprint written to HCS registry`, "Business", id);
-  const invoice: Invoice = {
-    id, supplierId: supplier.id, supplierName: supplier.name, buyerId: buyer.id, buyerName: buyer.name,
-    amount: input.amount, issueDate: new Date().toISOString(), dueDate: new Date(input.dueDate).toISOString(),
-    status: "submitted", pdfName: input.pdfName, fingerprint, hashscanUrl: tx.hashscanUrl,
-  };
-  invoices.unshift(invoice);
-  return { invoice: clone(invoice), tx };
-}
-
-export async function getSuppliers(): Promise<Company[]> {
-  await delay(200);
-  return clone(companies.filter((c) => c.type !== "buyer" && c.id !== ACCOUNTS.business.companyId));
-}
-
-export async function getTransferableInvoices(): Promise<Invoice[]> {
-  await delay(200);
-  return clone(invoices.filter((i) => i.supplierId === ACCOUNTS.business.companyId && (i.retainedUnits ?? 0) > 0));
-}
-
-export async function paySupplierWithUnits(input: { invoiceId: string; supplierId: string; amount: number; units: number }): Promise<TxResult> {
-  await delay(900);
-  const inv = find(input.invoiceId);
-  const sup = companies.find((c) => c.id === input.supplierId);
-  if (!sup) throw new Error("Choose a supplier");
-  if (!sup.kycVerified) throw new Error(`Transfer failed: ${sup.name} is not KYC-verified, so the token rejects the transfer.`);
-  if (!Number.isInteger(input.units) || input.units <= 0) throw new Error("Units must be a positive whole number");
-  if (input.units > (inv.retainedUnits ?? 0)) throw new Error(`You only hold ${inv.retainedUnits ?? 0} units of ${inv.id}`);
-  inv.retainedUnits = (inv.retainedUnits ?? 0) - input.units;
-  const holders = holdersOf(inv);
-  const existing = holders.find((x) => x.accountId === sup.hederaAccount);
-  if (existing) existing.units += input.units;
-  else holders.push({ accountId: sup.hederaAccount, name: sup.name, units: input.units, amountPaid: input.amount, frozen: false });
-  return record("units_transfer", `${input.units} units of ${inv.id} sent to ${sup.name} (₹${input.amount.toLocaleString("en-IN")})`, "Business", inv.id);
-}
-
-/* ───────── Buyer ───────── */
-export async function getBuyerToConfirm(): Promise<Invoice[]> {
-  await delay(300);
-  return clone(invoices.filter((i) => i.buyerId === ACCOUNTS.buyer.companyId && i.status === "submitted"));
-}
-export async function getBuyerUpcoming(): Promise<Invoice[]> {
-  await delay(300);
-  return clone(invoices.filter((i) => i.buyerId === ACCOUNTS.buyer.companyId && ["buyer_confirmed", "risk_checked", "tokenized", "funded"].includes(i.status)));
-}
-
-export async function confirmInvoice(id: string): Promise<TxResult> {
-  await delay(900);
-  const inv = find(id);
-  const tx = record("buyer_confirm", `${inv.buyerName} confirmed ${id}`, "Buyer", id);
-  setStatus(inv, "buyer_confirmed", tx.hashscanUrl);
-  // The risk engine runs right after confirmation in the real flow.
-  const rep = riskReports[id];
-  if (rep) {
-    inv.grade = rep.grade; inv.riskScore = rep.riskScore; inv.discountPct = rep.suggestedDiscountPct;
-    inv.status = "risk_checked";
-  } else {
-    inv.grade = "B"; inv.riskScore = 70; inv.discountPct = 6; inv.status = "risk_checked";
-  }
-  return tx;
-}
-export async function rejectInvoice(id: string): Promise<TxResult> {
-  await delay(900);
-  const inv = find(id);
-  const tx = record("buyer_reject", `${inv.buyerName} rejected ${id}`, "Buyer", id);
-  setStatus(inv, "buyer_rejected", tx.hashscanUrl);
-  return tx;
-}
-export async function payInvoice(id: string): Promise<TxResult> {
-  await delay(1100);
-  const inv = find(id);
-  if (inv.status !== "funded") throw new Error("Only funded invoices can be paid at maturity");
-  const tx = record("buyer_payment", `${inv.buyerName} paid ₹${inv.amount.toLocaleString("en-IN")} for ${id}; holders repaid`, "Buyer", id);
-  setStatus(inv, "repaid", tx.hashscanUrl);
-  return tx;
-}
-
-/* ───────── Investor ───────── */
-export async function getMyKyc(): Promise<KycRequest | null> {
-  await delay(250);
-  return clone(investorKyc.current);
-}
-export async function submitKyc(input: { fullName: string; walletAddress: string; country: string }): Promise<KycRequest> {
-  await delay(900);
-  if (!/^0\.0\.\d+$/.test(input.walletAddress)) throw new Error("Wallet must look like 0.0.12345");
-  const req: KycRequest = {
-    id: `kyc-${seq++}`, ...input, status: "pending", submittedAt: new Date().toISOString(),
-    walletScan: input.walletAddress === "0.0.666013" ? "flagged" : "clean",
-    walletScanNote: input.walletAddress === "0.0.666013" ? "Known scam wallet" : undefined,
-  };
-  investorKyc.current = req;
-  kycRequests.unshift(req);
-  return clone(req);
-}
-
-export async function getListings(): Promise<Listing[]> {
-  await delay(400);
-  return clone(
-    invoices
-      .filter((i) => (i.status === "tokenized" || i.status === "funded") && i.tokenId && available(i) > 0 && i.grade !== "D")
-      .map((i): Listing => ({
-        invoiceId: i.id, buyerName: i.buyerName, amount: i.amount,
-        returnPct: Number((((i.unitFaceValue ?? 1000) / unitPrice(i) - 1) * 100).toFixed(1)),
-        daysToMaturity: daysTo(i.dueDate), grade: (i.grade ?? "C") as Grade, availableUnits: available(i),
-        unitPrice: unitPrice(i), unitFaceValue: i.unitFaceValue ?? 1000, tokenId: i.tokenId!,
-      })),
-  );
-}
-export async function getListing(invoiceId: string): Promise<Listing> {
-  const l = (await getListings()).find((x) => x.invoiceId === invoiceId);
-  if (!l) throw new Error("Listing not found or sold out");
-  return l;
-}
-
-export async function isReportUnlocked(invoiceId: string): Promise<RiskReport | null> {
-  await delay(150);
-  return unlockedReports.has(invoiceId) ? buildReport(invoiceId, "already paid") : null;
-}
-function buildReport(invoiceId: string, tx: string): RiskReport {
-  const r = riskReports[invoiceId];
-  if (!r) throw new Error("Risk service unavailable: no report returned, nothing was charged.");
-  return { ...r, paymentTx: tx, hashscanUrl: `${HASHSCAN}/transaction/${tx}` };
-}
-export async function buyRiskReport(invoiceId: string): Promise<RiskReport> {
-  await delay(1200);
-  if (!riskReports[invoiceId]) throw new Error("Risk service unavailable: no report returned, nothing was charged.");
-  const tx = record("risk_report", `Paid ${PAID_REPORT_FEE_USDC} USDC for risk report on ${invoiceId}`, "Investor", invoiceId);
-  unlockedReports.add(invoiceId);
-  return { ...riskReports[invoiceId], paymentTx: tx.txId, hashscanUrl: tx.hashscanUrl };
-}
-
-export async function buyUnits(input: { invoiceId: string; units: number }): Promise<TxResult> {
-  await delay(1000);
-  if (investorKyc.current?.status !== "approved") throw new Error("Purchase rejected by the token: your wallet is not KYC-approved yet.");
-  const inv = find(input.invoiceId);
-  if (!Number.isInteger(input.units) || input.units <= 0) throw new Error("Units must be a positive whole number");
-  if (inv.tokenId && pausedTokens[inv.tokenId]) throw new Error("Token is paused by the admin. Purchases are blocked.");
-  const holders = holdersOf(inv);
-  const me = holders.find((x) => x.accountId === ACCOUNTS.investor.accountId);
-  if (me?.frozen) throw new Error("Your holding is frozen by the admin.");
-  if (input.units > available(inv)) throw new Error(`Only ${available(inv)} units are available`);
-  const cost = input.units * unitPrice(inv);
-  if (me) { me.units += input.units; me.amountPaid += cost; }
-  else holders.push({ accountId: ACCOUNTS.investor.accountId, name: ACCOUNTS.investor.name, units: input.units, amountPaid: cost, frozen: false });
-  if (inv.status === "tokenized") inv.status = "funded";
-  const tx = record("units_buy", `${ACCOUNTS.investor.name} bought ${input.units} units of ${inv.id} for ₹${cost.toLocaleString("en-IN")}`, "Investor", inv.id);
-  inv.hashscanUrl = tx.hashscanUrl;
-  return tx;
-}
-
-export async function getPortfolio(): Promise<PortfolioItem[]> {
-  await delay(400);
-  const out: PortfolioItem[] = [];
-  for (const inv of invoices) {
-    const me = holdersOf(inv).find((x) => x.accountId === ACCOUNTS.investor.accountId);
-    if (me) out.push({
-      invoiceId: inv.id, buyerName: inv.buyerName, units: me.units, amountPaid: me.amountPaid,
-      expectedPayout: me.units * (inv.unitFaceValue ?? 1000), dueDate: inv.dueDate,
-      grade: (inv.grade ?? "C") as Grade, repaid: inv.status === "repaid",
+/** No client-side timeout: tokenize takes about a minute and repay about 15 s per holder. */
+async function http<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      cache: "no-store",
     });
+  } catch {
+    throw new ApiError("NETWORK_ERROR", `Cannot reach the backend at ${API_URL}. Start it with "cd backend && npm start".`);
   }
-  return clone(out);
+  const text = await res.text();
+  let json: unknown = null;
+  try { json = text ? JSON.parse(text) : null; } catch { /* not JSON */ }
+  if (!res.ok) {
+    const e = (json as ErrorBody | null)?.error;
+    if (e?.code === "DUPLICATE_INVOICE") {
+      throw new DuplicateInvoiceError(e.originalId, e.hashscanUrl ?? "", e.message ? `Duplicate invoice: already financed (${e.message})` : "Duplicate invoice: already financed.");
+    }
+    const msg = e?.code === "SUPPLIER_NOT_VERIFIED" || e?.code === "NOT_ALLOWLISTED"
+      ? `Transfer blocked: recipient not verified (${e.message})`
+      : (e?.message ?? `The backend returned an error (${res.status}).`);
+    throw new ApiError(e?.code ?? `HTTP_${res.status}`, msg, res.status, e ?? {});
+  }
+  return json as T;
 }
 
-/* ───────── Admin ───────── */
-export async function getKycRequests(): Promise<KycRequest[]> {
-  await delay(300);
-  return clone(kycRequests);
-}
-export async function reviewKyc(id: string, approve: boolean): Promise<TxResult> {
-  await delay(900);
-  const k = kycRequests.find((x) => x.id === id);
-  if (!k) throw new Error("KYC request not found");
-  if (approve && k.walletScan === "flagged") throw new Error("Wallet scan flagged this applicant. Reject instead.");
-  k.status = approve ? "approved" : "rejected";
-  const tx = record(approve ? "kyc_approve" : "kyc_reject", `${k.fullName} ${approve ? "added to" : "kept off"} the allowlist`, "Admin");
-  k.hashscanUrl = tx.hashscanUrl;
-  return tx;
+const post = async <T,>(path: string, body: unknown = {}): Promise<T> => {
+  try { return await http<T>("POST", path, body); } finally { invoicesCache = null; }
+};
+
+interface TxResponse { hashscanUrl: string; tx?: { txId?: string } }
+const txOf = (r: TxResponse): TxResult => ({ hashscanUrl: r.hashscanUrl, txId: r.tx?.txId ?? "" });
+
+/** Reads are shared for 2 s so pages that ask several times don't hit the chain repeatedly. */
+let invoicesCache: { at: number; p: Promise<Invoice[]> } | null = null;
+function listInvoices(): Promise<Invoice[]> {
+  if (invoicesCache && Date.now() - invoicesCache.at < 2000) return invoicesCache.p;
+  const p = http<{ invoices: Invoice[] }>("GET", "/invoices").then((r) => r.invoices);
+  invoicesCache = { at: Date.now(), p };
+  p.catch(() => { if (invoicesCache?.p === p) invoicesCache = null; });
+  return p;
 }
 
-export async function getAwaitingTokenization(): Promise<Invoice[]> {
-  await delay(300);
-  return clone(invoices.filter((i) => i.status === "risk_checked"));
-}
-export async function createToken(invoiceId: string): Promise<TxResult> {
-  await delay(1400);
-  const inv = find(invoiceId);
-  if (inv.status !== "risk_checked") throw new Error("Only risk-checked invoices can be tokenized");
-  const tokenId = `0.0.${7001100 + invoices.indexOf(inv) + seq}`;
-  inv.tokenId = tokenId;
-  inv.totalUnits = Math.round(inv.amount / 1000);
-  inv.unitFaceValue = 1000;
-  inv.retainedUnits = 0;
-  holdersByToken[tokenId] = [];
-  const tx = record("token_create", `Token ${tokenId} created for ${inv.id}: ${inv.totalUnits} units of ₹1,000`, "Admin", inv.id);
-  setStatus(inv, "tokenized", `${HASHSCAN}/token/${tokenId}`);
-  return { ...tx, hashscanUrl: `${HASHSCAN}/token/${tokenId}` };
+interface HoldersResponse { invoiceId: string; tokenId: string | null; holders: Holder[]; repaidHolders: RepaymentHolder[] }
+const getHolders = (id: string) => http<HoldersResponse>("GET", `/invoices/${encodeURIComponent(id)}/holders`);
+
+const repaidToHolder = (h: RepaymentHolder): Holder => ({
+  accountId: h.accountId, name: h.name, units: h.units, amountPaid: 0, frozen: false, repaid: true, hashscanUrl: h.paymentHashscanUrl,
+});
+
+const unitPriceOf = (i: Invoice) => i.unitPrice ?? Math.round((i.unitFaceValue ?? 1000) * (1 - (i.discountPct ?? 0) / 100));
+const maturityOf = (i: Invoice) => i.maturityDate ?? i.dueDate;
+const isLive = (i: Invoice) => (i.status === "tokenized" || i.status === "funded") && !!i.tokenId;
+
+function toListing(i: Invoice): Listing {
+  const face = i.unitFaceValue ?? 1000;
+  const price = unitPriceOf(i);
+  return {
+    invoiceId: i.id, buyerName: i.buyerName, amount: i.amount,
+    returnPct: Number(((face / price - 1) * 100).toFixed(1)),
+    daysToMaturity: Math.max(0, Math.round((new Date(maturityOf(i)).getTime() - Date.now()) / 86_400_000)),
+    grade: i.grade, // the backend has no risk engine yet, so this stays undefined
+    availableUnits: i.availableUnits ?? i.retainedUnits ?? 0,
+    unitPrice: price, unitFaceValue: face, tokenId: i.tokenId!,
+  };
 }
 
-export async function getTokens(): Promise<TokenInfo[]> {
-  await delay(300);
-  return clone(
-    invoices.filter((i) => i.tokenId).map((i): TokenInfo => ({
-      tokenId: i.tokenId!, invoiceId: i.id, buyerName: i.buyerName, totalUnits: i.totalUnits ?? 0,
-      unitFaceValue: i.unitFaceValue ?? 1000, maturityDate: i.dueDate, paused: !!pausedTokens[i.tokenId!],
-      holders: holdersOf(i),
-    })),
-  );
+/** One idempotency key per (action, invoice, units) until it succeeds, so a retry never double-charges. */
+const keys = new Map<string, string>();
+async function withKey<T>(name: string, run: (key: string) => Promise<T>): Promise<T> {
+  const key = keys.get(name) ?? crypto.randomUUID();
+  keys.set(name, key);
+  const out = await run(key);
+  keys.delete(name);
+  return out;
 }
-export async function setTokenPaused(tokenId: string, paused: boolean): Promise<TxResult> {
-  await delay(900);
-  pausedTokens[tokenId] = paused;
-  return record(paused ? "token_pause" : "token_unpause", `Token ${tokenId} ${paused ? "paused" : "unpaused"}`, "Admin");
-}
-export async function setHolderFrozen(tokenId: string, accountId: string, frozen: boolean): Promise<TxResult> {
-  await delay(900);
-  const holder = (holdersByToken[tokenId] ?? []).find((x) => x.accountId === accountId);
-  if (!holder) throw new Error("Holder not found");
-  holder.frozen = frozen;
-  return record(frozen ? "holder_freeze" : "holder_unfreeze", `${holder.name} ${frozen ? "frozen" : "unfrozen"} on ${tokenId}`, "Admin");
-}
-export async function getAuditLog(): Promise<Transaction[]> {
-  await delay(300);
-  return clone(transactions);
-}
+
+const unsupported = (what: string) => async (): Promise<never> => {
+  throw new Error(`${what} isn't supported by the backend yet.`);
+};
+
+/* ───────── Real implementation ───────── */
+
+const real: typeof mock = {
+  // Not in the backend yet: these stay on mock data.
+  getCompanies: mock.getCompanies,
+  buyRiskReport: mock.buyRiskReport,
+  isReportUnlocked: mock.isReportUnlocked,
+  rejectInvoice: unsupported("Rejecting an invoice"),
+
+  async getSuppliers() {
+    const [{ requests }, base] = await Promise.all([
+      http<{ requests: KycRequest[] }>("GET", "/kyc"),
+      mock.getSuppliers(),
+    ]);
+    const approved = new Set(requests.filter((k) => k.status === "approved").map((k) => k.walletAddress));
+    const out: Company[] = base.map((c) => ({ ...c, kycVerified: approved.has(c.hederaAccount) }));
+    for (const k of requests) {
+      if (k.walletAddress === ACCOUNTS.business.accountId || k.walletAddress === ACCOUNTS.investor.accountId) continue;
+      if (!out.some((c) => c.hederaAccount === k.walletAddress)) {
+        out.push({
+          id: k.walletAddress, name: k.fullName, type: "supplier", foundedYear: 2020,
+          gstFilingRate: 0.9, city: "India", address: "", phone: "", hederaAccount: k.walletAddress, kycVerified: k.status === "approved",
+        });
+      }
+    }
+    return out;
+  },
+
+  async getInvoice(id) {
+    return (await http<{ invoice: Invoice }>("GET", `/invoices/${encodeURIComponent(id)}`)).invoice;
+  },
+
+  /* Business */
+  async getBusinessInvoices() {
+    return (await listInvoices()).filter((i) => i.supplierId === ACCOUNTS.business.accountId);
+  },
+  async getBusinessSummary() {
+    const mine = (await listInvoices()).filter((i) => i.supplierId === ACCOUNTS.business.accountId);
+    // Derived: cash credited on sold units (investor payments plus units handed to suppliers).
+    const credited = await Promise.all(
+      mine.filter((i) => i.tokenId && (i.status === "funded" || i.status === "repaid")).map(async (i) => {
+        const h = await getHolders(i.id);
+        if (i.status === "repaid") return h.repaidHolders.filter((x) => x.accountId !== i.supplierId).reduce((s, x) => s + x.units, 0) * unitPriceOf(i);
+        return h.holders.filter((x) => x.accountId !== i.supplierId).reduce((s, x) => s + x.amountPaid, 0);
+      }),
+    );
+    return {
+      received: credited.reduce((s, n) => s + n, 0),
+      pending: mine.filter((i) => !["funded", "repaid", "buyer_rejected"].includes(i.status)).reduce((s, i) => s + i.amount, 0),
+      invoiceCount: mine.length,
+    };
+  },
+  async uploadInvoice(input) {
+    const buyerName = mockCompanies.find((c) => c.hederaAccount === input.buyerId)?.name;
+    const r = await post<TxResponse & { invoice: Invoice }>("/invoices", {
+      buyerId: input.buyerId, buyerName, amount: input.amount, dueDate: input.dueDate,
+      invoiceNumber: input.invoiceNumber || undefined, pdfName: input.pdfName,
+    });
+    return { invoice: r.invoice, tx: txOf(r) };
+  },
+  async getTransferableInvoices() {
+    return (await listInvoices()).filter((i) => i.supplierId === ACCOUNTS.business.accountId && isLive(i) && (i.retainedUnits ?? 0) > 0);
+  },
+  async paySupplierWithUnits(input) {
+    return withKey(`pay:${input.invoiceId}:${input.supplierId}:${input.units}`, async (idempotencyKey) =>
+      txOf(await post<TxResponse>(`/invoices/${encodeURIComponent(input.invoiceId)}/pay-supplier`, {
+        supplierId: input.supplierId, units: input.units, amount: input.amount, idempotencyKey,
+      })));
+  },
+
+  /* Buyer */
+  async getBuyerToConfirm() {
+    return (await listInvoices()).filter((i) => i.buyerId === ACCOUNTS.buyer.accountId && i.status === "submitted");
+  },
+  async getBuyerUpcoming() {
+    return (await listInvoices()).filter((i) => i.buyerId === ACCOUNTS.buyer.accountId && ["buyer_confirmed", "risk_checked", "tokenized", "funded"].includes(i.status));
+  },
+  async confirmInvoice(id) {
+    return txOf(await post<TxResponse>(`/invoices/${encodeURIComponent(id)}/confirm`));
+  },
+  async payInvoice(id) {
+    return txOf(await post<TxResponse>(`/invoices/${encodeURIComponent(id)}/repay`));
+  },
+
+  /* Investor */
+  async getMyKyc() {
+    const { requests } = await http<{ requests: KycRequest[] }>("GET", `/kyc?walletAddress=${ACCOUNTS.investor.accountId}`);
+    return requests[0] ?? null;
+  },
+  async submitKyc(input) {
+    return (await post<{ request: KycRequest }>("/kyc", input)).request;
+  },
+  async getListings() {
+    return (await listInvoices()).filter((i) => isLive(i) && (i.availableUnits ?? i.retainedUnits ?? 0) > 0 && new Date(maturityOf(i)).getTime() > Date.now()).map(toListing);
+  },
+  async getListing(invoiceId) {
+    const { invoice } = await http<{ invoice: Invoice }>("GET", `/invoices/${encodeURIComponent(invoiceId)}`);
+    if (!isLive(invoice) || (invoice.availableUnits ?? invoice.retainedUnits ?? 0) <= 0) throw new Error("Listing not found or sold out");
+    return toListing(invoice);
+  },
+  async buyUnits(input) {
+    return withKey(`buy:${input.invoiceId}:${input.units}`, async (idempotencyKey) =>
+      txOf(await post<TxResponse>(`/invoices/${encodeURIComponent(input.invoiceId)}/buy`, {
+        units: input.units, investorId: ACCOUNTS.investor.accountId, idempotencyKey,
+      })));
+  },
+  async getPortfolio() {
+    const out: PortfolioItem[] = [];
+    await Promise.all((await listInvoices()).filter((i) => i.tokenId).map(async (i) => {
+      const h = await getHolders(i.id);
+      const face = i.unitFaceValue ?? 1000;
+      const mineNow = h.holders.find((x) => x.accountId === ACCOUNTS.investor.accountId);
+      const mineRepaid = h.repaidHolders.find((x) => x.accountId === ACCOUNTS.investor.accountId);
+      const units = mineNow?.units ?? mineRepaid?.units;
+      if (!units) return;
+      out.push({
+        invoiceId: i.id, buyerName: i.buyerName, units, amountPaid: mineNow?.amountPaid ?? units * unitPriceOf(i),
+        expectedPayout: units * face, dueDate: maturityOf(i), grade: i.grade, repaid: i.status === "repaid",
+      });
+    }));
+    return out.sort((a, b) => a.invoiceId.localeCompare(b.invoiceId));
+  },
+
+  /* Admin */
+  async getKycRequests() {
+    return (await http<{ requests: KycRequest[] }>("GET", "/kyc")).requests;
+  },
+  async reviewKyc(id, approve) {
+    if (!approve) throw new Error("Rejecting a KYC request isn't supported by the backend yet.");
+    return txOf(await post<TxResponse>(`/kyc/${encodeURIComponent(id)}/approve`));
+  },
+  async getAwaitingTokenization() {
+    return (await listInvoices()).filter((i) => i.status === "buyer_confirmed" || i.status === "risk_checked");
+  },
+  async createToken(invoiceId, opts) {
+    const r = await post<TxResponse>(`/invoices/${encodeURIComponent(invoiceId)}/tokenize`, opts?.maturityMinutes ? { maturityMinutes: opts.maturityMinutes } : {});
+    return txOf(r);
+  },
+  async getTokens() {
+    const [{ tokens }, invoices] = await Promise.all([
+      http<{ tokens: TokenInfo[] }>("GET", "/tokens"),
+      listInvoices(),
+    ]);
+    const out = await Promise.all(invoices.filter((i) => i.tokenId).map(async (i): Promise<TokenInfo | null> => {
+      const live = tokens.find((t) => t.tokenId === i.tokenId);
+      if (i.status === "repaid") {
+        const h = await getHolders(i.id);
+        return {
+          tokenId: i.tokenId!, symbol: i.symbol, invoiceId: i.id, buyerName: i.buyerName, totalUnits: i.totalUnits ?? 0,
+          unitFaceValue: i.unitFaceValue ?? 1000, maturityDate: maturityOf(i), paused: live?.paused ?? false,
+          holders: h.repaidHolders.map(repaidToHolder), repaid: true, hashscanUrl: i.hashscanUrl,
+        };
+      }
+      return live ?? null;
+    }));
+    return out.filter((t): t is TokenInfo => t !== null);
+  },
+  async setTokenPaused(tokenId, paused) {
+    return txOf(await post<TxResponse>(`/tokens/${encodeURIComponent(tokenId)}/${paused ? "pause" : "unpause"}`));
+  },
+  async setHolderFrozen(tokenId, accountId, frozen) {
+    return txOf(await post<TxResponse>(`/tokens/${encodeURIComponent(tokenId)}/${frozen ? "freeze" : "unfreeze"}`, { accountId }));
+  },
+  async getAuditLog(): Promise<Transaction[]> {
+    return (await http<{ entries: Transaction[] }>("GET", "/audit")).entries;
+  },
+};
+
+const impl: typeof mock = USE_MOCK ? mock : real;
+
+export const {
+  getCompanies, getInvoice, getBusinessInvoices, getBusinessSummary, uploadInvoice, getSuppliers,
+  getTransferableInvoices, paySupplierWithUnits, getBuyerToConfirm, getBuyerUpcoming, confirmInvoice,
+  rejectInvoice, payInvoice, getMyKyc, submitKyc, getListings, getListing, isReportUnlocked,
+  buyRiskReport, buyUnits, getPortfolio, getKycRequests, reviewKyc, getAwaitingTokenization,
+  createToken, getTokens, setTokenPaused, setHolderFrozen, getAuditLog,
+} = impl;
+

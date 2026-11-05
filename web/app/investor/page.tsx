@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Async, Empty, ErrorNote, Field, GradeBadge, PageHeader } from "@/components/common";
+import { Async, Empty, ErrorNote, Field, GradeBadge, HashscanLink, PageHeader, Pending } from "@/components/common";
 import { useAsync } from "@/hooks/use-async";
 import { getListings, getMyKyc, getPortfolio, submitKyc } from "@/lib/api";
 import { errMsg, fmtDate, inr } from "@/lib/utils";
@@ -117,7 +117,10 @@ function KycSection({ kyc, onDone }: { kyc: Awaited<ReturnType<typeof getMyKyc>>
               {kyc.status === "rejected" && "Your application was rejected."}
             </p>
           </div>
-          <Badge variant={v[kyc.status]} className="capitalize">{kyc.status}</Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant={v[kyc.status]} className="capitalize">{kyc.status}</Badge>
+            <HashscanLink href={kyc.hashscanUrl} />
+          </div>
         </CardContent>
       </Card>
     );
@@ -136,6 +139,7 @@ function KycSection({ kyc, onDone }: { kyc: Awaited<ReturnType<typeof getMyKyc>>
           <Field label="Country"><Input required value={country} onChange={(e) => setCountry(e.target.value)} /></Field>
           <div className="space-y-3 sm:col-span-3">
             <Button type="submit" loading={loading}>Submit for KYC</Button>
+            <Pending active={loading} message="Recording your KYC request on Hedera…" />
             <ErrorNote message={error} />
           </div>
         </form>

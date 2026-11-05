@@ -4,10 +4,10 @@ import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn, errMsg } from "@/lib/utils";
+import { cn, errLink, errMsg } from "@/lib/utils";
 import type { Grade, InvoiceStatus } from "@/lib/types";
 
-export function HashscanLink({ href, className }: { href?: string; className?: string }) {
+export function HashscanLink({ href, label, className }: { href?: string; label?: string; className?: string }) {
   if (!href) return null;
   return (
     <a
@@ -16,7 +16,7 @@ export function HashscanLink({ href, className }: { href?: string; className?: s
       rel="noopener noreferrer"
       className={cn("whitespace-nowrap text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline", className)}
     >
-      ↗ HashScan
+      ↗ {label ?? "HashScan"}
     </a>
   );
 }
@@ -27,12 +27,37 @@ export function GradeBadge({ grade, className }: { grade?: Grade; className?: st
   return <Badge variant={gradeVariant[grade]} className={className}>Grade {grade}</Badge>;
 }
 
-export function ErrorNote({ message, className }: { message?: string | null; className?: string }) {
+export function ErrorNote({ message, href, className }: { message?: string | null; href?: string; className?: string }) {
   if (!message) return null;
   return (
     <div role="alert" className={cn("flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800", className)}>
       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-      <span>{message}</span>
+      <span>
+        {message}
+        {href && <> <HashscanLink href={href} /></>}
+      </span>
+    </div>
+  );
+}
+
+/** Shown while a slow blockchain action runs, with a live timer. */
+export function Pending({ active, message = "Confirming on Hedera…" }: { active: boolean; message?: string }) {
+  const [secs, setSecs] = React.useState(0);
+  React.useEffect(() => {
+    if (!active) return;
+    const t0 = Date.now();
+    const id = setInterval(() => setSecs(Math.floor((Date.now() - t0) / 1000)), 1000);
+    return () => { clearInterval(id); setSecs(0); };
+  }, [active]);
+  if (!active) return null;
+  return (
+    <div role="status" className="flex items-center gap-2 text-xs text-indigo-700">
+      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      <span>
+        {message}
+        {secs >= 2 && ` ${secs}s`}
+        {secs >= 6 && " · blockchain actions can take 5–15 seconds, please keep this page open"}
+      </span>
     </div>
   );
 }
@@ -105,19 +130,22 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 
 interface AsyncButtonProps extends Omit<ButtonProps, "onClick" | "loading"> {
   action: () => Promise<unknown>;
+  pendingMessage?: string;
   onDone?: (result: unknown) => void;
   type?: "button" | "submit";
 }
 
 /** Button with loading + error state; shows a HashScan link when the action returns one. */
-export function AsyncButton({ action, onDone, children, className, ...props }: AsyncButtonProps) {
+export function AsyncButton({ action, onDone, pendingMessage, children, className, ...props }: AsyncButtonProps) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [errorUrl, setErrorUrl] = React.useState<string | undefined>();
   const [url, setUrl] = React.useState<string | undefined>();
 
   async function run() {
     setLoading(true);
     setError(null);
+    setErrorUrl(undefined);
     try {
       const res = await action();
       const u = (res as { hashscanUrl?: string } | undefined)?.hashscanUrl;
@@ -125,6 +153,8 @@ export function AsyncButton({ action, onDone, children, className, ...props }: A
       onDone?.(res);
     } catch (e) {
       setError(errMsg(e));
+      setErrorUrl(errLink(e));
+      setUrl(undefined);
     } finally {
       setLoading(false);
     }
@@ -138,7 +168,8 @@ export function AsyncButton({ action, onDone, children, className, ...props }: A
         </Button>
         <HashscanLink href={url} />
       </div>
-      <ErrorNote message={error} />
+      <Pending active={loading} message={pendingMessage} />
+      <ErrorNote message={error} href={errorUrl} />
     </div>
   );
 }

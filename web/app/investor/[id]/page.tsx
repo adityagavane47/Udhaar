@@ -51,7 +51,7 @@ export default function InvoiceDetail() {
                   <Field label="Units" hint={`Total ${inr((Number(units) || 0) * l.unitPrice)} · pays out ${inr((Number(units) || 0) * l.unitFaceValue)} in ${l.daysToMaturity} days`}>
                     <Input type="number" min={1} max={l.availableUnits} value={units} onChange={(e) => setUnits(e.target.value)} />
                   </Field>
-                  <AsyncButton action={() => buyUnits({ invoiceId: l.invoiceId, units: Number(units) })} onDone={listing.reload} disabled={!Number(units)}>
+                  <AsyncButton action={() => buyUnits({ invoiceId: l.invoiceId, units: Number(units) })} pendingMessage="Paying uINR and transferring bond units on Hedera…" onDone={listing.reload} disabled={!Number(units)}>
                     Buy units
                   </AsyncButton>
                 </CardContent>
