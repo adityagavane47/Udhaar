@@ -25,4 +25,10 @@ export const limits = {
   tokenize: perIpLimit(10, 5, "tokenize requests"),
   /** Failed attempts only, to slow passcode guessing. */
   login: perIpLimit(15, 10, "failed login attempts", true),
+  /** Investor sessions need no passcode, so this is what slows anyone collecting them. */
+  investorSession: perIpLimit(15, 30, "investor session requests"),
+  /** Each paid report is two requests: the quote, then the payment. */
+  paidReport: perIpLimit(1, 60, "risk report requests"),
+  buyReport: perIpLimit(1, 10, "report purchases"),
+  agentRun: perIpLimit(10, 5, "agent runs"),
 };

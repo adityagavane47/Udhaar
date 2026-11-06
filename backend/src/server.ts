@@ -1,6 +1,9 @@
 import { createApp } from "./app.js";
 import { adminPasscodeIsSet } from "./auth.js";
+import { markInterruptedRuns } from "./agent/agent.js";
 import { config } from "./config.js";
+
+markInterruptedRuns();
 
 createApp().listen(config.port, () => {
   console.log(`Udhaar API listening on http://localhost:${config.port} (testnet)`);

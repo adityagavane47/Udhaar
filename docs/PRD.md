@@ -108,14 +108,14 @@ P0 items qualify the Tokenize track and must ship; P1 items add bonus points and
 | F12 | Risk scorecard (credit 100-point score, grade, confidence, discount, reasons) | P1 |
 | F13 | Graph fraud checks: shared director, circular invoicing, shared address, unconfirmed invoice | P1 |
 | F14 | Anomaly flag with Isolation Forest on invoice features | P1 |
-| F15 | Full risk report behind x402, 0.01 USDC per call, settled on Hedera | P1 |
+| F15 | Full risk report behind x402, ₹1.00 in uINR per call, settled on Hedera | P1 |
 | F16 | Auto-invest agent: rules, budget, pays for reports and buys with no human approval, shows a receipt | P1 |
 | F17 | Admin 3D network graph with fraud patterns highlighted; investor 2D mini-graph with masked names | P1 |
 | F18 | Repayment triggered by a Scheduled Transaction on the due date | P1 |
 | F19 | KYC wallet scan against known scam wallets | P1 |
 | F20 | Audit log of all actions | P1 |
 | F21 | Price feed (fair value per token) over x402 | P2 |
-| F22 | Demo rupee stablecoin minted with Stablecoin Studio | P0 if the USDC faucet fails on day 1, else P2 |
+| F22 | uINR, a test rupee stablecoin (HTS token with a 1% custom fee), used for units and x402 reports | P0 |
 | F23 | Atomic swap contract (stablecoin for units in one step) | P2 |
 | F24 | Report fee split across engines in one atomic transfer | P2 |
 
@@ -133,16 +133,16 @@ F18 (scheduled repayment) moves up to be built right after the P0 core. F8 demo 
 
 ## Risk API and x402 specification
 
-The risk API exposes one free and one paid route; the paid route follows the x402 pattern and settles in test USDC through a Hedera facilitator.
+The risk API exposes one free and one paid route; the paid route follows the x402 pattern and settles in uINR (`0.0.11327250`) through a Hedera facilitator.
 
 | Route | Access | Returns |
 | --- | --- | --- |
 | `GET /v1/invoices/{id}/summary` | Free | Grade, amount, due date, discount |
-| `GET /v1/risk-report/{id}` | x402, 0.01 USDC | Full report (below) and investor mini-graph data |
+| `GET /v1/risk-report/{id}` | x402, ₹1.00 in uINR | Full report (below) and investor mini-graph data |
 | `GET /v1/price/{tokenId}` | x402, P2 | Fair value per unit from grade and days to maturity |
 | `GET /health` | Free | Service status |
 
-**Paid call flow:** a request without payment gets `402 Payment Required` listing network `hedera-testnet`, asset (USDC token), amount, receiving account and resource. The client retries with a signed payment in the payment header; the facilitator verifies and settles; the response carries the report and the settlement transaction ID. Exact header and field names follow the Hedera x402 middleware used.
+**Paid call flow:** a request without payment gets `402 Payment Required` listing network `hedera:testnet`, asset (uINR), amount, receiving account and resource. The payer needs ₹1.01, because uINR's 1% fee is charged on top and goes to the protection pool. The client retries with a signed payment in the payment header; the facilitator verifies and settles; the response carries the report and the settlement transaction ID. Exact header and field names follow the Hedera x402 middleware used.
 
 **Report fields**
 
@@ -158,7 +158,7 @@ The risk API exposes one free and one paid route; the paid route follows the x40
   "suggested_discount_pct": 2.9589,
   "reasons": ["Buyer paid 90% of past invoices on time"],
   "graph": {"nodes": [], "links": []},
-  "payment_tx": "0.0.11310322@..."
+  "payment_tx": "0.0.9185802@..."
 }
 ```
 
@@ -188,7 +188,7 @@ The plan rests on three assumptions about Hedera tooling that must be checked in
 
 - ATS can issue a bond-style token with a maturity date, KYC allowlist and freeze, and redeem it at maturity.
 - A Scheduled Transaction can trigger repayment on the due date; if not, the admin triggers it manually in the demo.
-- Test USDC is available (faucet in the morning, or from the Hedera team); otherwise a demo stablecoin is minted.
+- uINR is held by the investor and accepted by the x402 facilitator. Both were tested on testnet on 6 Nov 2026.
 - Rupee amounts are display-only; settlement uses a stablecoin at a fixed demo rate stated in the README.
 - Project code is written during the event; only accounts, research and these documents are prepared beforehand.
 
@@ -199,7 +199,7 @@ The plan rests on three assumptions about Hedera tooling that must be checked in
 - [ ] Can one project be submitted to both the Tokenize and x402 tracks?
 - [ ] Does ATS bond redemption support scheduled execution, or is it triggered by the issuer?
 - [ ] How are ATS contracts verified on HashScan for the "contracts verified" requirement?
-- [ ] Can the team provide test USDC if the faucet limit persists?
+- [x] Test USDC is no longer needed: x402 reports settle in uINR.
 
 ## Acceptance criteria
 

@@ -8,6 +8,7 @@ import type { TxRecord } from "./types.js";
 export interface HcsTopics {
   registryTopicId: string;
   confirmationTopicId: string;
+  agentAuditTopicId?: string;
 }
 
 interface MirrorTopicMessage {
@@ -62,6 +63,19 @@ export async function ensureTopics(): Promise<HcsTopics> {
   };
   writeFileSync(config.hcsRecordPath, `${JSON.stringify(topics, null, 2)}\n`);
   return topics;
+}
+
+/**
+ * The agent's spending log. It has a submit key and no admin key: only the investor's key can
+ * write to it, and nobody can change or delete what's there.
+ */
+export async function ensureAgentAuditTopic(): Promise<string> {
+  const known = await ensureTopics();
+  if (known.agentAuditTopicId) return known.agentAuditTopicId;
+  const investor = await getParty("INVESTOR");
+  known.agentAuditTopicId = await createTopic("hcs:topic:agent-audit", "Udhaar agent spending audit log", investor);
+  writeFileSync(config.hcsRecordPath, `${JSON.stringify(known, null, 2)}\n`);
+  return known.agentAuditTopicId;
 }
 
 export async function submitMessage(topicId: string, payer: Party, message: string, key: string): Promise<TxRecord & { replayed: boolean }> {

@@ -3,14 +3,39 @@ import type { RequestHandler } from "express";
 import { config } from "./config.js";
 import { ApiError } from "./errors.js";
 
-/** Made fresh at startup, so restarting the server signs the admin out. */
+/** Made fresh at startup, so restarting the server ends every session. */
 const signingKey = randomBytes(32);
 
-const sign = (expiresAtMs: string) => createHmac("sha256", signingKey).update(expiresAtMs).digest("base64url");
+type Scope = "admin" | "investor";
+
+/** The scope is signed too, so an admin token can't open investor routes or the other way round. */
+const sign = (scope: Scope, expiresAtMs: string) => createHmac("sha256", signingKey).update(`${scope}:${expiresAtMs}`).digest("base64url");
 
 /** Hashing first gives both sides the same length, so the comparison reveals nothing about either. */
 function sameText(a: string, b: string): boolean {
   return timingSafeEqual(createHash("sha256").update(a).digest(), createHash("sha256").update(b).digest());
+}
+
+function issueToken(scope: Scope, minutes: number) {
+  const expiresAtMs = String(Date.now() + minutes * 60_000);
+  return {
+    token: `${expiresAtMs}.${sign(scope, expiresAtMs)}`,
+    expiresAt: new Date(Number(expiresAtMs)).toISOString(),
+    expiresInSeconds: Math.round(minutes * 60),
+  };
+}
+
+function requireToken(scope: Scope, description: string, logInAgain: string): RequestHandler {
+  const prefix = scope.toUpperCase();
+  return (req, _res, next) => {
+    const token = /^Bearer (\S+)$/i.exec(req.headers.authorization ?? "")?.[1];
+    if (!token) throw new ApiError(401, `${prefix}_TOKEN_REQUIRED`, `This route needs ${description}: send Authorization: Bearer <token>`);
+
+    const [expiresAtMs = "", signature = ""] = token.split(".");
+    if (!sameText(signature, sign(scope, expiresAtMs))) throw new ApiError(401, `${prefix}_TOKEN_INVALID`, `The ${scope} token is not valid. ${logInAgain}`);
+    if (Date.now() >= Number(expiresAtMs)) throw new ApiError(401, `${prefix}_TOKEN_EXPIRED`, `The ${scope} token has expired. ${logInAgain}`);
+    next();
+  };
 }
 
 export const adminPasscodeIsSet = () => Boolean(process.env.DEMO_ADMIN_PASSCODE?.trim());
@@ -19,21 +44,20 @@ export const adminPasscodeIsSet = () => Boolean(process.env.DEMO_ADMIN_PASSCODE?
 export function loginAdmin(passcode: string) {
   if (!adminPasscodeIsSet()) throw new ApiError(503, "ADMIN_AUTH_NOT_CONFIGURED", "Admin login is off: DEMO_ADMIN_PASSCODE is not set on the server");
   if (!sameText(passcode, process.env.DEMO_ADMIN_PASSCODE ?? "")) throw new ApiError(401, "INVALID_PASSCODE", "Invalid passcode");
-
-  const expiresAtMs = String(Date.now() + config.adminTokenMinutes * 60_000);
-  return {
-    token: `${expiresAtMs}.${sign(expiresAtMs)}`,
-    expiresAt: new Date(Number(expiresAtMs)).toISOString(),
-    expiresInSeconds: Math.round(config.adminTokenMinutes * 60),
-  };
+  return issueToken("admin", config.adminTokenMinutes);
 }
 
-export const requireAdmin: RequestHandler = (req, _res, next) => {
-  const token = /^Bearer (\S+)$/i.exec(req.headers.authorization ?? "")?.[1];
-  if (!token) throw new ApiError(401, "ADMIN_TOKEN_REQUIRED", "This route needs an admin token: send Authorization: Bearer <token>");
+export const requireAdmin = requireToken("admin", "an admin token", "Log in again");
 
-  const [expiresAtMs = "", signature = ""] = token.split(".");
-  if (!sameText(signature, sign(expiresAtMs))) throw new ApiError(401, "ADMIN_TOKEN_INVALID", "The admin token is not valid. Log in again");
-  if (Date.now() >= Number(expiresAtMs)) throw new ApiError(401, "ADMIN_TOKEN_EXPIRED", "The admin token has expired. Log in again");
-  next();
-};
+/**
+ * The demo's investor persona, selected without a passcode. This token says which persona a request
+ * is for, but doesn't prove who is asking: anyone who can reach the server can get one. What limits
+ * spending is the rate limits, the agent's daily cap and its rules.
+ */
+export function startInvestorSession() {
+  const accountId = process.env.INVESTOR_ID?.trim();
+  if (!accountId) throw new ApiError(503, "INVESTOR_NOT_CONFIGURED", "INVESTOR_ID is not set on the server");
+  return { ...issueToken("investor", config.investorTokenMinutes), persona: "investor" as const, accountId };
+}
+
+export const requireInvestor = requireToken("investor", "an investor session token from POST /auth/demo-investor", "Select the investor again");

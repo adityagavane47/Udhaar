@@ -54,6 +54,23 @@ async function request(method: string, path: string, options: { body?: unknown; 
 }
 const code = (reply: { status: number; json: Json }) => `${reply.status} ${reply.json.error?.code ?? "ok"}`;
 
+/**
+ * The route charges for this, so the scoring tests call the scorer itself, on the store the server
+ * saved. The route has no free path, and test-x402.ts tests it.
+ */
+async function reportOf(id: string): Promise<{ status: number; json: Json }> {
+  const { riskReport } = await import("../src/risk/service.js");
+  const { state } = await import("../src/store.js");
+  const { ApiError } = await import("../src/errors.js");
+  Object.assign(state, JSON.parse(readFileSync(STORE_PATH, "utf8")));
+  try {
+    return { status: 200, json: JSON.parse(JSON.stringify(await riskReport(id))) as Json };
+  } catch (error) {
+    if (error instanceof ApiError) return { status: error.status, json: { error: { code: error.code, message: error.message } } };
+    throw error;
+  }
+}
+
 async function withServer(env: Record<string, string>, run: () => Promise<void>) {
   const child = spawn(process.execPath, ["--import", "tsx", "src/server.ts"], {
     cwd: BACKEND,
@@ -176,7 +193,7 @@ async function scoreStories(realIds: string[]) {
     { id: "DEMO-ANOMALY", label: "Amount anomaly", flags: [], anomaly: true },
   ];
   for (const story of expected) {
-    const { status, json } = await request("GET", `/risk/${story.id}/report`);
+    const { status, json } = await reportOf(story.id);
     check(`${story.id} returns a report`, status === 200, String(status));
     rows.push({ label: `${story.id} (${story.label})`, report: json });
     if (story.grade) check(`${story.id} grade`, story.grade.includes(json.grade), `${json.grade} (score ${json.riskScore})`);
@@ -195,7 +212,7 @@ async function scoreStories(realIds: string[]) {
   check("anomaly raises a warning", anomaly?.reasons.some((reason: string) => reason.startsWith("Warning:")));
 
   for (const id of realIds) {
-    const { status, json } = await request("GET", `/risk/${id}/report`);
+    const { status, json } = await reportOf(id);
     check(`${id} returns a report`, status === 200, code({ status, json }));
     const kind = id.startsWith("TEST-") ? "not in dataset" : "real";
     rows.push({ label: `${id} (${kind}, ₹${Number(json.amount).toLocaleString("en-IN")})`, report: json });
@@ -217,7 +234,7 @@ async function checkFalsePositives() {
   let missedFlags = 0;
   let anomalies = 0;
   for (const invoice of invoices) {
-    const { status, json } = await request("GET", `/risk/${invoice.id}/report`);
+    const { status, json } = await reportOf(invoice.id);
     if (status !== 200) throw new Error(`${invoice.id} returned ${status}`);
     grades[json.grade] = (grades[json.grade] ?? 0) + 1;
     const planted = companyPairs.has(`${invoice.supplierId}>${invoice.buyerId}`);
@@ -253,7 +270,7 @@ async function checkExposure() {
     check(`${id} summary hides the paid fields`, ["riskScore", "reasons", "fraudFlags", "graph", "breakdown", "anomaly", "creditRisk"].every((field) => !(field in summary.json)));
     check(`${id} summary has a HashScan link`, String(summary.json.hashscanUrl).startsWith("https://hashscan.io/testnet/"));
 
-    const report = await request("GET", `/risk/${id}/report`);
+    const report = await reportOf(id);
     const text = JSON.stringify(report.json);
     check(`${id} report names no director`, !directors.some((director) => text.includes(director.name)));
     check(`${id} report has no director IDs`, !directors.some((director) => text.includes(director.id)));
@@ -267,12 +284,12 @@ async function checkExposure() {
     check(`${id} graph links only known nodes`, report.json.graph.links.every((link: Json) => nodeIds.has(link.source) && nodeIds.has(link.target)));
   }
 
-  const ring = await request("GET", "/risk/DEMO-RING/report");
+  const ring = await reportOf("DEMO-RING");
   check("ring graph shows all three companies", ring.json.graph.nodes.filter((node: Json) => node.type === "company" && node.flagged).length === 3);
   check("ring graph closes the loop", ring.json.graph.links.filter((link: Json) => (link.type === "billed" || link.type === "invoice") && link.flagged).length === 3);
-  const hidden = await request("GET", "/risk/DEMO-HIDDEN/report");
+  const hidden = await reportOf("DEMO-HIDDEN");
   check("hidden owner is one flagged person linked to both", hidden.json.graph.links.filter((link: Json) => link.type === "director_of" && link.flagged).length === 2);
-  const address = await request("GET", "/risk/DEMO-ADDRESS/report");
+  const address = await reportOf("DEMO-ADDRESS");
   check("shared address node links to both", address.json.graph.links.filter((link: Json) => link.type === "registered_at").length === 2);
 
   const missing = await request("GET", "/risk/NOPE/summary");
@@ -293,7 +310,8 @@ async function checkExposure() {
   const token = await login();
   const blocked = await request("POST", "/invoices/DEMO-RING/tokenize", { body: {}, token });
   check("tokenizing the ring invoice is refused", code(blocked) === "409 RISK_BLOCKED" && blocked.json.error.fraudFlags.includes("CIRCULAR_INVOICING"), code(blocked));
-  const buy = await request("POST", "/invoices/DEMO-RING/buy", { body: { units: 1, investorId: "0.0.1" } });
+  const session = await request("POST", "/auth/demo-investor");
+  const buy = await request("POST", "/invoices/DEMO-RING/buy", { body: { units: 1 }, token: session.json.token });
   check("buying the ring invoice is refused", code(buy) === "409 SEEDED_INVOICE", code(buy));
   const audit = (await request("GET", "/audit")).json.entries as Json[];
   check("the refusal is in the audit log", audit.some((entry) => entry.type === "risk_blocked" && entry.invoiceId === "DEMO-RING" && entry.status === "rejected"));
@@ -315,7 +333,7 @@ type PriceCase = [id: string, grade: string, days: number, discount: number, pri
 async function checkPriceCases(cases: PriceCase[]) {
   const token = await login();
   for (const [id, grade, days, discount, price, body] of cases) {
-    const report = (await request("GET", `/risk/${id}/report`)).json;
+    const report = (await reportOf(id)).json;
     check(`${id} grades ${grade}`, report.grade === grade, report.grade);
     check(`${id} report shows the discount it will get`, report.suggestedDiscountPct === discount && report.daysToDue === days, `${report.suggestedDiscountPct}, ${report.daysToDue}`);
     const reply = await request("POST", `/invoices/${id}/tokenize`, { body, token });
@@ -337,7 +355,7 @@ async function checkPriceRules(ids: PricingIds, legacyIds: string[]) {
   check("the ordinary bond matures on the due date", full.maturityDateUnix > dayAway, String(full.maturityDateUnix));
   check("a shortened maturity doesn't change the price", short.discountPct === full.discountPct);
 
-  const report = (await request("GET", `/risk/${ids.a}/report`)).json;
+  const report = (await reportOf(ids.a)).json;
   check("a priced invoice's report keeps the same days and discount", report.daysToDue === 75 && report.suggestedDiscountPct === 2.4658, `${report.daysToDue}, ${report.suggestedDiscountPct}`);
 
   // Prices already set must never move.
@@ -349,7 +367,7 @@ async function checkPriceRules(ids: PricingIds, legacyIds: string[]) {
   check("every invoice tokenized before the risk engine is in the list", legacyIds.length > 0 && real.length === legacyIds.length, `${real.length} of ${legacyIds.length}`);
   check("invoices tokenized before the risk engine keep 4% and ₹960", real.every((invoice) => invoice.discountPct === 4 && invoice.unitPrice === 960), JSON.stringify(real.map((invoice) => [invoice.id, invoice.discountPct, invoice.unitPrice])));
   for (const id of legacyIds) {
-    const realReport = (await request("GET", `/risk/${id}/report`)).json;
+    const realReport = (await reportOf(id)).json;
     check(`${id} report shows the 4% actually applied`, realReport.appliedDiscountPct === 4, String(realReport.appliedDiscountPct));
   }
   check("the listing shows paise", listed.find((invoice) => invoice.id === ids.paise)?.unitPrice === 970.41);
@@ -361,7 +379,7 @@ async function checkUnpriceable(ids: PricingIds) {
     const refused = await request("POST", `/invoices/${id}/tokenize`, { body: { maturityMinutes: 5 }, token });
     check(`an invoice ${label} can't be priced, even with a demo maturity`, code(refused) === "422 BAD_DUE_DATE", code(refused));
     check(`${id} leaves no plan behind`, !readStore().invoices[id].tokenization);
-    const unpriced = (await request("GET", `/risk/${id}/report`)).json;
+    const unpriced = (await reportOf(id)).json;
     check(`${id} report suggests no discount`, unpriced.grade === "A" && unpriced.suggestedDiscountPct === null && unpriced.daysToDue === days, `${unpriced.grade}, ${unpriced.suggestedDiscountPct}, ${unpriced.daysToDue}`);
   }
 

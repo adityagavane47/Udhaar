@@ -9,7 +9,9 @@ The backend service for the Udhaar frontend. It runs on Hedera testnet, and all 
 ## Before you switch from mock data
 
 - **Admin routes need a token.** Log in with the demo passcode and send the token on each admin call. See [Authentication](#authentication).
-- **Other routes are still open.** Anyone who can reach the server can call `confirm`, `buy`, `pay-supplier` and `repay`, signed with the server's keys. They're only rate limited, so don't expose the server beyond a testnet demo.
+- **Investor routes need a session token.** `POST /invoices/:id/buy`, `POST /risk/:id/buy-report` and `POST /agent/run` need the token from `POST /auth/demo-investor`. Without it, buying returns `401`. See [Investor sessions](#post-authdemo-investor).
+- **The full risk report is paid.** `GET /risk/:id/report` now returns `402` without a payment, so the frontend should call `POST /risk/:id/buy-report`. See [Risk](#risk).
+- **Other routes are still open.** Anyone who can reach the server can call `confirm`, `pay-supplier` and `repay`, signed with the server's keys. They're only rate limited, so don't expose the server beyond a testnet demo.
 - **Routes that spend HBAR are rate limited.** Handle `429 RATE_LIMITED`. See [Rate limits](#rate-limits).
 - **Slow routes.** Routes wait for on-chain confirmation. Most take 5–30 seconds, `tokenize` takes about a minute, and `repay` takes about 15 seconds per holder. Show a loading state, and don't set a short client timeout.
 - **Requests run one at a time.** State-changing routes are queued, so a slow `repay` delays other writes. GET routes aren't queued.
@@ -102,6 +104,40 @@ Without a valid token, these routes return one of the following and nothing else
 
 Tokens can't be refreshed, so on any of these codes, ask for the passcode again. A token lasts 30 minutes, and restarting the server ends every session.
 
+### POST /auth/demo-investor
+
+Starts a session for the demo's investor persona, Priya. It takes no passcode and no body, and spends no HBAR. Call it when Priya is selected.
+
+**Response `200`**
+
+```ts
+{
+  ok: true;
+  token: string;             // Treat as opaque
+  tokenType: "Bearer";
+  expiresAt: string;         // ISO
+  expiresInSeconds: number;  // 1800 by default
+  persona: "investor";
+  accountId: string;         // INVESTOR_ID
+  hashscanUrl: string;       // The investor's account
+  links: Link[];
+}
+```
+
+Send it as `Authorization: Bearer <token>` on these routes:
+
+| Route | Spends |
+| --- | --- |
+| `POST /invoices/:id/buy` | uINR and HBAR |
+| `POST /risk/:id/buy-report` | ₹1.01 in uINR |
+| `POST /agent/run` | uINR and HBAR |
+
+**Errors on those routes:** `401 INVESTOR_TOKEN_REQUIRED`, `401 INVESTOR_TOKEN_INVALID` (damaged, or issued before the server last restarted), `401 INVESTOR_TOKEN_EXPIRED`. On any of these, get a new session and retry. The route itself can return `429 RATE_LIMITED` or `503 INVESTOR_NOT_CONFIGURED`.
+
+Investor and admin tokens aren't interchangeable, so keep them separately and send the right one for each route.
+
+**What this token doesn't do:** with no passcode, anyone who can reach the server can get one. It marks which persona a request is for, but doesn't prove who is asking. Spending is limited by the rate limits, the agent's daily cap and its rule maximums, so don't expose the server beyond a testnet demo.
+
 ### Rate limits
 
 Limits count per client IP and are held in memory, so a restart clears them.
@@ -111,10 +147,14 @@ Limits count per client IP and are held in memory, so a restart clears them.
 | `POST /invoices`, `/invoices/:id/confirm`, `/buy`, `/pay-supplier`, `/repay`, `POST /kyc/:id/approve`, `POST /tokens/:id/pause`, `/unpause`, `/freeze`, `/unfreeze` | 20 requests a minute, shared across all of them |
 | `POST /invoices/:id/tokenize` | 5 requests in 10 minutes |
 | `POST /auth/demo-admin` | 10 failed attempts in 15 minutes. Successful logins don't count |
+| `POST /auth/demo-investor` | 30 requests in 15 minutes |
+| `GET /risk/:id/report` | 60 requests a minute. A paid report takes 2 |
+| `POST /risk/:id/buy-report` | 10 requests a minute |
+| `POST /agent/run` | 5 requests in 10 minutes, plus 20 runs a UTC day across all callers |
 
-Every request counts, even one the route then refuses. On admin routes the token is checked first, so a request without a valid token doesn't use up the limit.
+Every request counts, even one the route then refuses. On admin and investor routes the token is checked first, so a request without a valid token doesn't use up the limit.
 
-Reads, `POST /kyc` and `POST /kyc/:id/reject` spend no HBAR and have no limit.
+Other reads, `POST /kyc` and `POST /kyc/:id/reject` spend nothing and have no limit.
 
 Over a limit, the server returns `429 RATE_LIMITED` and nothing runs:
 
@@ -131,7 +171,13 @@ Set these in `.env`, then restart the server.
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `DEMO_ADMIN_PASSCODE` | None | Required for admin login |
-| `DEMO_ADMIN_TOKEN_MINUTES` | `30` | How long a token lasts |
+| `DEMO_ADMIN_TOKEN_MINUTES` | `30` | How long an admin token lasts |
+| `DEMO_INVESTOR_TOKEN_MINUTES` | `30` | How long an investor session lasts |
+| `FACILITATOR_URL` | `https://x402.org/facilitator` | The x402 facilitator. `https://api.testnet.blocky402.com` also works |
+| `AGENT_DAILY_RUN_CAP` | `20` | Agent runs a UTC day, across all callers |
+| `AGENT_MAX_REPORT_BUDGET` | `50` | The highest `reportBudget` allowed, in rupees |
+| `AGENT_MAX_INVESTMENT_BUDGET` | `50000` | The highest `investmentBudget` allowed, in rupees |
+| `SELF_URL` | `http://127.0.0.1:PORT` | How the server reaches its own paywall when it pays as the investor |
 | `TRUST_PROXY` | `0` | Number of proxies in front of the server. Set it to `1` on Railway or Render, or all users share one rate limit |
 
 ## Data shapes
@@ -246,7 +292,7 @@ Matches the frontend's `Transaction`, with `txId` and `status` added.
 ```ts
 interface AuditEntry {
   id: string;
-  type: "invoice_upload" | "duplicate_rejected" | "buyer_confirm" | "buyer_payment" | "kyc_submit" | "kyc_approve" | "kyc_reject" | "risk_blocked"
+  type: "invoice_upload" | "duplicate_rejected" | "buyer_confirm" | "buyer_payment" | "kyc_submit" | "kyc_approve" | "kyc_reject" | "risk_blocked" | "report_paid" | "agent_run"
       | "token_create" | "token_pause" | "token_unpause" | "holder_freeze" | "holder_unfreeze"
       | "units_buy" | "units_transfer" | "transfer_rejected" | "units_burn" | "holder_payout";
   description: string;
@@ -259,7 +305,7 @@ interface AuditEntry {
 }
 ```
 
-The type `risk_blocked` isn't in the frontend's `TransactionType` yet.
+The types `report_paid` and `agent_run` may not be in the frontend's `TransactionType` yet.
 
 ## Invoices
 
@@ -369,14 +415,14 @@ Maturity must be at least a minute away. An earlier time is moved to one minute 
 
 ### POST /invoices/:id/buy
 
-The investor pays the discounted price in uINR to the business, plus a 1% fee on top to POOL. The business then transfers the units. The server checks that the transfer would succeed before any money moves.
+**Investor token required.** The investor pays the discounted price in uINR to the business, plus a 1% fee on top to POOL. The business then transfers the units. The server checks that the transfer would succeed before any money moves.
 
 **Request**
 
 ```ts
 {
   units: number;            // Positive whole number
-  investorId?: string;      // Defaults to INVESTOR_ID
+  investorId?: string;      // Optional. If sent, it must be INVESTOR_ID
   idempotencyKey?: string;  // Recommended: a repeat with the same key is not charged again
 }
 ```
@@ -402,6 +448,8 @@ interface Purchase {
 
 | Status | Code | Money moved? | Meaning |
 | --- | --- | --- | --- |
+| 401 | `INVESTOR_TOKEN_REQUIRED`, `INVESTOR_TOKEN_INVALID`, `INVESTOR_TOKEN_EXPIRED` | No | Get a new session |
+| 403 | `NOT_THE_SESSION_INVESTOR` | No | `investorId` isn't the session's account |
 | 422 | `NOT_ALLOWLISTED` | No | The wallet isn't KYC-approved |
 | 409 | `BOND_PAUSED` | No | The token is paused |
 | 409 | `INSUFFICIENT_UNITS` | No | The business doesn't hold that many units |
@@ -505,9 +553,9 @@ Current holders, read from the chain. Burned units no longer exist there, so aft
 
 ## Risk
 
-Scores any real invoice, or any invoice in the simulated dataset (`DEMO-*` or `SEED-*`). The dataset is described in [DATA.md](DATA.md). These routes spend no HBAR and don't need a token.
+Scores any real invoice, or any invoice in the simulated dataset (`DEMO-*` or `SEED-*`). The dataset is described in [DATA.md](DATA.md). The summary is free and the full report costs ₹1.00 over x402.
 
-**If scoring fails, these routes return an error.** They never fall back to a default score.
+**If scoring fails, these routes return an error, and no payment is verified or settled.** They never fall back to a default score.
 
 | Status | Code | Meaning |
 | --- | --- | --- |
@@ -532,7 +580,68 @@ Free: grade and confidence only, for marketplace cards.
 
 ### GET /risk/:invoiceId/report
 
-The full report. There's no paywall yet, so this route is open until x402 is added.
+The full report, for ₹1.00 in uINR over [x402](https://docs.hedera.com/solutions/ai/x402). An x402 client can pay it directly. The frontend should use [`POST /risk/:invoiceId/buy-report`](#post-riskinvoiceidbuy-report), because the browser holds no key.
+
+**1. Without a payment: `402`**
+
+The same details are in the `PAYMENT-REQUIRED` header, which is what x402 clients read.
+
+```ts
+{
+  x402Version: 2;
+  error: string;             // "payment_required", or why a payment was refused
+  reason?: string;           // More detail, when a payment was refused
+  resource: { url: string; description: string; mimeType: string };
+  accepts: [{
+    scheme: "exact";
+    network: "hedera:testnet";
+    asset: "0.0.11327250";   // uINR
+    amount: "100";           // Base units: ₹1.00
+    payTo: "0.0.11310322";   // The risk agent
+    maxTimeoutSeconds: 120;
+    extra: { feePayer: string; name: "uINR"; decimals: 2; payerFeePct: 1; payerTotal: "101" };
+  }];
+  payment: {                 // The same details, in plain form
+    price: 1; payerTotal: 1.01; currency: "uINR"; token: string; decimals: 2;
+    amountBaseUnits: 100; payerFeePct: 1; payTo: string; network: string; resource: string;
+  };
+  hashscanUrl: string;
+  links: Link[];
+}
+```
+
+The payer needs ₹1.01, because uINR's 1% fee is charged on top and goes to POOL. The facilitator pays the HBAR fee, so the payer needs no HBAR.
+
+**2. With a payment: `200`**
+
+Retry with the signed payment in a `PAYMENT-SIGNATURE` header (`X-PAYMENT` also works). The server scores the invoice, the facilitator verifies and settles, and the server checks the transaction on-chain before releasing the report. The response is below, with the settlement added and a `PAYMENT-RESPONSE` header.
+
+```ts
+settlement: {
+  transactionId: string;     // "0.0.9185802@1793927733.569018473"
+  hashscanUrl: string;       // Also the top-level hashscanUrl
+  payer: string;
+  payTo: string;
+  network: "hedera:testnet";
+  token: string;
+  amount: 1;
+  feeToPool: 0.01;
+  onChainConfirmed: boolean; // False if the mirror node hadn't caught up after about 16 seconds
+  settledAt: string;
+};
+```
+
+**Payment errors**
+
+| Status | Code | Charged? | Meaning |
+| --- | --- | --- | --- |
+| 402 | None (`error` is text) | No | Unreadable, wrong amount or account, refused by the facilitator, or already used. One payment buys one report |
+| 503 | `FACILITATOR_UNAVAILABLE` | No | The facilitator can't be reached |
+| 503 | `PAYWALL_NOT_CONFIGURED` | No | `RISK_AGENT_ID` isn't set, so the route stays locked rather than going free |
+| 502 | `SETTLEMENT_MISMATCH` | Possibly | The on-chain transaction doesn't pay the report price, or isn't the one signed. No report is released |
+| 502 | `SETTLEMENT_UNCONFIRMED` | Possibly | The facilitator didn't answer and the payment isn't on-chain yet. No report is released. Check the link before paying again |
+
+The report itself has this shape:
 
 ```ts
 {
@@ -585,7 +694,50 @@ The full report. There's no paywall yet, so this route is open until x402 is add
 
 The report never includes people's names, addresses or phone numbers. An invoice priced by the risk engine is scored as of the moment it was priced, so its grade and discount stay the ones that set its price. Invoices tokenized earlier have no such moment, so their `suggestedDiscountPct` keeps falling as the due date nears, while `appliedDiscountPct` stays at 4.
 
-**Differences from the frontend's `RiskReport`:** `suggestedDiscountPct` can be `null`, and `paymentTx` is missing until x402 is added.
+**Differences from the frontend's `RiskReport`:** `suggestedDiscountPct` can be `null`, and the payment is `settlement.transactionId` rather than `paymentTx`.
+
+### POST /risk/:invoiceId/buy-report
+
+**Investor token required.** The server pays its own paywall with the investor's key and returns the report. It takes no body and usually takes about 5–15 seconds.
+
+**Response `200`:** the same as the paid report, with `replayed` added.
+
+```ts
+{ /* the report */ settlement: Settlement; replayed: boolean; hashscanUrl: string; links: Link[] }
+```
+
+If this investor already paid for this invoice's report, by this route or through the agent, it returns a fresh report with the original settlement and `replayed: true`, and charges nothing.
+
+**Errors**
+
+| Status | Code | Charged? | Meaning |
+| --- | --- | --- | --- |
+| 401 | `INVESTOR_TOKEN_REQUIRED`, `INVESTOR_TOKEN_INVALID`, `INVESTOR_TOKEN_EXPIRED` | No | Get a new session |
+| 404 | `INVOICE_NOT_FOUND` | No | No such invoice |
+| 402 | `PAYMENT_REFUSED` | No | The facilitator refused the payment. Adds `reason` |
+| 422 | `INSUFFICIENT_UINR` | No | The investor holds less than ₹1.01 |
+| 503 | `RISK_DATA_UNAVAILABLE`, `RISK_UNAVAILABLE`, `FACILITATOR_UNAVAILABLE` | No | Try again later |
+| 502 | `PAID_REQUEST_FAILED`, `SETTLEMENT_MISMATCH`, `SETTLEMENT_UNCONFIRMED` | Possibly | No report was returned |
+
+### GET /.well-known/x402
+
+Free. Lists the paid endpoint, so an agent can find it from the base URL alone. This is Udhaar's own format, and I haven't confirmed that a shared standard exists for this path.
+
+```ts
+{
+  services: [{
+    name: string; description: string; method: "GET";
+    url: string;             // ".../risk/{invoiceId}/report"
+    freePreview: string;     // ".../risk/{invoiceId}/summary"
+    listings: string;        // ".../invoices"
+    scheme: "exact"; facilitator: string;
+    price: 1; payerTotal: 1.01; currency: "uINR"; token: string; decimals: 2;
+    amountBaseUnits: 100; payerFeePct: 1; payTo: string; network: string;
+  }];
+  hashscanUrl: string;
+  links: Link[];
+}
+```
 
 ### How the score works
 
@@ -625,11 +777,120 @@ It's read-only:
 
 | Route | Result |
 | --- | --- |
-| `GET /invoices/DEMO-RING`, `GET /risk/DEMO-RING/summary`, `GET /risk/DEMO-RING/report` | Work |
+| `GET /invoices/DEMO-RING`, `GET /risk/DEMO-RING/summary` | Work |
+| `GET /risk/DEMO-RING/report`, `POST /risk/DEMO-RING/buy-report` | Work, for ₹1.00 like any other report |
 | `POST /invoices/DEMO-RING/tokenize` | `409 RISK_BLOCKED`, with the reasons |
 | Any other write route, and `GET /invoices/DEMO-RING/holders` | `409 SEEDED_INVOICE` |
 
 If the risk engine is down, `GET /invoices` still returns real invoices and leaves this one out.
+
+## Agent
+
+The auto-invest agent applies the investor's rules with no person involved after the run starts. The rules are enforced in plain code (`backend/src/agent/rules.ts`), with no LLM anywhere in the decision.
+
+### POST /agent/run
+
+**Investor token required.** Runs one pass over the listings and returns the receipt. It usually takes 1–2 minutes, so show a loading state and don't set a short client timeout.
+
+**Request** (all required; any other field returns `400`)
+
+```ts
+{
+  reportBudget: number;        // Rupees for this run, including the 1% fee. At most 50
+  investmentBudget: number;    // Rupees for this run, including the 1% fee. At most 50,000
+  minGrade: "A" | "B" | "C";
+  maxUnitsPerInvoice: number;  // The investor's total position in one invoice, counting units bought earlier
+}
+```
+
+**What it does for each invoice**
+
+1. **Finds the service:** it reads `GET /.well-known/x402`, then `GET /invoices`.
+2. **Skips without paying:** an invoice that has matured or sold out. Invoices that aren't tokenized, funded or simulated aren't checked at all.
+3. **Pays for the report** over x402. It first checks the quote: it must be in uINR, pay the risk agent, cost at most ₹2, and fit the budget left.
+4. **Decides,** in this order:
+
+| Check | Skip code |
+| --- | --- |
+| Any fraud flag | `FRAUD` |
+| An anomaly warning, whatever the minimum grade | `ANOMALY` |
+| Grade below the minimum, including any grade D | `BELOW_MIN_GRADE` |
+| No token to buy | `NOT_BUYABLE` |
+| Already holds `maxUnitsPerInvoice` | `MAX_UNITS_REACHED` |
+| The budget left doesn't cover one unit and its fee | `INVESTMENT_BUDGET_EXHAUSTED` |
+
+5. **Buys** as many units as the unit limit, the units available and the budget allow.
+
+Skips can also carry `QUOTE_NOT_ALLOWED`, `REPORT_BUDGET_EXHAUSTED`, or an error code from the report or buy route.
+
+**It stops the whole run** if the HCS audit log fails, the investor can't cover a report, the service names an account or token that isn't allowed, or a payment may have gone through without an answer. A payment that may have gone through still counts against the budget.
+
+**Response `201`**
+
+```ts
+interface AgentRun {
+  runId: string;
+  status: "running" | "completed" | "stopped" | "interrupted";
+  stopReason?: string;
+  startedAt: string;
+  finishedAt?: string;
+  investor: string;
+  rules: AgentRules;
+  endpoint?: string;            // The paid endpoint it found
+  invoicesChecked: string[];
+  reports: {
+    invoiceId: string;
+    amount: number;             // 1
+    feeToPool: number;          // 0.01
+    transactionId: string;
+    hashscanUrl: string;
+    grade: string;
+    riskScore: number;
+    fraudFlags: string[];
+    anomaly: boolean;
+  }[];
+  spentOnReports: number;       // Rupees, including the fee
+  purchases: {
+    invoiceId: string;
+    units: number;
+    unitPrice: number;
+    amount: number;
+    feeToPool: number;
+    paymentHashscanUrl?: string;
+    unitsHashscanUrl?: string;
+  }[];
+  spentOnUnits: number;         // Rupees, including the fee
+  skipped: { invoiceId: string; code: string; reason: string; paidForReport: boolean }[];
+  auditTopicId?: string;
+  auditMessages: { type: string; hashscanUrl: string; txId?: string }[];
+  hashscanUrl: string;          // The HCS audit topic
+  links: Link[];
+}
+```
+
+A stopped run still returns `201` with its receipt, so check `status`.
+
+**Errors**
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | A rule is missing, unknown or over its maximum. Doesn't start a run |
+| 401 | `INVESTOR_TOKEN_REQUIRED`, `INVESTOR_TOKEN_INVALID`, `INVESTOR_TOKEN_EXPIRED` | Get a new session |
+| 409 | `AGENT_RUN_IN_PROGRESS` | Only one run at a time |
+| 429 | `RATE_LIMITED` | 5 requests in 10 minutes from this IP |
+| 429 | `AGENT_DAILY_CAP_REACHED` | 20 runs a UTC day, across all callers. Adds `cap` and `resetsAt`. Kept in the store, so a restart doesn't reset it |
+
+**The audit log:** every run writes `run.started`, `report.paid`, `decision`, `purchase` and `run.completed` messages to HCS topic [`0.0.11332556`](https://hashscan.io/testnet/topic/0.0.11332556). Only the investor's key can write to it, and the topic has no admin key, so nobody can change or delete a message.
+
+### GET /agent/runs
+
+Past receipts, newest first. It's open, like the other reads.
+
+```ts
+{ runs: AgentRun[]; hashscanUrl: string; links: Link[] }
+```
+
+A run cut off by a server restart shows `status: "interrupted"`, with what it spent up to that point.
 
 ## KYC
 
@@ -798,10 +1059,10 @@ Newest first. Includes rejected actions.
 | `reviewKyc(id, true)` | `POST /kyc/:id/approve` | Admin token |
 | `reviewKyc(id, false)` | `POST /kyc/:id/reject` | Admin token |
 | `getKycRequests`, `getMyKyc` | `GET /kyc` | |
-| `buyUnits` | `POST /invoices/:id/buy` | Generate one `idempotencyKey` per click |
+| `buyUnits` | `POST /invoices/:id/buy` | Investor token. Generate one `idempotencyKey` per click |
 | `paySupplierWithUnits` | `POST /invoices/:id/pay-supplier` | Send `supplierId` as the `hederaAccount` |
 | `payInvoice` | `POST /invoices/:id/repay` | Handle `409 NOT_MATURED` |
-| `buyRiskReport` | `GET /risk/:invoiceId/report` | No payment yet, so `paymentTx` is missing |
+| `buyRiskReport` | `POST /risk/:invoiceId/buy-report` | Investor token. Use `settlement.transactionId` for `paymentTx` |
 | `getListings`, `getListing` (grade) | `GET /risk/:invoiceId/summary` | Add `DEMO-RING` as a blocked card |
 | `getTokens` | `GET /tokens` | |
 | `setTokenPaused` | `POST /tokens/:id/pause` or `/unpause` | Admin token |

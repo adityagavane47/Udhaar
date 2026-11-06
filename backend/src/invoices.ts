@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { addToAllowlist, buildBondSymbol, buildDemoIsin, deployBond, expectRead, holderPositions, issueUnits, read, simulateTransfer, transferUnits, type Revert } from "./ats/bond.js";
-import { config, fromBaseUnits, hashscan, toBaseUnits } from "./config.js";
+import { config, fromBaseUnits, hashscan, toBaseUnits, uinrFeeBaseUnits } from "./config.js";
 import { ApiError } from "./errors.js";
 import { ensureTopics, findFingerprint, signMessage, submitMessage } from "./hcs.js";
 import { getParty, getSigner, knownAccountName, ROLES } from "./hedera/client.js";
@@ -10,9 +10,6 @@ import { assessForTokenizing, isSeededInvoiceId } from "./risk/service.js";
 import { audit, save, state } from "./store.js";
 import type { Invoice, Link, Purchase } from "./types.js";
 import { sendUinrOnce, uinrBalance } from "./uinr.js";
-
-/** uINR's custom fee, which the sender pays on top. Set when the token was created. */
-const FEE_DENOMINATOR = 100;
 
 export interface CreateInvoiceInput {
   supplierId: string;
@@ -308,7 +305,7 @@ export async function buyUnits(invoiceId: string, input: { investorId: string; u
 
     const price = unitPrice(invoice);
     const amountBaseUnits = input.units * toBaseUnits(price);
-    const feeBaseUnits = Math.floor(amountBaseUnits / FEE_DENOMINATOR);
+    const feeBaseUnits = uinrFeeBaseUnits(amountBaseUnits);
     const held = await uinrBalance(investor.id);
     if (held < amountBaseUnits + feeBaseUnits) {
       throw new ApiError(422, "INSUFFICIENT_UINR", `${investor.name} holds ${fromBaseUnits(held)} uINR but needs ${fromBaseUnits(amountBaseUnits + feeBaseUnits)} including the 1% fee`, { hashscanUrl: hashscan.account(investor.id) });

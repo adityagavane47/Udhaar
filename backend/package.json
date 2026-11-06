@@ -15,11 +15,15 @@
     "test:api": "tsx scripts/test-api.ts",
     "test:auth": "tsx scripts/test-auth.ts",
     "generate-data": "tsx scripts/generate-data.ts",
-    "test:risk": "tsx scripts/test-risk.ts"
+    "test:risk": "tsx scripts/test-risk.ts",
+    "test:x402": "tsx scripts/test-x402.ts",
+    "test:x402:live": "tsx scripts/test-x402-live.ts"
   },
   "dependencies": {
     "@hashgraph/asset-tokenization-contracts": "8.0.0",
     "@hiero-ledger/sdk": "2.90.1",
+    "@x402/core": "2.29.0",
+    "@x402/hedera": "2.29.0",
     "cors": "2.8.6",
     "dotenv": "16.6.1",
     "ethers": "6.17.0",

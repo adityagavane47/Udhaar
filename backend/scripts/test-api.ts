@@ -79,6 +79,7 @@ async function checkBudget(nextEstimate: number, label: string) {
 
 let server: ChildProcess | undefined;
 let adminToken: string | undefined;
+let investorToken: string | undefined;
 /** Only for the test servers started here, so the real passcode in .env isn't needed. */
 const TEST_PASSCODE = randomBytes(16).toString("hex");
 
@@ -109,6 +110,9 @@ async function startServer(crashAt?: string) {
   const login = await call("POST", "/auth/demo-admin", { passcode: TEST_PASSCODE });
   assert(login.status === 200, `login returned ${login.status}`);
   adminToken = login.json.token;
+  const session = await call("POST", "/auth/demo-investor");
+  assert(session.status === 200, `investor session returned ${session.status}`);
+  investorToken = session.json.token;
 }
 
 async function stopServer() {
@@ -127,7 +131,8 @@ async function call(method: string, path: string, body?: unknown): Promise<{ sta
   const response = await fetch(`${BASE}${path}`, {
     method,
     headers: {
-      ...(adminToken ? { authorization: `Bearer ${adminToken}` } : {}),
+      // Buying is the only route here that takes the investor's token rather than the admin's.
+      ...(path.endsWith("/buy") && investorToken ? { authorization: `Bearer ${investorToken}` } : adminToken ? { authorization: `Bearer ${adminToken}` } : {}),
       ...(body !== undefined ? { "content-type": "application/json" } : {}),
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),

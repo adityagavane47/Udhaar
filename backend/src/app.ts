@@ -3,10 +3,11 @@ import cors from "cors";
 import express, { type NextFunction, type Request, type RequestHandler, type Response } from "express";
 import { z } from "zod";
 import { read } from "./ats/bond.js";
-import { loginAdmin, requireAdmin } from "./auth.js";
-import { config, fromBaseUnits, hashscan } from "./config.js";
+import { startAgentRun } from "./agent/agent.js";
+import { loginAdmin, requireAdmin, requireInvestor, startInvestorSession } from "./auth.js";
+import { config, fromBaseUnits, hashscan, uinrFeeBaseUnits } from "./config.js";
 import { ApiError } from "./errors.js";
-import { allParties } from "./hedera/client.js";
+import { allParties, getParty } from "./hedera/client.js";
 import { getAccount } from "./hedera/mirror.js";
 import { accountName, buyUnits, confirmInvoice, createInvoice, getInvoice, holdersOf, invoiceView, paySupplier, tokenizeInvoice } from "./invoices.js";
 import { approveKyc, liveInvoices, rejectKyc, submitKyc } from "./kyc.js";
@@ -17,6 +18,8 @@ import { serialized, state } from "./store.js";
 import { freezeHolder, listTokens, pauseToken, unfreezeHolder, unpauseToken } from "./tokens.js";
 import type { Link } from "./types.js";
 import { uinrBalance } from "./uinr.js";
+import { assertQuoteAllowed, payForReport, QuoteRefused, ReportCallError } from "./x402/client.js";
+import { chargeForReport, reportPayTo, serviceManifest, settlementOf } from "./x402/paywall.js";
 
 const accountId = z.string().regex(/^0\.0\.\d+$/, "must look like 0.0.12345");
 const isoDate = z.string().refine((value) => !Number.isNaN(Date.parse(value)), "must be a valid date");
@@ -45,6 +48,13 @@ const schemas = {
   buy: z.object({ investorId: accountId.optional(), units: positiveInt, idempotencyKey: z.string().min(1).optional() }),
   paySupplier: z.object({ supplierId: accountId, units: positiveInt, amount: z.number().positive().optional(), idempotencyKey: z.string().min(1).optional() }),
   freeze: z.object({ accountId, units: positiveInt.optional() }),
+  // Strict, so a misspelled limit is refused rather than ignored.
+  agentRules: z.strictObject({
+    reportBudget: z.number().positive().max(config.agentMaxReportBudget),
+    investmentBudget: z.number().positive().max(config.agentMaxInvestmentBudget),
+    minGrade: z.enum(["A", "B", "C"]),
+    maxUnitsPerInvoice: positiveInt,
+  }),
 };
 
 function parse<T>(schema: z.ZodType<T>, body: unknown): T {
@@ -62,7 +72,7 @@ const mutation = (status: number, work: (req: Request) => Promise<object>): Requ
     res.status(status).json(await serialized(() => work(req)));
   };
 
-function knownTopics(): { registryTopicId: string; confirmationTopicId: string } | undefined {
+function knownTopics(): { registryTopicId: string; confirmationTopicId: string; agentAuditTopicId?: string } | undefined {
   return existsSync(config.hcsRecordPath) ? JSON.parse(readFileSync(config.hcsRecordPath, "utf8")) : undefined;
 }
 
@@ -72,8 +82,33 @@ function topicLinks(): Link[] {
     ? [
         { label: "HCS invoice registry", url: hashscan.topic(topics.registryTopicId) },
         { label: "HCS buyer confirmations", url: hashscan.topic(topics.confirmationTopicId) },
+        ...(topics.agentAuditTopicId ? [{ label: "HCS agent audit log", url: hashscan.topic(topics.agentAuditTopicId) }] : []),
       ]
     : [];
+}
+
+/** The server pays its own paywall with the investor's key. A report already bought isn't charged for again. */
+async function buyReportAsInvestor(invoiceId: string) {
+  const investor = await getParty("INVESTOR");
+  const earlier = Object.values(state.reportPayments).find((payment) => payment.invoiceId === invoiceId && payment.payer === investor.id);
+  if (earlier) {
+    const report = await riskReport(invoiceId);
+    const settlement = settlementOf(earlier);
+    return { ...report, settlement, replayed: true, hashscanUrl: settlement.hashscanUrl, links: [{ label: "x402 settlement", url: settlement.hashscanUrl, txId: settlement.transactionId }, ...report.links] };
+  }
+
+  const cost = config.reportPriceBaseUnits + uinrFeeBaseUnits(config.reportPriceBaseUnits);
+  const held = await uinrBalance(investor.id);
+  if (held < cost) throw new ApiError(422, "INSUFFICIENT_UINR", `${investor.name} holds ${fromBaseUnits(held)} uINR but a report costs ${fromBaseUnits(cost)} including the 1% fee`, { hashscanUrl: hashscan.account(investor.id) });
+
+  try {
+    const paid = await payForReport<object>(`${config.selfUrl}/risk/${encodeURIComponent(invoiceId)}/report`, investor, (quote) => assertQuoteAllowed(quote, reportPayTo(), config.uinrTokenId));
+    return { ...paid, replayed: false };
+  } catch (error) {
+    if (error instanceof ReportCallError) throw new ApiError(error.status, error.code, error.message, error.details);
+    if (error instanceof QuoteRefused) throw new ApiError(502, error.code, error.message, { hashscanUrl: hashscan.account(investor.id) });
+    throw error;
+  }
 }
 
 async function balances() {
@@ -115,7 +150,7 @@ async function balances() {
 export function createApp() {
   const app = express();
   if (config.trustProxyHops > 0) app.set("trust proxy", config.trustProxyHops);
-  app.use(cors());
+  app.use(cors({ exposedHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE"] }));
   app.use(express.json({ limit: "256kb" }));
 
   app.get("/health", (_req, res) => {
@@ -126,6 +161,11 @@ export function createApp() {
   app.post("/auth/demo-admin", limits.login, (req, res) => {
     const session = loginAdmin(parse(schemas.login, req.body).passcode);
     res.json({ ok: true, ...session, tokenType: "Bearer", hashscanUrl: hashscan.token(config.uinrTokenId), links: [{ label: "uINR token", url: hashscan.token(config.uinrTokenId) }] });
+  });
+
+  app.post("/auth/demo-investor", limits.investorSession, (_req, res) => {
+    const session = startInvestorSession();
+    res.json({ ok: true, ...session, tokenType: "Bearer", hashscanUrl: hashscan.account(session.accountId), links: [{ label: "Investor account", url: hashscan.account(session.accountId) }] });
   });
 
   // Invoices
@@ -160,11 +200,14 @@ export function createApp() {
   );
   app.post(
     "/invoices/:id/buy",
+    requireInvestor,
     limits.hbar,
     mutation(201, async (req) => {
       const input = parse(schemas.buy, req.body);
-      const investorId = input.investorId ?? process.env.INVESTOR_ID?.trim();
-      if (!investorId) throw new ApiError(422, "MISSING_PARTY", "investorId is required");
+      const investorId = process.env.INVESTOR_ID?.trim();
+      if (!investorId) throw new ApiError(503, "INVESTOR_NOT_CONFIGURED", "INVESTOR_ID is not set on the server");
+      // The session stands for one persona, so it can't spend from another account the server holds keys for.
+      if (input.investorId && input.investorId !== investorId) throw new ApiError(403, "NOT_THE_SESSION_INVESTOR", `This session can only buy as ${investorId}`, { hashscanUrl: hashscan.account(investorId) });
       const result = await buyUnits(param(req, "id"), { ...input, investorId });
       return { ...result, hashscanUrl: result.tx.hashscanUrl, links: result.links ?? result.invoice.links };
     }),
@@ -210,8 +253,38 @@ export function createApp() {
   app.get("/risk/:invoiceId/summary", async (req, res) => {
     res.json(await riskSummary(param(req, "invoiceId")));
   });
-  app.get("/risk/:invoiceId/report", async (req, res) => {
-    res.json(await riskReport(param(req, "invoiceId")));
+  app.get("/risk/:invoiceId/report", limits.paidReport, async (req, res) => {
+    const invoiceId = param(req, "invoiceId");
+    // Scored first, so an error here means nobody is quoted or charged for a report that can't be produced.
+    const report = await riskReport(invoiceId);
+    const payment = req.get("payment-signature") ?? req.get("x-payment");
+    const charge = await chargeForReport(invoiceId, payment, `${req.protocol}://${req.get("host")}${req.originalUrl}`);
+    res.set(charge.headers);
+    if (!charge.paid) {
+      res.status(402).json(charge.body);
+      return;
+    }
+    const { settlement } = charge;
+    res.json({ ...report, settlement, hashscanUrl: settlement.hashscanUrl, links: [{ label: "x402 settlement", url: settlement.hashscanUrl, txId: settlement.transactionId }, ...report.links] });
+  });
+  app.post(
+    "/risk/:invoiceId/buy-report",
+    requireInvestor,
+    limits.buyReport,
+    mutation(200, (req) => buyReportAsInvestor(param(req, "invoiceId"))),
+  );
+  app.get("/.well-known/x402", (req, res) => {
+    res.json(serviceManifest(`${req.protocol}://${req.get("host")}`));
+  });
+
+  // Agent
+  app.post("/agent/run", requireInvestor, limits.agentRun, async (req, res) => {
+    res.status(201).json(await startAgentRun(parse(schemas.agentRules, req.body)));
+  });
+  app.get("/agent/runs", (_req, res) => {
+    const auditTopicId = knownTopics()?.agentAuditTopicId;
+    const link = auditTopicId ? hashscan.topic(auditTopicId) : hashscan.token(config.uinrTokenId);
+    res.json({ runs: state.agentRuns, hashscanUrl: link, links: [{ label: auditTopicId ? "Agent audit log (HCS)" : "uINR token", url: link }] });
   });
 
   // KYC

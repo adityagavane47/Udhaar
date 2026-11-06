@@ -102,17 +102,17 @@ const ADMIN_ROUTES: [string, unknown, string][] = [
 ];
 
 /** Every route sharing the 20-a-minute limit. None gets as far as the chain with these bodies. */
-const HBAR_ROUTES: [string, unknown, boolean][] = [
-  ["/invoices", {}, false],
-  ["/invoices/NOPE/confirm", undefined, false],
-  ["/invoices/NOPE/buy", { units: 1, investorId: NONE }, false],
-  ["/invoices/NOPE/pay-supplier", { units: 1, supplierId: NONE }, false],
-  ["/invoices/NOPE/repay", undefined, false],
-  ["/kyc/NOPE/approve", undefined, true],
-  ["/tokens/NOPE/pause", undefined, true],
-  ["/tokens/NOPE/unpause", undefined, true],
-  ["/tokens/NOPE/freeze", { accountId: NONE }, true],
-  ["/tokens/NOPE/unfreeze", { accountId: NONE }, true],
+const HBAR_ROUTES: [string, unknown, "admin" | "investor" | undefined][] = [
+  ["/invoices", {}, undefined],
+  ["/invoices/NOPE/confirm", undefined, undefined],
+  ["/invoices/NOPE/buy", { units: 1 }, "investor"],
+  ["/invoices/NOPE/pay-supplier", { units: 1, supplierId: NONE }, undefined],
+  ["/invoices/NOPE/repay", undefined, undefined],
+  ["/kyc/NOPE/approve", undefined, "admin"],
+  ["/tokens/NOPE/pause", undefined, "admin"],
+  ["/tokens/NOPE/unpause", undefined, "admin"],
+  ["/tokens/NOPE/freeze", { accountId: NONE }, "admin"],
+  ["/tokens/NOPE/unfreeze", { accountId: NONE }, "admin"],
 ];
 
 let startHbar = 0;
@@ -204,7 +204,8 @@ try {
   console.log("4. Rate limit on routes that spend HBAR");
   await withServer({}, async () => {
     const token = (await login()).json.token as string;
-    const callRoute = ([path, body, admin]: [string, unknown, boolean]) => request("POST", path, { ...(body === undefined ? {} : { body }), ...(admin ? { token } : {}) });
+    const investorToken = (await request("POST", "/auth/demo-investor")).json.token as string;
+    const callRoute = ([path, body, auth]: (typeof HBAR_ROUTES)[number]) => request("POST", path, { ...(body === undefined ? {} : { body }), ...(auth === "admin" ? { token } : auth === "investor" ? { token: investorToken } : {}) });
 
     for (let i = 0; i < 25; i++) await request("POST", "/tokens/NOPE/pause");
     const afterUnauthed = await request("POST", "/tokens/NOPE/pause", { token });
@@ -212,7 +213,7 @@ try {
 
     // One request is already counted above.
     for (let i = 0; i < 19; i++) {
-      const reply = await callRoute(HBAR_ROUTES[i % HBAR_ROUTES.length] as [string, unknown, boolean]);
+      const reply = await callRoute(HBAR_ROUTES[i % HBAR_ROUTES.length] as (typeof HBAR_ROUTES)[number]);
       check(`request ${i + 2} of 20 is allowed`, reply.status !== 429, code(reply));
     }
     for (const route of HBAR_ROUTES) {

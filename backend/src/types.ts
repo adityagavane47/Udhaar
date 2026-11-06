@@ -139,6 +139,8 @@ export type AuditType =
   | "kyc_approve"
   | "kyc_reject"
   | "risk_blocked"
+  | "report_paid"
+  | "agent_run"
   | "token_create"
   | "token_pause"
   | "token_unpause"
@@ -162,6 +164,80 @@ export interface AuditEntry {
   status: "success" | "rejected";
 }
 
+/** One settled x402 payment. Saved so a payment can never be used for a second report. */
+export interface ReportPayment {
+  invoiceId: string;
+  payer: string;
+  payTo: string;
+  transactionId: string;
+  hashscanUrl: string;
+  amountBaseUnits: number;
+  feeBaseUnits: number;
+  onChainConfirmed: boolean;
+  settledAt: string;
+}
+
+export interface AgentRules {
+  /** Rupees for this run, including the 1% uINR fee. */
+  reportBudget: number;
+  /** Rupees for this run, including the 1% uINR fee. */
+  investmentBudget: number;
+  minGrade: "A" | "B" | "C";
+  /** The investor's total position in one invoice, counting units bought earlier. */
+  maxUnitsPerInvoice: number;
+}
+
+export interface AgentReportReceipt {
+  invoiceId: string;
+  amount: number;
+  feeToPool: number;
+  transactionId: string;
+  hashscanUrl: string;
+  grade: string;
+  riskScore: number;
+  fraudFlags: string[];
+  anomaly: boolean;
+}
+
+export interface AgentPurchaseReceipt {
+  invoiceId: string;
+  units: number;
+  unitPrice: number;
+  amount: number;
+  feeToPool: number;
+  paymentHashscanUrl?: string;
+  unitsHashscanUrl?: string;
+}
+
+export interface AgentSkip {
+  invoiceId: string;
+  code: string;
+  reason: string;
+  paidForReport: boolean;
+}
+
+export interface AgentRun {
+  runId: string;
+  status: "running" | "completed" | "stopped" | "interrupted";
+  stopReason?: string;
+  startedAt: string;
+  finishedAt?: string;
+  investor: string;
+  rules: AgentRules;
+  endpoint?: string;
+  invoicesChecked: string[];
+  reports: AgentReportReceipt[];
+  /** Rupees, including the 1% fee. A payment that may have gone through is counted. */
+  spentOnReports: number;
+  purchases: AgentPurchaseReceipt[];
+  spentOnUnits: number;
+  skipped: AgentSkip[];
+  auditTopicId?: string;
+  auditMessages: { type: string; hashscanUrl: string; txId?: string }[];
+  hashscanUrl: string;
+  links: Link[];
+}
+
 export interface State {
   version: 1;
   nextInvoiceNumber: number;
@@ -170,4 +246,8 @@ export interface State {
   purchases: Record<string, Purchase>;
   ledger: Record<string, TxRecord>;
   audit: AuditEntry[];
+  /** By transaction ID. */
+  reportPayments: Record<string, ReportPayment>;
+  /** Newest first. */
+  agentRuns: AgentRun[];
 }

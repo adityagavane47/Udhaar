@@ -12,11 +12,29 @@ function readUinrTokenId(): string {
   return record.tokenId;
 }
 
+const PORT = Number(process.env.PORT ?? 4000);
+
 export const config = {
-  port: Number(process.env.PORT ?? 4000),
+  port: PORT,
+  /** How the server reaches its own paywall when it pays as the investor. */
+  selfUrl: (process.env.SELF_URL ?? `http://127.0.0.1:${PORT}`).replace(/\/$/, ""),
   /** Proxies in front of the server, such as 1 on Railway or Render. Rate limits need this to see the real client IP. */
   trustProxyHops: Number(process.env.TRUST_PROXY ?? 0),
   adminTokenMinutes: Number(process.env.DEMO_ADMIN_TOKEN_MINUTES ?? 30),
+  investorTokenMinutes: Number(process.env.DEMO_INVESTOR_TOKEN_MINUTES ?? 30),
+  facilitatorUrl: (process.env.FACILITATOR_URL ?? "https://x402.org/facilitator").replace(/\/$/, ""),
+  x402Network: "hedera:testnet",
+  /** ₹1.00. The 1% uINR fee rounds down, so anything under ₹1 would pay POOL nothing. */
+  reportPriceBaseUnits: 100,
+  /** The agent refuses to pay more than this for one report, whatever the server quotes. */
+  agentMaxReportPriceBaseUnits: 200,
+  /** Mirror checks after a settlement, 2 seconds apart. */
+  settlementConfirmAttempts: Number(process.env.X402_CONFIRM_ATTEMPTS ?? 8),
+  /** Across all callers, per UTC day. Kept in the store, so a restart doesn't reset it. */
+  agentDailyRunCap: Number(process.env.AGENT_DAILY_RUN_CAP ?? 20),
+  /** The most an investor's rules may allow in one run, in rupees. */
+  agentMaxReportBudget: Number(process.env.AGENT_MAX_REPORT_BUDGET ?? 50),
+  agentMaxInvestmentBudget: Number(process.env.AGENT_MAX_INVESTMENT_BUDGET ?? 50_000),
   mirrorUrl: "https://testnet.mirrornode.hedera.com/api/v1",
   hashscanUrl: "https://hashscan.io/testnet",
   dataDir: process.env.DATA_DIR ?? `${BACKEND_ROOT}data/`,
@@ -46,6 +64,8 @@ mkdirSync(config.dataDir, { recursive: true });
 /** Rupees to uINR base units. */
 export const toBaseUnits = (rupees: number) => Math.round(rupees * 10 ** config.uinrDecimals);
 export const fromBaseUnits = (baseUnits: number) => baseUnits / 10 ** config.uinrDecimals;
+/** uINR's custom fee, which the sender pays on top. It rounds down on-chain, which was checked with real transfers. */
+export const uinrFeeBaseUnits = (amountBaseUnits: number) => Math.floor(amountBaseUnits / 100);
 
 export const hashscan = {
   transaction: (consensusTimestamp: string) => `${config.hashscanUrl}/transaction/${consensusTimestamp}`,
