@@ -4,7 +4,7 @@ Nov 4, 2026 · @ADITYA
 
 ## The idea
 
-Udhaar lets a small business sell an unpaid invoice to investors as a compliant security token on Hedera, so it gets cash today instead of in 90 days, while investors are repaid automatically on the due date and an AI agent sells risk scores over x402.
+Udhaar lets a small business sell an unpaid invoice to investors as a compliant security token on Hedera, so it gets cash today instead of in 90 days, while investors are repaid automatically on the due date and an AI agent buys paid risk scores over x402. Every invoice also carries a trust checklist and a 300–900 Trust Score for the seller and the buyer.
 
 **The problem:** small Indian suppliers deliver goods to large companies and then wait months to be paid. They need working capital now to pay staff and buy stock. Bank loans are slow and need collateral.
 
@@ -20,18 +20,29 @@ One invoice goes from upload to automatic repayment in eight steps; the demo fol
 
 1. **Upload.** Ramesh uploads the invoice: buyer, amount, due date, PDF. Its fingerprint goes to an HCS registry, so an invoice that was already financed is rejected.
 2. **Buyer confirms.** BigBuild confirms on-chain that it owes the amount. Unconfirmed invoices never reach investors, which blocks fake invoices.
-3. **Risk check.** The risk engine grades the invoice (credit, fraud, anomaly) and suggests a discount.
+3. **Risk check.** The risk engine grades the invoice (credit, fraud, anomaly) and suggests a discount. The trust checklist (see [Trust layer](#trust-layer)) shows the GST, e-invoice, confirmation and duplicate checks.
 4. **Tokenize.** The admin issues the invoice through the Asset Tokenization Studio as a bond-like security token: 500 units of ₹1,000, maturity on the due date, KYC-only transfers.
 5. **Investors buy.** KYC-verified investors buy units at a discount (₹970.41 each for a Grade A invoice due in 90 days). Ramesh receives about ₹4,85,000 today.
-6. **Agents pay for research.** Before buying, an investor's auto-invest agent pays 0.01 USDC over x402 for each full risk report, with no human approving.
+6. **Agents pay for research.** Before buying, an investor's auto-invest agent pays ₹1.00 in uINR over x402 for each full risk report, with no human approving.
 7. **Buyer pays.** On the due date BigBuild pays the full ₹5,00,000.
-8. **Automatic repayment.** A Scheduled Transaction redeems the tokens and pays each investor ₹1,000 per unit. An investor who paid ₹97,041 for 100 units gets ₹1,00,000.
+8. **Automatic repayment.** The backend detects the payment on the mirror node, burns each holder's units and pays them ₹1,000 per unit, fee-free. (A Scheduled Transaction for this is a next step, not built.) An investor who paid ₹97,041 for 100 units gets ₹1,00,000.
 
 If fraud is found at any point, the admin freezes the token and nobody can move it.
 
 **Pay your supplier with the token:** Ramesh owes his sand supplier ₹1,00,000. Instead of waiting for cash, he transfers 100 units of the BigBuild invoice token to the sand supplier's verified account, and the sand supplier is repaid by BigBuild at maturity. This is how the traditional hundi was endorsed and passed down a trade chain, and it reaches the deeper-tier suppliers that TReDS does not.
 
-**Money on testnet:** amounts are shown in rupees for the story, but settle in a stablecoin on testnet: test USDC, or a demo rupee stablecoin minted with Stablecoin Studio (stretch). The demo exchange rate is fixed and stated in the README.
+**Money on testnet:** amounts are rupees and settle in **uINR**, a test rupee stablecoin (HTS token `0.0.11327250`, 2 decimals, 1% sender-paid fee to a protection pool). One uINR is shown as ₹1. It is not real money.
+
+## Trust layer
+
+Added on 6 Nov. It answers the investor's three questions: is the business real, is the invoice real, will the money come back?
+
+- **Is the business real?** Both GSTINs are checked for format, state code and checksum, then looked up in a **mock GST registry** (status, legal name, last 6 returns).
+- **Is the invoice real?** A **mock IRP-signed e-invoice** QR is verified at upload (a tampered one is refused). The buyer's confirmation is a signed HCS message, checked as posted by the buyer. A duplicate-invoice registry on HCS stops double financing.
+- **Will the money come back?** The **Udhaar Trust Score** (300–900) for the seller and the buyer. The investor's real risk is the buyer. Payment history (40 of 100 points) comes from **on-chain repayments** read from the mirror node; the rest is mock outside data (company profile, MSME-1 dues, Samadhaan complaints, network).
+- **Cold start:** a company with no repayments shows "New on Udhaar", and every invoice it is part of is capped at ₹1,00,000 until it has 3 on-time repayments.
+
+Real on Hedera: repayments, confirmations, the registry. Mock: the GST registry, the e-invoice signer, bureau scores, MSME-1 and Samadhaan data. Routes: `GET /trust/:invoiceId`, `GET /trust/company/:id`, `POST /mock-irp/e-invoice`, `GET /mock-irp/public-key`. Details are in [API.md](API.md#trust) and [DATA.md](DATA.md#trust-data-mock).
 
 ## Roles and portals
 
@@ -72,34 +83,34 @@ A buyer with no history gets a neutral 20/40 for payment history, and the report
 
 The discount is the annual rate × days to the invoice's due date / 365, so a shorter invoice gets a smaller discount.
 
-**Fraud checks (graph, Neo4j)** — any hit blocks the invoice or sends it to the admin:
+**Fraud checks (graph)** — any hit blocks the invoice or sends it to the admin:
 
 - Same person is a director of both supplier and buyer
 - Circular invoicing (A bills B, B bills C, C bills A)
 - Supplier and buyer share an address or phone
 - Buyer has not confirmed the invoice on-chain
 
-**Anomaly flag (Isolation Forest)** on real invoice features: amount versus the supplier's history, upload burst rate, unusual tenor. It raises a warning and lowers the score; it never decides alone.
+**Anomaly flag:** an invoice amount over 10× the supplier's usual (the median of at least 3 settled invoices) raises a warning and takes off 10 points; it never decides alone. (An Isolation Forest was planned and is not built.)
 
-**Wallet check:** investor and business wallets are checked against a list of known scam wallets and their direct links before KYC approval or payout.
+**Wallet check (not built):** checking investor and business wallets against known scam wallets before KYC approval or payout was planned and is not part of the current build.
 
 **Report output:** score, grade, confidence, credit risk, fraud flags, anomaly flag, suggested discount and plain-language reasons (for example, "Buyer paid 90% of past invoices on time").
 
 ## Where x402 fits
 
-The full risk report is a paid API: 0.01 USDC per report over x402 on Hedera, so investors and their agents pay per check instead of subscribing.
+The full risk report is a paid API: ₹1.00 in uINR per report over x402 on Hedera (the payer also covers uINR's 1% fee, ₹1.01 in all), so investors and their agents pay per check instead of subscribing.
 
-**Free:** marketplace listing with amount, due date, discount and basic grade.
+**Free:** marketplace listing with amount, due date, discount and basic grade (`GET /risk/:invoiceId/summary`).
 
-**Paid (x402):** `GET /v1/risk-report/{invoiceId}` returns the full report and the investor's mini-graph.
+**Paid (x402):** `GET /risk/:invoiceId/report` returns the full report and the investor's mini-graph. The browser uses `POST /risk/:invoiceId/buy-report`, where the server pays with the investor's key.
 
-1. Call without payment → `402 Payment Required` with price, USDC token, receiving account.
-2. Client signs a USDC payment and retries with the payment header.
+1. Call without payment → `402 Payment Required` with price, uINR token, receiving account.
+2. Client signs a uINR payment and retries with the `PAYMENT-SIGNATURE` header.
 3. Facilitator verifies and settles on Hedera testnet; the API returns the report and the transaction ID.
 
-**Auto-invest agent (qualifies the x402 track):** the investor sets rules once (budget, minimum grade, maximum per invoice). The agent then, with no human approving, scans new listings, pays for each risk report, buys units in invoices that pass, and shows a receipt: invoices checked, USDC spent on reports, amount invested.
+**Auto-invest agent (qualifies the x402 track):** the investor sets rules once (budget, minimum grade, maximum per invoice). The agent then, with no human approving, scans new listings, pays for each risk report, buys units in invoices that pass, and shows a receipt: invoices checked, uINR spent on reports, amount invested.
 
-**Stretch: price feed.** `GET /v1/price/{tokenId}` sells a fair value for each invoice token (from grade and days to maturity), the oracle-style NAV feed both tracks mention.
+**Stretch (not built): price feed.** A route selling a fair value for each invoice token (from grade and days to maturity), the oracle-style NAV feed both tracks mention.
 
 **Revenue split (stretch):** each report fee can be split between the credit engine, the fraud-graph engine and the platform in one atomic transfer.
 
@@ -120,8 +131,8 @@ The Tokenize track is the primary target; the x402 track is a second shot if Hed
 | --- | --- |
 | Compliance controls | KYC allowlist, transfer restrictions, freeze, pause |
 | Custom fees and distributions | Repayment distributed to every investor; 1% of each funding goes to an investor protection pool |
-| Oracle pricing or NAV | Paid price feed from grade and days to maturity (stretch) |
-| Scheduled Transactions | Repayment scheduled for the due date |
+| Oracle pricing or NAV | Not built (stretch). Pricing is annual rate × days to the due date / 365 |
+| Scheduled Transactions | Not built: repayment is triggered by the backend (a Scheduled Transaction lasts about 62 days at most, less than a 90-day invoice) |
 | Contributions back | A genuinely useful pull request to the ATS repo (docs fix, example or bug report) |
 
 **x402 track — qualification**
@@ -133,11 +144,11 @@ The Tokenize track is the primary target; the x402 track is a second shot if Hed
 
 **ETHGlobal finalist eligibility:** live deployment anyone can open, 2–4 minute video at 720p or better with no music, every form field filled, public repo. One video of about 3.5 minutes covers all three.
 
-**Smart contracts:** ATS deploys the security-token contracts; no custom Solidity is required. An optional swap contract (USDC for units in one step) is a stretch goal.
+**Smart contracts:** ATS deploys the security-token contracts; no custom Solidity is required. An optional swap contract (uINR for units in one step) is a stretch goal and is not built.
 
 ## Data
 
-There is no public dataset of Indian invoices, so a Python script (Faker with Indian locale) generates a labelled demo dataset at the event, with fraud and risk stories planted on purpose. The README marks it as simulated.
+There is no public dataset of Indian invoices, so a TypeScript script (`backend/scripts/generate-data.ts`, Faker with Indian locale) generates a labelled demo dataset at the event, with fraud and risk stories planted on purpose. The README marks it as simulated.
 
 | Table | Rows | Key fields |
 | --- | --- | --- |
@@ -160,7 +171,7 @@ There is no public dataset of Indian invoices, so a Python script (Faker with In
 | Anomaly | Usual ₹50k supplier bills ₹40 lakh | Anomaly warning |
 | Scam wallet | Investor wallet funded by a scam wallet | KYC rejected |
 
-The CSVs load into Neo4j for the graph checks; the scorecard and Isolation Forest read them directly.
+The data is JSON in `backend/data/risk/` (see [DATA.md](DATA.md)). The graph checks run in memory behind a `GraphStore` interface, so Neo4j can replace them; the scorecard reads the files directly. The `wallets` and `scam_wallets` tables and the scam wallet story are not built.
 
 ## System architecture
 
@@ -173,15 +184,15 @@ The risk API is the only paid service; the agent and the investor portal both pa
 | Layer | Choice |
 | --- | --- |
 | Web app | Next.js, one site with a role switcher; react-force-graph for the 3D graph |
-| Backend | Node + TypeScript, Hedera JS SDK, ATS SDK or web app |
-| Risk API | Python FastAPI behind x402 middleware (or a Node gateway in front of it) |
-| Data | Neo4j Aura free tier; CSVs from the Faker generator |
-| Payments | Test USDC (HTS); x402 Hedera facilitator |
+| Backend | Node + TypeScript, Express, Hedera JS SDK, ATS v8 contracts called directly |
+| Risk API | Part of the Node backend, behind x402 (`@x402/core`, `@x402/hedera`) |
+| Data | JSON files from the Faker generator; in-memory graph (Neo4j can replace it) |
+| Payments | uINR (HTS); x402 facilitator `https://x402.org/facilitator` |
 | Hosting | Vercel (web), Railway or Render (backend, agent, risk API) |
 
 ## Build plan
 
-The token lifecycle is built first because it alone qualifies the Tokenize track; the risk engine, x402 and the 3D graph are added on top. Map hours to clock times once the official start is known.
+The token lifecycle is built first because it alone qualifies the Tokenize track; the risk engine, x402 and the trust layer are added on top. (A 3D graph was planned and is not built.) Map hours to clock times once the official start is known.
 
 &#91;embedded content: Build schedule · hours from hacking start\]
 
@@ -189,7 +200,7 @@ The token lifecycle is built first because it alone qualifies the Tokenize track
 
 - [ ] **H3:** public repo with `.env` in `.gitignore`; web app and backend deployed as hello-world; ATS running on testnet
 - [ ] **H12, Tokenize gate:** invoice uploaded → buyer confirms → ATS bond issued with KYC list → investor buys units → redemption pays investors; freeze works; every step on HashScan from the live site
-- [ ] **H20:** demo dataset generated and loaded into Neo4j; risk score and fraud checks live behind x402; auto-invest agent pays and buys with no human
+- [ ] **H20:** demo dataset generated and loaded (in-memory graph); risk score and fraud checks live behind x402; auto-invest agent pays and buys with no human
 - [ ] **H31:** admin 3D graph with fraud ring highlighted; investor mini-graph; scheduled redemption on the due date; KYC wallet scan; polished portals; pay-your-supplier transfer; double-financing guard; protection-pool fee; ATS pull request
 - [ ] **H33, feature freeze:** bugs only; redeploy; rehearse the demo three times
 - [ ] **H36:** video uploaded, README complete, every form field filled, live link checked in a private window
@@ -205,7 +216,7 @@ The video runs about 3.5 minutes, which fits the Hedera 5-minute cap and ETHGlob
 | 0:00–0:20 | Title | Small suppliers wait 90 days to be paid; Udhaar gets them cash today |
 | 0:20–0:45 | Business: upload; Buyer: confirm | Only buyer-confirmed invoices are listed |
 | 0:45–1:15 | Admin: approve KYC; create ATS bond token | Compliant security token: KYC-only, freezable |
-| 1:15–1:50 | Investor agent pays 0.01 USDC for risk report, buys units; Ramesh pays his sand supplier with 100 units | x402 payment with no human approving; supplier funded |
+| 1:15–1:50 | Investor agent pays ₹1.00 in uINR for risk report, buys units; Ramesh pays his sand supplier with 100 units | x402 payment with no human approving; supplier funded |
 | 1:50–2:30 | Flagged invoice; admin 3D graph shows fraud ring; Freeze | Fraud caught by the graph, stopped on-chain |
 | 2:30–3:10 | Due date: buyer pays; scheduled redemption pays investors | Lifecycle operation, automatic |
 | 3:10–3:30 | HashScan links, architecture | Every step is a real Hedera transaction |
@@ -227,8 +238,8 @@ The biggest risk is the Asset Tokenization Studio taking hours to set up, so it 
 | Risk | Fallback |
 | --- | --- |
 | ATS setup slow or broken | Ask the Hedera booth on day 1; use the ATS web app to issue instead of the SDK |
-| No test USDC (faucet limit) | Request again in the morning; ask Hedera; mint a demo stablecoin with Stablecoin Studio |
-| Scheduled redemption not supported as planned | Admin triggers redemption manually on the due date in the demo |
+| No test stablecoin | Resolved: uINR is created with the Hedera SDK |
+| Scheduled redemption not supported as planned | Used: the backend triggers redemption when it sees the buyer's payment |
 | Neo4j or 3D graph runs late | Ship 2D graph; the fraud check still works |
 | Live demo fails in judging | Play the recorded video; show HashScan history |
 | Running out of time | Stop at the end of any checkpoint; everything shipped still qualifies |
@@ -243,7 +254,7 @@ The biggest risk is the Asset Tokenization Studio taking hours to set up, so it 
 | Investor | 0.0.11310320 |
 | Risk agent | 0.0.11310322 |
 
-All five hold test HBAR and can receive tokens automatically. Keys live in `accounts.env`, outside any repo. Test USDC is still pending because of the faucet limit.
+All five hold test HBAR and can receive tokens automatically. Keys live in the root `.env`, which is in `.gitignore`. POOL, REPAYMENT and the uINR token were added later (see the README).
 
 **Working with Claude Code:** start each session with this doc and the PRD, build one feature per session, commit after each working step, never paste private keys into a prompt, and read every diff on payment and token code yourself.
 

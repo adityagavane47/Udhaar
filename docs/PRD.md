@@ -4,7 +4,7 @@ Nov 4, 2026 · @ADITYA
 
 ## Summary
 
-Udhaar is an invoice-financing app on Hedera: small businesses tokenize buyer-confirmed invoices with the Asset Tokenization Studio, KYC-verified investors buy them at a discount, repayment is automatic at maturity, and a risk API sells explainable scores per call over x402. It is built solo at ETHGlobal Mumbai (5–7 Nov 2026); this PRD defines what must ship.
+Udhaar is an invoice-financing app on Hedera: small businesses tokenize buyer-confirmed invoices with the Asset Tokenization Studio, KYC-verified investors buy them at a discount, repayment is automatic at maturity, a risk API sells explainable scores per call over x402, and a trust layer checks the business, the invoice and the buyer. It is built solo at ETHGlobal Mumbai (5–7 Nov 2026); this PRD defines what must ship.
 
 **Problem.** Small suppliers wait months for large buyers to pay invoices, while they need cash now for wages and stock. Investors could fund these invoices, but they cannot judge which buyers will pay, and fake invoices are a known fraud.
 
@@ -25,7 +25,7 @@ The product goal is a working end-to-end invoice lifecycle on Hedera testnet; th
 
 **Non-goals (this hackathon)**
 
-- Real KYC, real company data or real money
+- Real KYC, real company data or real money (the trust layer's GST registry, e-invoice signer, bureau and MSME data are mocks)
 - Mainnet deployment, audits or legal structuring
 - A secondary market for invoice tokens
 - Mobile apps or multi-language UI
@@ -104,15 +104,15 @@ P0 items qualify the Tokenize track and must ship; P1 items add bonus points and
 | F8 | Admin freeze, pause and unfreeze per token | P0 |
 | F9 | Redemption at maturity pays every holder face value per unit | P0 |
 | F10 | HashScan link shown for every on-chain action | P0 |
-| F11 | Demo dataset generator (Faker, Indian locale) with the planted stories; loaded into Neo4j | P1 |
+| F11 | Demo dataset generator (Faker, Indian locale) with the planted stories; the graph checks run in memory behind a `GraphStore` interface, so Neo4j can replace them | P1 |
 | F12 | Risk scorecard (credit 100-point score, grade, confidence, discount, reasons) | P1 |
 | F13 | Graph fraud checks: shared director, circular invoicing, shared address, unconfirmed invoice | P1 |
-| F14 | Anomaly flag with Isolation Forest on invoice features | P1 |
+| F14 | Anomaly flag: an amount over 10× the supplier's usual raises a warning (built as a rule; the Isolation Forest was not built) | P1 |
 | F15 | Full risk report behind x402, ₹1.00 in uINR per call, settled on Hedera | P1 |
 | F16 | Auto-invest agent: rules, budget, pays for reports and buys with no human approval, shows a receipt | P1 |
-| F17 | Admin 3D network graph with fraud patterns highlighted; investor 2D mini-graph with masked names | P1 |
-| F18 | Repayment triggered by a Scheduled Transaction on the due date | P1 |
-| F19 | KYC wallet scan against known scam wallets | P1 |
+| F17 | Admin network graph with fraud patterns highlighted; investor 2D mini-graph with masked names. The report returns graph data with masked names; the 3D view is not confirmed built | P1 |
+| F18 | Repayment triggered by a Scheduled Transaction on the due date. **Not built:** the backend triggers repayment when it sees the buyer's payment, because a scheduled transaction lasts about 62 days at most | P1 |
+| F19 | KYC wallet scan against known scam wallets. **Not built** | P1 |
 | F20 | Audit log of all actions | P1 |
 | F21 | Price feed (fair value per token) over x402 | P2 |
 | F22 | uINR, a test rupee stablecoin (HTS token with a 1% custom fee), used for units and x402 reports | P0 |
@@ -127,38 +127,55 @@ P0 items qualify the Tokenize track and must ship; P1 items add bonus points and
 | F26 | Double-financing guard: invoice fingerprint (hash) written to an HCS topic at upload; a second upload of the same invoice is rejected with HashScan proof | P1 |
 | F27 | Investor protection pool: 1% of each funding routed to a pool account through an HTS custom fee | P1 |
 | F28 | Contribution back: a genuinely useful pull request to the ATS repo (docs fix, example or bug report), linked in the README | P1 |
-| F29 | Credit passport: page showing a business's on-chain repayment history | P2 |
+| F29 | Credit passport: page showing a business's on-chain repayment history. Built as `GET /trust/company/:id` and the company trust page | P2 |
 
-F18 (scheduled repayment) moves up to be built right after the P0 core. F8 demo shows both freeze and pause.
+F8 demo shows both freeze and pause.
+
+### Trust layer
+
+Added on 6 Nov to answer the investor's three questions: is the business real, is the invoice real, will the money come back? The investor's real risk is the buyer, so the Trust Score covers the buyer as well as the seller. Real on Hedera: repayment history, buyer confirmations and the duplicate registry. Mock: the GST registry, the e-invoice signer, bureau scores, MSME-1 dues and Samadhaan complaints. Details are in [API.md](API.md#trust) and [DATA.md](DATA.md#trust-data-mock).
+
+| ID | Requirement | Priority |
+| --- | --- | --- |
+| F30 | GSTIN check (format, state code, checksum) and a lookup in a mock GST registry: status, legal name, last 6 returns | P1 |
+| F31 | Mock IRP e-invoice: a signed QR (ES256) is verified against the invoice at upload; a tampered one returns `422 EINVOICE_*` | P1 |
+| F32 | Per-invoice trust checklist (`GET /trust/:invoiceId`): each item passes, warns, fails or is not provided, and names its source (`mock`, `hedera` or `udhaar`) | P1 |
+| F33 | Udhaar Trust Score, 300–900, for the seller and the buyer (`GET /trust/company/:id`). Payment history comes from on-chain repayments | P1 |
+| F34 | Cold start: "New on Udhaar" label, and invoices capped at ₹1,00,000 until 3 on-time repayments (`422 TRUST_LIMIT_EXCEEDED`) | P1 |
 
 ## Risk API and x402 specification
 
-The risk API exposes one free and one paid route; the paid route follows the x402 pattern and settles in uINR (`0.0.11327250`) through a Hedera facilitator.
+The risk API exposes one free and one paid route (plus the trust routes below); the paid route follows the x402 pattern and settles in uINR (`0.0.11327250`) through a Hedera facilitator.
 
 | Route | Access | Returns |
 | --- | --- | --- |
-| `GET /v1/invoices/{id}/summary` | Free | Grade, amount, due date, discount |
-| `GET /v1/risk-report/{id}` | x402, ₹1.00 in uINR | Full report (below) and investor mini-graph data |
-| `GET /v1/price/{tokenId}` | x402, P2 | Fair value per unit from grade and days to maturity |
+| `GET /risk/:invoiceId/summary` | Free | Grade and confidence |
+| `GET /risk/:invoiceId/report` | x402, ₹1.00 in uINR | Full report (below) and investor mini-graph data |
+| `POST /risk/:invoiceId/buy-report` | Investor session | The same report, paid by the server with the investor's key |
+| `GET /.well-known/x402` | Free | Lists the paid endpoint for agents |
+| `GET /trust/:invoiceId`, `GET /trust/company/:id` | Free | Trust checklist and Trust Score |
+| Price feed (P2) | Not built | Fair value per unit from grade and days to maturity |
 | `GET /health` | Free | Service status |
 
-**Paid call flow:** a request without payment gets `402 Payment Required` listing network `hedera:testnet`, asset (uINR), amount, receiving account and resource. The payer needs ₹1.01, because uINR's 1% fee is charged on top and goes to the protection pool. The client retries with a signed payment in the payment header; the facilitator verifies and settles; the response carries the report and the settlement transaction ID. Exact header and field names follow the Hedera x402 middleware used.
+**Paid call flow:** a request without payment gets `402 Payment Required` listing network `hedera:testnet`, asset (uINR), amount, receiving account and resource. The payer needs ₹1.01, because uINR's 1% fee is charged on top and goes to the protection pool. The client retries with a signed payment in the payment header; the facilitator verifies and settles; the response carries the report and the settlement transaction ID. The payment header is `PAYMENT-SIGNATURE`; field names are in [API.md](API.md#get-riskinvoiceidreport).
 
 **Report fields**
 
 ```json
 {
-  "invoice": "INV-0042",
-  "risk_score": 85,
+  "invoiceId": "INV-0042",
+  "riskScore": 85,
   "grade": "A",
   "confidence": "HIGH",
-  "credit_risk": "LOW",
-  "fraud_flags": [],
+  "creditRisk": "LOW",
+  "fraudFlags": [],
   "anomaly": false,
-  "suggested_discount_pct": 2.9589,
+  "annualRatePct": 12,
+  "daysToDue": 90,
+  "suggestedDiscountPct": 2.9589,
   "reasons": ["Buyer paid 90% of past invoices on time"],
   "graph": {"nodes": [], "links": []},
-  "payment_tx": "0.0.9185802@..."
+  "settlement": {"transactionId": "0.0.9185802@..."}
 }
 ```
 
@@ -186,8 +203,8 @@ The plan rests on three assumptions about Hedera tooling that must be checked in
 
 **Assumptions**
 
-- ATS can issue a bond-style token with a maturity date, KYC allowlist and freeze, and redeem it at maturity.
-- A Scheduled Transaction can trigger repayment on the due date; if not, the admin triggers it manually in the demo.
+- ATS can issue a bond-style token with a maturity date, KYC allowlist and freeze, and redeem it at maturity. (Confirmed on testnet.)
+- A Scheduled Transaction can trigger repayment on the due date. Outcome: not used. The backend triggers repayment when it sees the buyer's payment.
 - uINR is held by the investor and accepted by the x402 facilitator. Both were tested on testnet on 6 Nov 2026.
 - Rupee amounts are display-only; settlement uses a stablecoin at a fixed demo rate stated in the README.
 - Project code is written during the event; only accounts, research and these documents are prepared beforehand.
@@ -197,7 +214,7 @@ The plan rests on three assumptions about Hedera tooling that must be checked in
 **Open questions (ask at the Hedera booth on day 1)**
 
 - [ ] Can one project be submitted to both the Tokenize and x402 tracks?
-- [ ] Does ATS bond redemption support scheduled execution, or is it triggered by the issuer?
+- [x] Redemption is triggered by the issuer (`fullRedeemAtMaturity`), per holder.
 - [ ] How are ATS contracts verified on HashScan for the "contracts verified" requirement?
 - [x] Test USDC is no longer needed: x402 reports settle in uINR.
 

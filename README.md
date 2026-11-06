@@ -1,30 +1,100 @@
 # Udhaar — invoice financing on Hedera
 
-**Turn an unpaid invoice into cash today, and let it pay your own suppliers too.**
+**Get paid for an invoice today, not in 90 days. Then pay your own suppliers with the same invoice.**
 
-Udhaar tokenizes buyer-confirmed invoices as compliant security tokens with Hedera's **Asset Tokenization Studio (ATS)**. KYC-verified investors buy them at a discount, so the supplier is paid today instead of in 90 days. The supplier can also **pass part of the invoice token down to his own suppliers as payment**, reaching small firms that today's invoice-discounting platforms don't. When the buyer pays, every holder is repaid automatically, and every step is provable on HashScan.
+- **Problem:** Indian MSMEs wait about 90 days for large buyers to pay, and need cash now for wages and stock. Bank loans are slow and need collateral.
+- **Solution:** a buyer-confirmed invoice becomes an **ATS bond token** (Hedera's Asset Tokenization Studio). KYC-approved investors fund it today at a discount, and are repaid automatically when the buyer pays.
+- **Wow:** the supplier can **pay his own suppliers with the token**, which reaches the small firms that today's invoice-discounting platforms skip.
 
 Built solo at **ETHGlobal Mumbai 2026** for the Hedera tracks *Tokenize Anything with Hedera Studios* and *AI Agents That Pay: x402 on Hedera*.
 
-> ⚠️ **Testnet demo with simulated data.** Companies, people, KYC and invoices are fictional. All Hedera transactions are real testnet transactions. Not real money.
+> ⚠️ **Testnet demo with simulated data.** Companies, people, KYC, GST and bureau data, and invoices are fictional. All Hedera transactions are real testnet transactions. Not real money.
 
 ---
 
-## The problem
+## Demo
 
-- Indian MSMEs were owed about **₹7.34 lakh crore in delayed payments** as of March 2024, and micro firms wait the longest ([Delayed Payments Report 3.0](https://smestreet.in/infocus/delayed-payments-report-30-highlights-msme-finance-progress-10816194)).
-- The MSME credit gap is about **₹30 lakh crore** ([SIDBI](https://www.freepressjournal.in/business/msme-sector-30-lakh-crore-credit-gap-says-sidbi-report)).
-- RBI-licensed TReDS platforms finance the **direct** supplier of a large buyer, but not the smaller firms that supply *him*. Experts call this the deep-tier finance gap ([GTR](https://www.gtreview.com/magazine/the-supply-chain-issue-2024/deep-tier-supply-chain-finance-what-it-is-and-why-it-matters)).
+- **Video (5 min or less):** TODO
+- **Live app:** TODO
+
+Four personas, each a real testnet account. Pick one on the login page:
+
+| Persona | Role | What they do |
+|---|---|---|
+| **Ramesh** | Business (cement supplier) | Uploads an invoice, sees its status, receives funding, pays his own supplier with invoice units |
+| **BigBuild** | Buyer (construction company) | Confirms the invoice on-chain, then repays once on the due date |
+| **Priya** | Investor | Completes KYC, reads a paid risk report, buys units, or sets rules for the auto-invest agent |
+| **Operator** | Admin (passcode) | Approves KYC, issues the bond token, pauses or freezes it, sees the audit log |
 
 ## How it works
 
-1. **Upload.** Ramesh, a cement supplier, uploads a ₹5,00,000 invoice owed by BigBuild Ltd. Its fingerprint is checked against a public **HCS registry**, so an invoice that was already financed is rejected.
-2. **Buyer confirms.** BigBuild confirms the debt with an **HCS message signed by its own account**.
-3. **Tokenize.** The invoice becomes an **ATS bond**: units of ₹1,000 face value, maturity on the due date, **allowlist-only** transfers. All units are issued to Ramesh.
-4. **Investors buy.** KYC-approved investors buy units at a discount (₹960 for ₹1,000), paying in **uINR**, our test rupee stablecoin. 1% of each funding goes to an **investor protection pool** via an HTS custom fee.
-5. **Pay your supplier.** Ramesh transfers units to Suresh, his sand supplier. The token contract rejects any unverified recipient.
-6. **Controls.** The operator can **pause** the whole token or **freeze** units on one holder.
-7. **Repayment.** BigBuild pays the full amount to a REPAYMENT account. The backend detects it on the **mirror node**, then for every holder **burns their units first and pays them second** (face value × units), fee-free and safe against crashes or double payment.
+One invoice, end to end (the **INV-0042** story below is an illustration; the live on-chain run is INV-0001, linked under [Proof](#proof-on-hedera-testnet)):
+
+1. **Upload.** Ramesh uploads a ₹1,00,000 invoice owed by BigBuild Ltd, due in 90 days. Udhaar refuses a tampered e-invoice QR or an amount over the new-company limit, then writes the invoice's fingerprint to a public **HCS registry**. An invoice that was already financed is rejected.
+2. **Buyer confirms.** BigBuild posts a message to an HCS topic, signed by its own account, saying it owes the amount.
+3. **Risk check.** The risk engine scores the buyer. BigBuild gets **Grade A**, which earns investors **12% a year**.
+4. **Tokenize.** The admin issues an ATS bond: **100 units of ₹1,000 face value**, maturity on the due date, allowlist-only transfers. All 100 units go to Ramesh.
+5. **Investors buy.** Priya pays **₹970.41 per unit** in uINR (a test rupee stablecoin), so Ramesh receives **₹97,041 today**. A 1% fee goes on top to an investor protection pool.
+6. **Pay your supplier.** Ramesh sends 20 units to Suresh, his sand supplier, as payment for sand. The token rejects any recipient who isn't KYC-verified.
+7. **Controls.** If something looks wrong, the operator **pauses** the token or **freezes** units on one holder.
+8. **Repayment.** On the due date BigBuild pays ₹1,00,000 to a REPAYMENT account. The backend sees it on the mirror node, then for every holder **burns their units first and pays them second**: ₹1,000 per unit, fee-free. Priya turns ₹970.41 per unit into ₹1,000.
+
+### How the price is set
+
+The discount depends on how long the investor waits, not on a flat percentage:
+
+```
+discount % = annual rate × days to the due date / 365
+unit price = face value × (1 − discount % / 100)
+```
+
+| Grade | Rate a year | ₹1,000 unit, due in 90 days |
+|---|---:|---:|
+| A (score 80+) | 12% | **₹970.41** (2.9589% off) |
+| B (65–79) | 16% | ₹960.55 |
+| C (50–64) | 20% | ₹950.69 |
+| D (under 50) | Not listed | Refused |
+
+For INV-0042: 12% × 90 / 365 = 2.9589%, so ₹1,000 × (1 − 0.029589) = **₹970.41**. A shorter invoice gets a smaller discount.
+
+> **Older invoices:** INV-0001 to INV-0005 were tokenized before time-based pricing and used a **flat 4%** (₹960 per unit). They keep that price.
+
+## Trust: is the business real, is the invoice real, will the money come back?
+
+This is the question every investor asks, so each part has a check you can see in the app (`GET /trust/:invoiceId` returns the whole checklist).
+
+| Question | How Udhaar answers it |
+|---|---|
+| **Is the business real?** | Both GSTINs are checked for format, state code and checksum, then looked up in the **GST registry** (status Active, legal name matches, last 6 returns filed). The seller's Udyam number is format-checked |
+| **Is the invoice real?** | A **mock IRP-signed e-invoice** QR (ES256) is checked against the invoice's GSTINs, number, amount and date. The **buyer's confirmation** is a signed HCS message, verified as posted by the buyer's own account. A **duplicate-invoice registry** on HCS rejects an invoice that was already financed |
+| **Will the money come back?** | The **Udhaar Trust Score** (300–900) for the seller and for the buyer |
+
+**The investor's real risk is the buyer.** The supplier already delivered the goods, so what matters is whether the buyer pays. The risk grade is therefore built on the buyer's payment record, and a fraud flag (billing loop, shared director, shared address) forces Grade D, which can't be tokenized. The trust checklist shows investors every pass, warning and fail (cancelled GSTIN, name mismatch and so on) before they buy; a tampered e-invoice or an amount over the new-company limit is refused at upload.
+
+**What goes into the Trust Score** (out of 100 points, mapped to 300–900):
+
+| Factor | Points | Source |
+|---|---:|---|
+| Payment history | 40 | **On-chain repayments** read from the mirror node. On time means paid by the end of the due day |
+| Company profile | 25 | Age, GST filing rate, size (mock) |
+| External obligations | 20 | MSME-1 dues over 45 days and Samadhaan complaints (mock) |
+| Network | 15 | How promptly the company pays its other suppliers (mock) |
+
+Payment history is not self-reported. Each repayment is a transaction the server fetches and checks: it succeeded, it was a uINR payment from the buyer, and its consensus time is compared with the due date.
+
+**Cold start.** A company with no repayments on Udhaar shows **"New on Udhaar"**. Its payment-history points come from the outside (mock) bureau profile, and every invoice it is part of is **capped at ₹1,00,000 until it has 3 on-time repayments**. A late repayment doesn't count toward the 3.
+
+### What is real and what is a mock
+
+| Real on Hedera today | Mock of a production integration |
+|---|---|
+| ATS bond issue, allowlist, transfer, pause, freeze, redemption | **GST registry** (a real build would use a GST Suvidha Provider API) |
+| uINR token, 1% fee, exempt repayment collector | **E-invoice signer** (stands in for the government's IRP; key in `backend/deployments/mock-irp-public.json`) |
+| HCS invoice registry, buyer confirmations, agent audit log | **Credit bureau scores and ratings** |
+| Buyer repayments used for the Trust Score | **MSME-1 dues** and **MSME Samadhaan complaints** |
+| x402 payments for risk reports | KYC, company records and the risk dataset (simulated) |
+
+Every mock record and API response says `mock`. Details are in [`docs/DATA.md`](docs/DATA.md#trust-data-mock).
 
 ## Architecture
 
@@ -33,10 +103,12 @@ flowchart TD
   WEB["Web app (Next.js)<br/>Business · Buyer · Investor · Admin"] --> API["Backend API (Node + TypeScript)<br/>signs with role accounts"]
   WEB -. paid report .-> RISK["Risk API behind x402"]
   AGENT["Auto-invest agent"] -. pays per report .-> RISK
+  API --> TRUST["Trust layer<br/>GSTIN · mock IRP · Trust Score"]
   API --> ATS["ATS bond contracts v8<br/>allowlist · pause · freeze · redeem"]
   API --> HTS["uINR (HTS token)<br/>1% pool fee"]
-  API --> HCS["HCS topics<br/>invoice registry · confirmations"]
+  API --> HCS["HCS topics<br/>registry · confirmations · agent audit"]
   API --> MIRROR["Mirror node<br/>repayment detection"]
+  TRUST --> MIRROR
   ATS --> HEDERA[("Hedera testnet")]
   HTS --> HEDERA
   HCS --> HEDERA
@@ -51,7 +123,7 @@ flowchart TD
 | Payments | uINR, an HTS fungible token created with the Hedera SDK |
 | Records | HCS topics and the Hedera mirror node REST API |
 
-## Payment flows
+### Payment flows
 
 **Buying units**
 
@@ -61,7 +133,7 @@ sequenceDiagram
   participant B as Business (Ramesh)
   participant P as POOL
   participant T as Invoice bond (ATS)
-  I->>B: 960 uINR per unit
+  I->>B: unit price in uINR (₹970.41 for Grade A, 90 days)
   I->>P: +1% custom fee (paid on top)
   B->>T: transfer units to investor (allowlist checked)
 ```
@@ -82,9 +154,20 @@ sequenceDiagram
   API->>H: pay units × face value from REPAYMENT (fee-free)
 ```
 
-## x402 payment flow
+## Hedera services used
 
-The full risk report costs **₹1.00 in uINR** per call, with no account, API key or subscription. The auto-invest agent pays for reports itself, within rules the investor sets, and buys the invoices that pass. Payments settle on Hedera testnet through the [official x402 facilitator](https://docs.hedera.com/solutions/ai/x402/facilitators), which pays the HBAR fee.
+| Service | What Udhaar uses it for |
+|---|---|
+| **Asset Tokenization Studio (ATS) bonds**, v8 factory `0.0.9213391` | One bond per invoice. Operations used: `deployBond` (factory), `addToControlList` (allowlist), `issue`, `transfer`, `pause` / `unpause`, `freezePartialTokens` / `unfreezePartialTokens`, `fullRedeemAtMaturity` (burn at repayment) |
+| **HTS: uINR** `0.0.11327250` | Test rupee stablecoin, 2 decimals. Fee schedule: **1% to POOL, paid by the sender on top**, plus a zero-charge second row that makes **REPAYMENT an exempt fee collector**, so repayments and payouts carry no fee. No admin key |
+| **HCS topics** | `registryTopicId` `0.0.11327836` (invoice fingerprints, duplicate guard), `confirmationTopicId` `0.0.11327838` (signed buyer confirmations), `agentAuditTopicId` `0.0.11332556` (every agent payment and decision; only the investor's key can write, no admin key) |
+| **Mirror node** | Detects buyer repayments, reads on-chain repayment history for the Trust Score, verifies x402 settlements, reads topic messages |
+| **x402 with the facilitator** | Pay-per-call risk reports in uINR, settled through `https://x402.org/facilitator`, which pays the HBAR fee. Packages `@x402/core` and `@x402/hedera` |
+| **HashPack via WalletConnect** | The web app connects a HashPack wallet, **read-only** for now: it shows the wallet but doesn't sign. Demo trades are signed by pre-funded personas |
+
+## x402 payment flow and the auto-invest agent
+
+The full risk report costs **₹1.00 in uINR** per call, with no account, API key or subscription. The auto-invest agent pays for reports itself, within rules the investor sets, and buys the invoices that pass. Payments settle on Hedera testnet through the [official x402 facilitator](https://docs.hedera.com/solutions/ai/x402/facilitators).
 
 ```mermaid
 sequenceDiagram
@@ -122,7 +205,7 @@ Each one moved 1.01 uINR from the investor: 1.00 to the risk agent and 0.01 to P
 
 ### One agent run
 
-Rules: report budget ₹5, investment budget ₹5,000, minimum grade B, at most 110 units per invoice. The investor already held 100 units of INV-0002.
+Rules: report budget ₹5, investment budget ₹5,000, minimum grade B, at most 110 units per invoice. The investor already held 100 units of INV-0002. (These invoices were tokenized before time-based pricing, so they use the old flat 4%, ₹960 per unit.)
 
 | Invoice | Report | Result |
 |---|---|---|
@@ -132,7 +215,7 @@ Rules: report budget ₹5, investment budget ₹5,000, minimum grade B, at most 
 | INV-0005 | Not bought | Skipped: the bond has matured |
 | DEMO-RING | Paid. Grade D, score 49 | Skipped: circular invoicing fraud |
 
-It spent ₹3.03 on reports and ₹4,848 on units, and no person approved anything after the run started. Every payment and decision is in the HCS audit log, topic [`0.0.11332556`](https://hashscan.io/testnet/topic/0.0.11332556). Only the investor's key can write to that topic, and it has no admin key, so messages can't be changed or deleted.
+It spent ₹3.03 on reports and ₹4,848 on units, and no person approved anything after the run started. Every payment and decision is in the HCS audit log, topic [`0.0.11332556`](https://hashscan.io/testnet/topic/0.0.11332556).
 
 ### Spending controls
 
@@ -145,27 +228,18 @@ The agent's rules are plain code (`backend/src/agent/rules.ts`), with no LLM inv
 - **Limits on runs:** per-IP rate limits, a daily cap, and server-side maximums on the rules.
 - **Replay protection:** one payment buys one report, and the server checks the transaction on-chain before releasing it.
 
-### Run it
-
-Nothing extra is needed beyond the setup below, because the facilitator is public and needs no API key. The investor needs uINR, but no HBAR for report payments. To use another facilitator, set `FACILITATOR_URL`, such as `https://api.testnet.blocky402.com`.
+Try it (server running, see [Run it locally](#run-it-locally)):
 
 ```bash
-cd backend
-npm run test:x402       # Paywall, sessions and agent rules, with a fake facilitator. Spends nothing
-npm run test:x402:live  # Stop your server first. Real payments, a real purchase and an agent run, about 0.7 HBAR
-```
-
-```bash
-# With the server running
 curl -i http://localhost:4000/risk/DEMO-RING/report   # 402 with the price
 TOKEN=$(curl -s -X POST http://localhost:4000/auth/demo-investor | node -pe "JSON.parse(require('fs').readFileSync(0)).token")
 curl -X POST http://localhost:4000/agent/run -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"reportBudget":5,"investmentBudget":5000,"minGrade":"B","maxUnitsPerInvoice":110}'
 ```
 
-Routes are in [`docs/API.md`](docs/API.md#risk). The code is in `backend/src/x402/` and `backend/src/agent/`.
+The facilitator is public and needs no API key. To use another, set `FACILITATOR_URL`, such as `https://api.testnet.blocky402.com`. Routes are in [`docs/API.md`](docs/API.md#risk). The code is in `backend/src/x402/` and `backend/src/agent/`.
 
-**Limits of this demo:** the investor session has no passcode, so anyone who can reach the server can start a run, within the limits above. The backend holds the investor's key, so a real product would have investors sign or delegate from their own wallets. Report grades come from the simulated dataset.
+**Limits of this demo:** the investor session has no passcode, so anyone who can reach the server can start a run, within the limits above. The backend holds the investor's key, so a real product would have investors sign or delegate from their own wallets.
 
 ## Proof on Hedera testnet
 
@@ -177,8 +251,19 @@ Routes are in [`docs/API.md`](docs/API.md#risk). The code is in `backend/src/x40
 | ATS resolver | [0.0.9212226](https://hashscan.io/testnet/contract/0.0.9212226) |
 | uINR stablecoin | [0.0.11327250](https://hashscan.io/testnet/token/0.0.11327250) |
 | POOL (1% fee collector) | [0.0.11327247](https://hashscan.io/testnet/account/0.0.11327247) |
-| REPAYMENT | [0.0.11327249](https://hashscan.io/testnet/account/0.0.11327249) |
-| HCS topics | see `backend/deployments/hcs.json` |
+| REPAYMENT (exempt collector) | [0.0.11327249](https://hashscan.io/testnet/account/0.0.11327249) |
+| HCS invoice registry | [0.0.11327836](https://hashscan.io/testnet/topic/0.0.11327836) |
+| HCS buyer confirmations | [0.0.11327838](https://hashscan.io/testnet/topic/0.0.11327838) |
+| HCS agent audit log | [0.0.11332556](https://hashscan.io/testnet/topic/0.0.11332556) |
+
+**Trust layer proof**
+
+| Item | Where |
+|---|---|
+| Mock IRP public key (verifies the signed e-invoice QRs) | [`backend/deployments/mock-irp-public.json`](backend/deployments/mock-irp-public.json), also `GET /mock-irp/public-key` |
+| Trust checklist for any invoice, with HashScan links for the buyer confirmation and registry entry | `GET /trust/:invoiceId` |
+| A company's Trust Score and its on-chain repayment history | `GET /trust/company/:id` |
+| Sign a demo e-invoice | `POST /mock-irp/e-invoice` |
 
 **Full lifecycle through the API (invoice INV-0001, bond [0.0.11327849](https://hashscan.io/testnet/contract/0.0.11327849))**
 
@@ -202,23 +287,30 @@ Routes are in [`docs/API.md`](docs/API.md#risk). The code is in `backend/src/x40
 
 **uINR fee behaviour:** investor → business 1,000 uINR, with 10 uINR to POOL paid on top ([tx](https://hashscan.io/testnet/transaction/1793898088.735173764)); transfers into and out of REPAYMENT pay no fee.
 
-## Hedera track checklist
+## Track checklist
 
 **Tokenize Anything with Hedera Studios**
 
-- [x] ATS used to issue and manage the asset (contracts v8 via the factory)
-- [x] Deployed and demonstrated on Hedera testnet
-- [x] Issuance, configuration (allowlist, roles) and lifecycle operations: redemption, freeze, pause
-- [x] Compliance controls: allowlist (KYC), transfer restrictions, freeze, pause
-- [x] Custom fees and distributions: 1% pool fee on uINR; repayment distributed to every holder
-- [ ] Scheduled Transactions for repayment (in progress)
-- [ ] Contribution back to ATS (docs PR in preparation, see `docs/ATS_PR_NOTES.md`)
+| Requirement | Where it's met |
+|---|---|
+| Use ATS to issue and manage the asset | One ATS v8 bond per invoice, deployed through the factory (`backend/src/ats/bond.ts`) |
+| Deploy and demo on Hedera testnet | [Proof](#proof-on-hedera-testnet) above, full INV-0001 lifecycle |
+| Issuance, configuration, lifecycle operation | Issue, allowlist and roles, then redemption at maturity, freeze and pause |
+| Compliance controls | KYC allowlist, transfer restrictions, freeze, pause, GSTIN and e-invoice checks |
+| Custom fees and distributions | 1% pool fee on uINR; repayment paid to every holder |
+| Scheduled Transactions | Not built. See [Limitations](#limitations-and-next-steps) |
+| Contribution back to ATS | Not submitted. Candidate docs fixes are in [`docs/ATS_PR_NOTES.md`](docs/ATS_PR_NOTES.md) |
+| Public repo, video of 5 minutes or less | Public GitHub repo (confirm it is public before submitting). Video: TODO |
 
 **AI Agents That Pay: x402 on Hedera**
 
-- [x] x402-protected risk-report endpoint settling on Hedera
-- [x] Auto-invest agent that pays for reports with no human approval, within a budget
-- [x] Settled x402 transaction ID listed here (see [x402 payment flow](#x402-payment-flow))
+| Requirement | Where it's met |
+|---|---|
+| x402-protected endpoint settling on Hedera | `GET /risk/:id/report`, ₹1.00 in uINR ([flow](#x402-payment-flow-and-the-auto-invest-agent)) |
+| Agent pays with no human approving | `POST /agent/run`, [one agent run](#one-agent-run) |
+| Settled transaction ID in the README | [Settled payments](#settled-payments) |
+| Setup, architecture, payment flow | This README |
+| Video of 5 minutes or less | TODO |
 
 ## Run it locally
 
@@ -229,9 +321,10 @@ git clone https://github.com/adityagavane47/udhaar.git
 cd udhaar
 ```
 
-Create `.env` in the repo root (never commit it). It needs an ID and private key for each role account:
+Create `.env` in the repo root (never commit it; it is in `.gitignore`). Variable names only:
 
 ```
+# One account ID and private key per role
 ADMIN_ID=        ADMIN_KEY=
 BUSINESS_ID=     BUSINESS_KEY=
 BUYER_ID=        BUYER_KEY=
@@ -239,17 +332,32 @@ INVESTOR_ID=     INVESTOR_KEY=
 RISK_AGENT_ID=   RISK_AGENT_KEY=
 POOL_ID=         POOL_KEY=
 REPAYMENT_ID=    REPAYMENT_KEY=
+
+# Admin login for the demo
+DEMO_ADMIN_PASSCODE=
+
+# Signs the mock e-invoices. Created by: cd backend && npm run generate-irp-key
+MOCK_IRP_PRIVATE_KEY=
 ```
+
+Optional settings (`FACILITATOR_URL`, `MAX_STEP_HBAR`, `DATA_DIR`, rate and agent limits) are listed in [`docs/API.md`](docs/API.md#server-settings).
 
 **Backend** (port 4000):
 
 ```bash
 cd backend
 npm install
+npm run generate-irp-key   # once; writes MOCK_IRP_PRIVATE_KEY to .env without printing it
 npm start
 ```
 
-**Frontend** (port 3000):
+**Frontend** (port 3000). Put these in `web/.env.local`:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=    # from cloud.reown.com; needed only for the HashPack panel
+NEXT_PUBLIC_USE_MOCK=                    # set to true only to run the UI without the backend
+```
 
 ```bash
 cd web
@@ -257,16 +365,16 @@ npm install
 npm run dev
 ```
 
-Set `NEXT_PUBLIC_API_URL=http://localhost:4000` for the web app. Routes are documented in [`docs/API.md`](docs/API.md).
+**Tests** (in `backend/`): `npm run test:risk` and `npm run test:trust` spend no HBAR. `npm run test:x402` uses a fake facilitator and spends nothing. `npm run test:api`, `test:auth` and `test:x402:live` use the real testnet and spend HBAR.
 
-One-off setup scripts (already run for this deployment): `npm run issue-bond` and `npm run create-stablecoin` in `backend/`.
+One-off setup scripts (already run for this deployment): `npm run issue-bond` and `npm run create-stablecoin`. Routes are documented in [`docs/API.md`](docs/API.md).
 
 ## Repository layout
 
 ```
-backend/   API service, ATS / HTS / HCS modules, setup scripts, deployment records
+backend/   API service, ATS / HTS / HCS modules, risk and trust layers, scripts, deployment records
 web/       Next.js frontend: landing page and four portals
-docs/      PRD, overview, API reference, AI usage, ATS PR notes
+docs/      PRD, overview, API reference, data notes, AI usage, prompts, ATS PR notes
 ```
 
 ## Design decisions
@@ -274,19 +382,23 @@ docs/      PRD, overview, API reference, AI usage, ATS PR notes
 - **Contracts, not the ATS SDK:** the SDK signs only through wallets, so the backend calls the v8 contracts directly and signs with the Hedera SDK.
 - **Invoice = bond:** an invoice bought at a discount and repaid at face value on a due date behaves like a zero-coupon bond, so the ATS bond type fits.
 - **Burn first, then pay:** units are burned from a saved holder snapshot before payment, so they can't move between payout and burn. Each payment is recorded, so a crash never pays anyone twice.
-- **Own stablecoin (uINR):** custom fees can't attach to ATS tokens, but they can attach to an HTS payment token. REPAYMENT is an exempt fee collector, so repayments and payouts are fee-free. Its second fee row is a zero-charge row that exists only to make REPAYMENT an exempt collector.
+- **Own stablecoin (uINR):** custom fees can't attach to ATS tokens, but they can attach to an HTS payment token. REPAYMENT is an exempt fee collector, so repayments and payouts are fee-free.
 - **One registry for duplicates:** invoice fingerprints on a public HCS topic let anyone check whether an invoice was already financed.
+- **Errors, not fallbacks:** if a risk or trust check fails, the API returns an error. It never returns a default "safe" score.
 
-## Limitations
+## Limitations and next steps
 
-- **Custodial demo:** the backend holds all role keys so judges can click through without a wallet. A real product would have each user sign with their own wallet.
-- **Simulated KYC and data:** a real deployment would use a licensed KYC provider and real company records.
-- **Regulation:** retail tokenized securities aren't permitted in mainland India today. The realistic path is a technology layer for licensed platforms (TReDS) or GIFT City issuers.
+- **Custodial demo personas:** the backend holds all role keys so judges can click through without a wallet. Next: investors and businesses sign from their own wallets (HashPack is connected read-only today).
+- **Mocks:** the GST registry, IRP e-invoicing, credit bureau scores, MSME-1 dues and MSME Samadhaan complaints are mocks. Next: a GST Suvidha Provider API, the real IRP, a credit bureau and the MSME portals.
+- **Scheduled Transactions for auto-repayment:** repayment is triggered by the backend when it sees the buyer's payment. A Hedera Scheduled Transaction can only wait about 62 days, which is shorter than a 90-day invoice, so it needs a re-scheduling design.
+- **Account Aggregator:** read a business's bank data with consent, to check cash flow and confirm payments.
+- **Regulation:** retail tokenized securities aren't permitted in mainland India today. The realistic path is a technology layer for a licensed NBFC-factor or TReDS platform, tested in an RBI or IFSCA (GIFT City) sandbox.
+- **Risk data:** the risk dataset is simulated and the scorecard is hand-tuned, so no weight has been checked against real defaults. See [`docs/DATA.md`](docs/DATA.md#limits).
 - **Storage:** the backend uses a JSON store, which needs a persistent disk when hosted.
 
-## AI usage
+## Built with AI
 
-Built with AI assistance: **Claude Code** (backend, Hedera integration, scripts), **Google Antigravity** (frontend) and **Claude** (research, planning, documentation). Product decisions, architecture choices and the review of every on-chain result were made by the author. Details, specs and prompts are in [`docs/AI_USAGE.md`](docs/AI_USAGE.md) and [`docs/`](docs/).
+Claude Code built the backend (Hedera integration, risk and trust layers, x402 and agent) and parts of the frontend. Google Antigravity (Gemini) built most of the frontend. Claude was also used for research and documentation. I set the product decisions, wrote the specs, and reviewed every diff and every on-chain result. Prompts and specs are in [`docs/`](docs/); the split, the rules and how output was tested are in [`docs/AI_USAGE.md`](docs/AI_USAGE.md), and the main prompts in [`docs/prompts.md`](docs/prompts.md).
 
 ## Author
 
