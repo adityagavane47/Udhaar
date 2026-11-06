@@ -114,6 +114,19 @@ export interface Holder {
   repaid?: boolean; // units were burned and paid out at maturity
 }
 
+export interface ReportSettlement {
+  transactionId: string;
+  hashscanUrl: string;
+  payer: string;
+  payTo: string;
+  network: string;
+  token: string;
+  amount: number;
+  feeToPool: number;
+  onChainConfirmed: boolean;
+  settledAt: string;
+}
+
 export interface RiskReport {
   invoiceId: string;
   riskScore: number;
@@ -128,8 +141,11 @@ export interface RiskReport {
   appliedDiscountPct?: number;
   reasons: string[];
   graph?: RiskGraph;
-  paymentTx?: string; // missing until x402 is added
+  settlement?: ReportSettlement;
+  replayed?: boolean;
+  paymentTx?: string; // mapped from settlement.transactionId
   hashscanUrl?: string;
+  links?: Link[];
 }
 
 export interface RiskGraphNode {
@@ -175,6 +191,8 @@ export type TransactionType =
   | "kyc_approve"
   | "kyc_reject"
   | "risk_blocked"
+  | "report_paid"
+  | "agent_run"
   | "token_create"
   | "token_pause"
   | "token_unpause"
@@ -247,4 +265,79 @@ export interface TokenInfo {
 export interface TxResult {
   hashscanUrl: string;
   txId: string;
+}
+
+export interface InvestorSession {
+  token: string;
+  expiresAt: string;
+  expiresInSeconds?: number;
+  accountId: string;
+  tokenType?: "Bearer";
+  hashscanUrl?: string;
+  links?: Link[];
+}
+
+export type AgentMinGrade = "A" | "B" | "C";
+
+export interface AgentRules {
+  reportBudget: number;
+  investmentBudget: number;
+  minGrade: AgentMinGrade;
+  maxUnitsPerInvoice: number;
+}
+
+export interface AgentReportItem {
+  invoiceId: string;
+  amount: number;
+  feeToPool: number;
+  transactionId: string;
+  hashscanUrl: string;
+  grade: string;
+  riskScore: number;
+  fraudFlags: string[];
+  anomaly: boolean;
+}
+
+export interface AgentPurchaseItem {
+  invoiceId: string;
+  units: number;
+  unitPrice: number;
+  amount: number;
+  feeToPool: number;
+  paymentHashscanUrl?: string;
+  unitsHashscanUrl?: string;
+}
+
+export interface AgentSkipItem {
+  invoiceId: string;
+  code: string;
+  reason: string;
+  paidForReport: boolean;
+}
+
+export interface AgentAuditMessage {
+  type: string;
+  hashscanUrl: string;
+  txId?: string;
+}
+
+export interface AgentRun {
+  runId: string;
+  status: "running" | "completed" | "stopped" | "interrupted";
+  stopReason?: string;
+  startedAt: string;
+  finishedAt?: string;
+  investor?: string;
+  rules: AgentRules;
+  endpoint?: string;
+  invoicesChecked: string[];
+  reports: AgentReportItem[];
+  spentOnReports: number;
+  purchases: AgentPurchaseItem[];
+  spentOnUnits: number;
+  skipped: AgentSkipItem[];
+  auditTopicId?: string;
+  auditMessages: AgentAuditMessage[];
+  hashscanUrl: string;
+  links?: Link[];
 }

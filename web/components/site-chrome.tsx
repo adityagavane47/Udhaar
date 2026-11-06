@@ -1,8 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { USE_MOCK } from "@/lib/api";
-import { clearStoredRole, setStoredRole, useAuthRole } from "@/lib/auth";
+import { USE_MOCK, loginDemoInvestor } from "@/lib/api";
+import {
+  clearAdminSession,
+  clearStoredRole,
+  hasAdminAccess,
+  setStoredRole,
+  useAuthRole,
+} from "@/lib/auth";
 import { PERSONAS, type Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +25,20 @@ export function Header() {
   const inPortal = isPortalPath(path);
 
   function switchRole(next: Role, href: string) {
+    if (next === "admin") {
+      if (hasAdminAccess()) {
+        router.push("/admin");
+        return;
+      }
+      clearAdminSession();
+      router.push("/login?persona=admin");
+      return;
+    }
+    clearAdminSession();
     setStoredRole(next);
+    if (next === "investor") {
+      loginDemoInvestor().catch(() => {});
+    }
     router.push(href);
   }
 

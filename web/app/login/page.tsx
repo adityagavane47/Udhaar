@@ -1,38 +1,89 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ErrorNote, PageHeader, StampBadge } from "@/components/common";
-import { loginDemoAdmin } from "@/lib/api";
-import { setStoredRole } from "@/lib/auth";
-import { PERSONAS, type Persona } from "@/lib/types";
-import { errMsg } from "@/lib/utils";
+import { loginDemoAdmin, loginDemoInvestor } from "@/lib/api";
+import { clearAdminSession, setStoredRole } from "@/lib/auth";
+import { PERSONAS, type Persona, type Role } from "@/lib/types";
+import { cn, errMsg } from "@/lib/utils";
+
+function subscribeLocation(cb: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("popstate", cb);
+  return () => window.removeEventListener("popstate", cb);
+}
+
+function readIsPersonaAdminUrl(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("persona") === "admin";
+}
 
 export default function LoginPage() {
   const router = useRouter();
+  const isUrlPersonaAdmin = useSyncExternalStore(
+    subscribeLocation,
+    readIsPersonaAdminUrl,
+    () => false,
+  );
+  const passcodeInputRef = useRef<HTMLInputElement | null>(null);
+  const operatorCardRef = useRef<HTMLDivElement | null>(null);
   const [picked, setPicked] = useState<Persona | null>(null);
   const [passcode, setPasscode] = useState("");
-  const [adminErr, setAdminErr] = useState<string | null>(null);
-  const [adminBusy, setAdminBusy] = useState(false);
+  const [dismissedAdminPrompt, setDismissedAdminPrompt] = useState(false);
+  const [authErr, setAuthErr] = useState<{ role: Role; msg: string } | null>(null);
+  const [busyRole, setBusyRole] = useState<Role | null>(null);
 
-  async function pickPersona(p: Persona) {
-    setAdminErr(null);
-    if (p.locked) {
-      setAdminBusy(true);
-      try {
-        await loginDemoAdmin(passcode);
-        setPicked(p);
-        setStoredRole(p.id);
-        router.push(p.href);
-      } catch (e) {
-        setAdminErr(errMsg(e));
-      } finally {
-        setAdminBusy(false);
-      }
-      return;
+  const showAdminPrompt = isUrlPersonaAdmin && !dismissedAdminPrompt;
+
+  useEffect(() => {
+    if (!showAdminPrompt) return;
+    const id = requestAnimationFrame(() => {
+      operatorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      passcodeInputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [showAdminPrompt]);
+
+  async function selectOpenPersona(p: Persona) {
+    if (busyRole) return;
+    setAuthErr(null);
+    setDismissedAdminPrompt(true);
+    if (typeof window !== "undefined" && window.location.search) {
+      window.history.replaceState(null, "", "/login");
     }
-    setPicked(p);
+    clearAdminSession();
     setStoredRole(p.id);
+    setPicked(p);
+    if (p.id === "investor") {
+      setBusyRole(p.id);
+      try {
+        await loginDemoInvestor();
+      } catch {
+        /* investorPost will refresh the session when needed */
+      } finally {
+        setBusyRole(null);
+      }
+    }
     router.push(p.href);
+  }
+
+  async function submitOperator(e: React.FormEvent<HTMLFormElement>, p: Persona) {
+    e.preventDefault();
+    if (busyRole) return;
+    setAuthErr(null);
+    const code = passcodeInputRef.current?.value ?? passcode;
+    setBusyRole(p.id);
+    try {
+      await loginDemoAdmin(code);
+      setPicked(p);
+      setStoredRole("admin");
+      router.push(p.href);
+    } catch (err) {
+      setAuthErr({ role: p.id, msg: errMsg(err) });
+      passcodeInputRef.current?.focus();
+    } finally {
+      setBusyRole(null);
+    }
   }
 
   return (
@@ -89,46 +140,94 @@ export default function LoginPage() {
             <StampBadge label="HEDERA TESTNET · LIVE" tone="green" tilt={false} />
           </div>
 
-          <div className="grid grid-cols-1 border-2 border-[#1B2340] shadow-[6px_6px_0_#1B2340] sm:grid-cols-2 lg:grid-cols-4">
-            {PERSONAS.map((p, i) => (
-              <div
-                key={p.id}
-                style={{ background: i % 2 ? "#FBF6EA" : "#F1E8D2" }}
-                className="flex flex-col gap-3 border-b border-[#1B2340] p-7 last:border-b-0 sm:border-r sm:nth-2:border-r-0 lg:border-b-0 lg:nth-2:border-r lg:last:border-r-0"
-              >
-                <span className="font-mono text-[13px] uppercase tracking-[0.08em] text-[#B3261E]">
-                  {p.role}
-                </span>
-                <span className="font-serif text-[34px] leading-none text-[#1B2340]">
-                  {p.name}
-                </span>
-                <span className="grow text-[15px] leading-[1.55] text-[#1B2340]">{p.desc}</span>
-
-                {p.locked && (
-                  <label className="flex flex-col gap-1.5 font-mono text-[13px] text-[#1B2340]">
-                    Demo passcode
-                    <input
-                      type="password"
-                      placeholder="••••••"
-                      value={passcode}
-                      onChange={(e) => setPasscode(e.target.value)}
-                      className="border border-[#1B2340] bg-[#FBF6EA] p-3 font-mono text-[15px] text-[#1B2340]"
-                    />
-                  </label>
-                )}
-
-                <button
-                  type="button"
-                  disabled={p.locked && adminBusy}
-                  onClick={() => pickPersona(p)}
-                  className="btn mt-1.5 cursor-pointer border-0 bg-[#1B2340] px-4 py-3.5 text-left text-base font-semibold text-[#F1E8D2] hover:text-[#F1E8D2] disabled:opacity-50"
-                >
-                  {p.locked && adminBusy ? "Checking passcode…" : `Continue as ${p.name} →`}
-                </button>
-
-                {p.locked && adminErr && <ErrorNote message={adminErr} className="mt-1" />}
+          {showAdminPrompt && (
+            <div
+              role="status"
+              className="flex flex-wrap items-center justify-between gap-3 border-2 border-[#B3261E] bg-[#FBF6EA] px-4 py-3 font-mono text-xs text-[#1B2340]"
+            >
+              <div className="flex flex-wrap items-center gap-2.5">
+                <StampBadge label="Passcode required" tone="red" tilt={false} />
+                <span>Enter the Operator passcode to open the admin khata.</span>
               </div>
-            ))}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 border-2 border-[#1B2340] shadow-[6px_6px_0_#1B2340] sm:grid-cols-2 lg:grid-cols-4">
+            {PERSONAS.map((p, i) => {
+              const isOperatorHighlight = p.locked && showAdminPrompt;
+              return (
+                <div
+                  key={p.id}
+                  ref={p.locked ? operatorCardRef : undefined}
+                  style={{ background: i % 2 ? "#FBF6EA" : "#F1E8D2" }}
+                  className={cn(
+                    "flex flex-col gap-3 border-b border-[#1B2340] p-7 last:border-b-0 sm:border-r sm:nth-2:border-r-0 lg:border-b-0 lg:nth-2:border-r lg:last:border-r-0",
+                    isOperatorHighlight && "ring-2 ring-inset ring-[#B3261E]",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[13px] uppercase tracking-[0.08em] text-[#B3261E]">
+                      {p.role}
+                    </span>
+                    {isOperatorHighlight && (
+                      <StampBadge
+                        label="PASSCODE"
+                        tone="red"
+                        tilt={false}
+                        className="px-1.5 py-0 text-[10px]"
+                      />
+                    )}
+                  </div>
+                  <span className="font-serif text-[34px] leading-none text-[#1B2340]">
+                    {p.name}
+                  </span>
+                  <span className="grow text-[15px] leading-[1.55] text-[#1B2340]">{p.desc}</span>
+
+                  {p.locked ? (
+                    <form
+                      onSubmit={(e) => void submitOperator(e, p)}
+                      className="flex flex-col gap-3"
+                    >
+                      <label className="flex flex-col gap-1.5 font-mono text-[13px] text-[#1B2340]">
+                        Demo passcode
+                        <input
+                          ref={passcodeInputRef}
+                          type="password"
+                          name="passcode"
+                          placeholder="••••••"
+                          value={passcode}
+                          onChange={(e) => {
+                            setPasscode(e.target.value);
+                            if (authErr?.role === p.id) setAuthErr(null);
+                          }}
+                          className="border border-[#1B2340] bg-[#FBF6EA] p-3 font-mono text-[15px] text-[#1B2340] focus:border-[#B3261E] focus:outline-none"
+                        />
+                      </label>
+                      {authErr?.role === p.id && <ErrorNote message={authErr.msg} />}
+                      <button
+                        type="submit"
+                        disabled={busyRole !== null}
+                        className="btn mt-1.5 cursor-pointer border-0 bg-[#1B2340] px-4 py-3.5 text-left text-base font-semibold text-[#F1E8D2] hover:text-[#F1E8D2] disabled:opacity-50"
+                      >
+                        {busyRole === p.id ? "Checking…" : `Continue as ${p.name} →`}
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        disabled={busyRole !== null}
+                        onClick={() => void selectOpenPersona(p)}
+                        className="btn mt-1.5 cursor-pointer border-0 bg-[#1B2340] px-4 py-3.5 text-left text-base font-semibold text-[#F1E8D2] hover:text-[#F1E8D2] disabled:opacity-50"
+                      >
+                        {busyRole === p.id ? "Starting session…" : `Continue as ${p.name} →`}
+                      </button>
+                      {authErr?.role === p.id && <ErrorNote message={authErr.msg} className="mt-1" />}
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {picked && (
@@ -141,4 +240,3 @@ export default function LoginPage() {
     </main>
   );
 }
-

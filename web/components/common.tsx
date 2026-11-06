@@ -1,11 +1,18 @@
 "use client";
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useAuthRole } from "@/lib/auth";
+import {
+  clearAdminSession,
+  isAdminSessionValid,
+  readAdminSession,
+  readStoredRole,
+  useAuthRole,
+} from "@/lib/auth";
 import { cn, errLink, errMsg } from "@/lib/utils";
 import type { Grade, InvoiceStatus, RiskGraph } from "@/lib/types";
 
@@ -119,7 +126,15 @@ export function ErrorNote({ message, href, className }: { message?: string | nul
 }
 
 /** Shown while a slow blockchain action runs, with a live timer. */
-export function Pending({ active, message = "Confirming on Hedera…" }: { active: boolean; message?: string }) {
+export function Pending({
+  active,
+  message = "Confirming on Hedera…",
+  hint = "blockchain actions can take 5–15 seconds, please keep this page open",
+}: {
+  active: boolean;
+  message?: string;
+  hint?: string;
+}) {
   const [secs, setSecs] = React.useState(0);
   React.useEffect(() => {
     if (!active) return;
@@ -137,7 +152,7 @@ export function Pending({ active, message = "Confirming on Hedera…" }: { activ
       <span>
         {message}
         {secs >= 2 && ` ${secs}s`}
-        {secs >= 6 && " · blockchain actions can take 5–15 seconds, please keep this page open"}
+        {secs >= 6 && hint && ` · ${hint}`}
       </span>
     </div>
   );
@@ -240,6 +255,7 @@ export function Field({
 interface AsyncButtonProps extends Omit<ButtonProps, "onClick" | "loading"> {
   action: () => Promise<unknown>;
   pendingMessage?: string;
+  pendingHint?: string;
   onDone?: (result: unknown) => void;
   type?: "button" | "submit";
 }
@@ -249,16 +265,20 @@ export function AsyncButton({
   action,
   onDone,
   pendingMessage,
+  pendingHint,
   children,
   className,
   ...props
 }: AsyncButtonProps) {
+  const busyRef = React.useRef(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [errorUrl, setErrorUrl] = React.useState<string | undefined>();
   const [url, setUrl] = React.useState<string | undefined>();
 
   async function run() {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setLoading(true);
     setError(null);
     setErrorUrl(undefined);
@@ -272,6 +292,7 @@ export function AsyncButton({
       setErrorUrl(errLink(e));
       setUrl(undefined);
     } finally {
+      busyRef.current = false;
       setLoading(false);
     }
   }
@@ -284,9 +305,40 @@ export function AsyncButton({
         </Button>
         <HashscanLink href={url} />
       </div>
-      <Pending active={loading} message={pendingMessage} />
+      <Pending active={loading} message={pendingMessage} hint={pendingHint} />
       <ErrorNote message={error} href={errorUrl} />
     </div>
+  );
+}
+
+/** Sub-navigation shared across the Investor portal pages. */
+export function InvestorNav() {
+  const pathname = usePathname();
+  const onAgent = pathname.startsWith("/investor/agent");
+  const items = [
+    { href: "/investor", label: "Marketplace & portfolio", active: !onAgent },
+    { href: "/investor/agent", label: "Auto-invest agent", active: onAgent },
+  ];
+  return (
+    <nav
+      aria-label="Investor portal"
+      className="flex flex-wrap border-2 border-[#1B2340] bg-[#FBF6EA] shadow-[4px_4px_0_#1B2340] w-fit"
+    >
+      {items.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className={cn(
+            "border-r border-[#1B2340] px-4 py-2 font-mono text-xs uppercase tracking-[0.08em] no-underline transition-colors last:border-r-0",
+            item.active
+              ? "bg-[#1B2340] font-semibold text-[#F1E8D2] hover:bg-[#1B2340] hover:text-[#F1E8D2]"
+              : "bg-[#FBF6EA] text-[#1B2340] hover:bg-[#F1E8D2] hover:text-[#B3261E]",
+          )}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
   );
 }
 
@@ -341,18 +393,54 @@ export function StatusTracker({ status }: { status: InvoiceStatus }) {
   );
 }
 
-/** Wraps portal pages: redirects to /login when no persona is logged in, and centres content in the khata container. */
+/** Wraps portal pages: redirects to /login when no persona is logged in, and enforces a live admin token on /admin. */
 export function PortalGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { role, ready } = useAuthRole();
+  const pathname = usePathname();
+  const { role, adminValid, adminExpiresAt, ready } = useAuthRole();
+  const isAdminRoute = pathname.startsWith("/admin");
+  const liveRole = ready ? (readStoredRole() ?? role) : null;
+  const liveSession = ready ? readAdminSession() : null;
+  const liveAdminValid = ready ? (isAdminSessionValid(liveSession) || adminValid) : false;
+  const authorized = isAdminRoute
+    ? liveRole === "admin" && liveAdminValid
+    : Boolean(liveRole);
 
   React.useEffect(() => {
-    if (ready && !role) {
+    if (!ready) return;
+    const storedRole = readStoredRole();
+    const session = readAdminSession();
+    const sessionOk = isAdminSessionValid(session);
+
+    if (isAdminRoute) {
+      if (storedRole !== "admin" || !sessionOk) {
+        clearAdminSession();
+        router.replace("/login?persona=admin");
+        return;
+      }
+      const expIso = session?.expiresAt ?? adminExpiresAt;
+      if (expIso) {
+        const ms = Date.parse(expIso) - Date.now();
+        if (ms <= 0) {
+          clearAdminSession();
+          router.replace("/login?persona=admin");
+          return;
+        }
+        const id = setTimeout(() => {
+          clearAdminSession();
+          router.replace("/login?persona=admin");
+        }, ms);
+        return () => clearTimeout(id);
+      }
+      return;
+    }
+
+    if (!storedRole) {
       router.replace("/login");
     }
-  }, [ready, role, router]);
+  }, [ready, isAdminRoute, authorized, adminExpiresAt, role, router]);
 
-  if (!ready || !role) {
+  if (!ready || !authorized) {
     return (
       <main className="mx-auto w-full max-w-[1240px] px-4 py-12 sm:px-6">
         <Loading label="Opening the khata…" />

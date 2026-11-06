@@ -29,6 +29,14 @@ import { RATE_BY_GRADE, demoMaturityText, fmtDate, fmtDateTime, inr, pct, termTe
 import type { TokenInfo } from "@/lib/types";
 
 export default function AdminPage() {
+  return (
+    <PortalGuard>
+      <AdminContent />
+    </PortalGuard>
+  );
+}
+
+function AdminContent() {
   const kyc = useAsync(getKycRequests);
   const queue = useAsync(getAwaitingTokenization);
   const tokens = useAsync(getTokens);
@@ -47,8 +55,7 @@ export default function AdminPage() {
   };
 
   return (
-    <PortalGuard>
-      <div className="space-y-10">
+    <div className="space-y-10">
         <PageHeader
           folio="Folio · Operator (Admin · 0.0.11227777)"
           title="Operator khata"
@@ -181,7 +188,11 @@ export default function AdminPage() {
                             <strong className="font-semibold text-[#1B2340]">
                               {inr(i.amount)}
                             </strong>{" "}
-                            · due {fmtDate(i.dueDate)}\n                            {i.grade ? ` · ${termText(RATE_BY_GRADE[i.grade], i.dueDate, i.grade)}` : " · not graded yet"}\n                            {i.discountPct != null ? ` · ${pct(i.discountPct)} discount` : ""}
+                            · due {fmtDate(i.dueDate)}
+                            {i.grade
+                              ? ` · ${termText(RATE_BY_GRADE[i.grade], i.dueDate, i.grade)}`
+                              : " · not graded yet"}
+                            {i.discountPct != null ? ` · ${pct(i.discountPct)} discount` : ""}
                           </p>
                         </div>
                         <div className="flex flex-wrap items-start gap-3">
@@ -251,6 +262,12 @@ export default function AdminPage() {
                           (t.status === "rejected" && t.type !== "duplicate_rejected")) && (
                           <StampBadge label="BLOCKED" tone="red" tilt={false} />
                         )}
+                        {t.type === "report_paid" && (
+                          <StampBadge label="X402 REPORT" tone="blue" tilt={false} />
+                        )}
+                        {t.type === "agent_run" && (
+                          <StampBadge label="AGENT RUN" tone="green" tilt={false} />
+                        )}
                         <span className="font-mono text-xs sm:text-sm">{t.description}</span>
                       </div>
                       <HashscanLink href={t.hashscanUrl} />
@@ -262,7 +279,6 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
-    </PortalGuard>
   );
 }
 

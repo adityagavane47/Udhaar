@@ -1,11 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ErrorNote } from "@/components/common";
-import { getAuditLog, loginDemoAdmin } from "@/lib/api";
-import { setStoredRole } from "@/lib/auth";
-import { PERSONAS, type Persona, type Transaction } from "@/lib/types";
+import { getAuditLog, loginDemoAdmin, loginDemoInvestor } from "@/lib/api";
+import { clearAdminSession, setStoredRole } from "@/lib/auth";
+import { PERSONAS, type Persona, type Role, type Transaction } from "@/lib/types";
 import { errMsg, inr } from "@/lib/utils";
 
 /** The worked example on the landing page: a Grade A invoice due in 90 days. */
@@ -49,11 +49,12 @@ function shortChainId(entry: Transaction): string {
 
 export default function LandingPage() {
   const router = useRouter();
+  const passcodeInputRef = useRef<HTMLInputElement | null>(null);
   const [entries, setEntries] = useState<LedgerEntry[]>(FALLBACK_ENTRIES);
   const [picked, setPicked] = useState<Persona | null>(null);
   const [passcode, setPasscode] = useState("");
-  const [adminErr, setAdminErr] = useState<string | null>(null);
-  const [adminBusy, setAdminBusy] = useState(false);
+  const [authErr, setAuthErr] = useState<{ role: Role; msg: string } | null>(null);
+  const [busyRole, setBusyRole] = useState<Role | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -76,25 +77,42 @@ export default function LandingPage() {
     };
   }, []);
 
-  async function pickPersona(p: Persona) {
-    setAdminErr(null);
-    if (p.locked) {
-      setAdminBusy(true);
-      try {
-        await loginDemoAdmin(passcode);
-        setPicked(p);
-        setStoredRole(p.id);
-        router.push(p.href);
-      } catch (e) {
-        setAdminErr(errMsg(e));
-      } finally {
-        setAdminBusy(false);
-      }
-      return;
-    }
-    setPicked(p);
+  async function selectOpenPersona(p: Persona) {
+    if (busyRole) return;
+    setAuthErr(null);
+    clearAdminSession();
     setStoredRole(p.id);
+    setPicked(p);
+    if (p.id === "investor") {
+      setBusyRole(p.id);
+      try {
+        await loginDemoInvestor();
+      } catch {
+        /* investorPost refreshes the session when needed */
+      } finally {
+        setBusyRole(null);
+      }
+    }
     router.push(p.href);
+  }
+
+  async function submitOperator(e: React.FormEvent<HTMLFormElement>, p: Persona) {
+    e.preventDefault();
+    if (busyRole) return;
+    setAuthErr(null);
+    const code = passcodeInputRef.current?.value ?? passcode;
+    setBusyRole(p.id);
+    try {
+      await loginDemoAdmin(code);
+      setPicked(p);
+      setStoredRole("admin");
+      router.push(p.href);
+    } catch (err) {
+      setAuthErr({ role: p.id, msg: errMsg(err) });
+      passcodeInputRef.current?.focus();
+    } finally {
+      setBusyRole(null);
+    }
   }
 
   return (
@@ -316,27 +334,48 @@ export default function LandingPage() {
               </span>
               <span className="font-serif text-[34px] leading-none">{p.name}</span>
               <span className="grow text-[15px] leading-[1.55]">{p.desc}</span>
-              {p.locked && (
-                <label className="flex flex-col gap-1.5 font-mono text-[13px]">
-                  Demo passcode
-                  <input
-                    type="password"
-                    placeholder="••••••"
-                    value={passcode}
-                    onChange={(e) => setPasscode(e.target.value)}
-                    className="border border-[#1B2340] bg-[#FBF6EA] p-3 font-mono text-[15px] text-[#1B2340]"
-                  />
-                </label>
+              {p.locked ? (
+                <form
+                  onSubmit={(e) => void submitOperator(e, p)}
+                  className="flex flex-col gap-2.5"
+                >
+                  <label className="flex flex-col gap-1.5 font-mono text-[13px]">
+                    Demo passcode
+                    <input
+                      ref={passcodeInputRef}
+                      type="password"
+                      name="passcode"
+                      placeholder="••••••"
+                      value={passcode}
+                      onChange={(e) => {
+                        setPasscode(e.target.value);
+                        if (authErr?.role === p.id) setAuthErr(null);
+                      }}
+                      className="border border-[#1B2340] bg-[#FBF6EA] p-3 font-mono text-[15px] text-[#1B2340]"
+                    />
+                  </label>
+                  {authErr?.role === p.id && <ErrorNote message={authErr.msg} />}
+                  <button
+                    type="submit"
+                    disabled={busyRole !== null}
+                    className="btn mt-1.5 cursor-pointer border-0 bg-[#1B2340] px-4 py-3.5 text-left text-base font-semibold text-[#F1E8D2] hover:text-[#F1E8D2] disabled:opacity-50"
+                  >
+                    {busyRole === p.id ? "Checking…" : `Continue as ${p.name} →`}
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    disabled={busyRole !== null}
+                    onClick={() => void selectOpenPersona(p)}
+                    className="btn mt-1.5 cursor-pointer border-0 bg-[#1B2340] px-4 py-3.5 text-left text-base font-semibold text-[#F1E8D2] hover:text-[#F1E8D2] disabled:opacity-50"
+                  >
+                    {busyRole === p.id ? "Starting session…" : `Continue as ${p.name} →`}
+                  </button>
+                  {authErr?.role === p.id && <ErrorNote message={authErr.msg} className="mt-1" />}
+                </>
               )}
-              <button
-                type="button"
-                disabled={p.locked && adminBusy}
-                onClick={() => pickPersona(p)}
-                className="btn mt-1.5 cursor-pointer border-0 bg-[#1B2340] px-4 py-3.5 text-left text-base font-semibold text-[#F1E8D2] hover:text-[#F1E8D2] disabled:opacity-50"
-              >
-                {p.locked && adminBusy ? "Checking passcode…" : `Continue as ${p.name} →`}
-              </button>
-              {p.locked && adminErr && <ErrorNote message={adminErr} className="mt-1" />}
             </div>
           ))}
         </div>
@@ -372,14 +411,18 @@ export default function LandingPage() {
               >
                 <span className="flex-[0_0_40px] text-[#C9CDEB]">{e.n}</span>
                 <span className="min-w-0 flex-[1_1_260px] break-words">{e.what}</span>
-                <a
-                  href={e.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#F2B544] no-underline hover:text-[#FBF6EA] hover:underline"
-                >
-                  {e.id} ↗
-                </a>
+                {e.url ? (
+                  <a
+                    href={e.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#F2B544] no-underline hover:text-[#FBF6EA] hover:underline"
+                  >
+                    {e.id} ↗
+                  </a>
+                ) : (
+                  <span className="text-[#C9CDEB]">{e.id}</span>
+                )}
               </div>
             ))}
           </div>

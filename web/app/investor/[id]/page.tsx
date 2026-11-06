@@ -12,6 +12,7 @@ import {
   Field,
   GradeBadge,
   HashscanLink,
+  InvestorNav,
   MiniGraph,
   PageHeader,
   PortalGuard,
@@ -33,12 +34,15 @@ export default function InvoiceDetail() {
   return (
     <PortalGuard>
       <div className="space-y-8">
-        <Link
-          href="/investor"
-          className="font-mono text-xs uppercase tracking-[0.08em] text-[#B3261E] no-underline hover:text-[#1B2340] hover:underline"
-        >
-          ← Back to marketplace
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <InvestorNav />
+          <Link
+            href="/investor"
+            className="font-mono text-xs uppercase tracking-[0.08em] text-[#B3261E] no-underline hover:text-[#1B2340] hover:underline"
+          >
+            ← Back to marketplace
+          </Link>
+        </div>
         <Async state={listing}>
           {(l) => (
             <>
@@ -182,12 +186,37 @@ export default function InvoiceDetail() {
                 <CardHeader>
                   <CardTitle>Risk report</CardTitle>
                   <CardDescription>
-                    Explainable score, sold per call over x402.
+                    Explainable score, paid per report in uINR over x402.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {shown ? (
                     <div className="space-y-6">
+                      {(shown.settlement?.transactionId || shown.paymentTx || shown.replayed) && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 border border-[#C9B98F] bg-[#F1E8D2]/70 px-3.5 py-2.5 font-mono text-xs text-[#1B2340]">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold uppercase tracking-[0.06em] text-[#2F6B4F]">
+                              Paid over x402
+                            </span>
+                            {(shown.settlement?.transactionId ?? shown.paymentTx) && (
+                              <span className="break-all text-[#5A5E78]">
+                                · {shown.settlement?.transactionId ?? shown.paymentTx}
+                              </span>
+                            )}
+                            {shown.replayed && (
+                              <StampBadge
+                                label="Already purchased, no charge"
+                                tone="green"
+                                tilt={false}
+                                className="px-2 py-0 text-[11px] normal-case"
+                              />
+                            )}
+                          </div>
+                          <HashscanLink
+                            href={shown.settlement?.hashscanUrl || shown.hashscanUrl}
+                          />
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-center gap-6">
                         <div>
                           <p className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
@@ -228,19 +257,29 @@ export default function InvoiceDetail() {
                             {shown.fraudFlags.length === 0 ? "None" : shown.fraudFlags.join(", ")}
                           </p>
                         </div>
-                        <HashscanLink href={shown.hashscanUrl} />
+                        {shown.anomaly && (
+                          <div>
+                            <p className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                              Anomaly
+                            </p>
+                            <Badge variant="amber">Warning</Badge>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <p className="mb-2 font-mono text-xs uppercase tracking-[0.06em] text-[#1B2340]">
                           Price
                         </p>
                         <p className="font-mono text-sm text-[#1B2340]">
-                          {shown.grade === "D" || shown.annualRatePct === null
+                          {shown.grade === "D" || shown.annualRatePct == null
                             ? "Not listed: grade D."
                             : `${termText(shown.annualRatePct, l.dueDate, shown.grade)}${
-                                shown.suggestedDiscountPct != null ? ` · ${pct(shown.suggestedDiscountPct)} discount` : ""
+                                shown.suggestedDiscountPct != null
+                                  ? ` · ${pct(shown.suggestedDiscountPct)} discount`
+                                  : " · no suggested discount"
                               }`}
-                          {shown.appliedDiscountPct != null && ` · applied ${pct(shown.appliedDiscountPct)}`}
+                          {shown.appliedDiscountPct != null &&
+                            ` · applied ${pct(shown.appliedDiscountPct)}`}
                         </p>
                       </div>
                       <div>
@@ -263,18 +302,24 @@ export default function InvoiceDetail() {
                       )}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-start gap-4">
+                    <div className="flex flex-col items-start gap-3">
                       <p className="flex items-center gap-2 font-mono text-sm text-[#5A5E78]">
-                        <Lock className="h-4 w-4" /> Score, confidence and reasons are locked.
+                        <Lock className="h-4 w-4" /> Score, confidence and reasons are locked behind
+                        x402.
                       </p>
                       <AsyncButton
                         variant="outline"
                         action={() => buyRiskReport(id)}
-                        pendingMessage="Settling 0.01 USDC over x402 on Hedera…"
+                        pendingMessage="Paying ₹1.01 in uINR over x402 on Hedera…"
+                        pendingHint="settling a paid report usually takes 5–15 seconds, please keep this page open"
                         onDone={(r) => setReport(r as RiskReport)}
                       >
-                        <Lock className="h-4 w-4" /> Get full risk report: 0.01 USDC
+                        <Lock className="h-4 w-4" /> Buy report · ₹1.01
                       </AsyncButton>
+                      <p className="font-mono text-xs text-[#5A5E78]">
+                        ₹1.00 plus the 1% uINR fee (₹0.01 to the pool). Usually takes 5 to 15
+                        seconds.
+                      </p>
                     </div>
                   )}
                 </CardContent>

@@ -11,6 +11,7 @@ import {
   Field,
   GradeBadge,
   HashscanLink,
+  InvestorNav,
   PageHeader,
   Pending,
   PortalGuard,
@@ -27,7 +28,9 @@ export default function InvestorPage() {
 
   return (
     <PortalGuard>
-      <div className="space-y-12">
+      <div className="space-y-10">
+        <InvestorNav />
+
         <PageHeader
           folio="Folio · Investor (Priya · 0.0.11310320)"
           title="Investor khata"

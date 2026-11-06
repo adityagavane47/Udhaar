@@ -1,14 +1,16 @@
 // Mock implementations. Only lib/api.ts may import this file, and only when
 // NEXT_PUBLIC_USE_MOCK=true (or for routes the backend doesn't have yet).
+import { setAdminSession, setStoredRole } from "./auth";
 import { ApiError, DuplicateInvoiceError } from "./errors";
 import { RATE_BY_GRADE } from "./utils";
 import {
-  ACCOUNTS, PAID_REPORT_FEE_USDC, companies, holdersByToken, invoices, investorKyc,
+  ACCOUNTS, companies, holdersByToken, invoices, investorKyc,
   kycRequests, pausedTokens, riskReports, transactions, unlockedReports,
 } from "./mock";
 import type {
-  Company, Grade, Holder, Invoice, KycRequest, Listing, PortfolioItem, RiskReport,
-  Transaction, TransactionType, TokenInfo, TxResult,
+  AgentPurchaseItem, AgentReportItem, AgentRules, AgentRun, AgentSkipItem,
+  Company, Grade, Holder, InvestorSession, Invoice, KycRequest, Listing, PortfolioItem,
+  ReportSettlement, RiskReport, Transaction, TransactionType, TokenInfo, TxResult,
 } from "./types";
 
 const delay = (ms = 600) => new Promise((r) => setTimeout(r, ms));
@@ -195,9 +197,14 @@ export async function getListing(invoiceId: string): Promise<Listing> {
   return l;
 }
 
+const mockSettlements = new Map<string, ReportSettlement>();
+const mockAgentRuns: AgentRun[] = [];
+
 export async function isReportUnlocked(invoiceId: string): Promise<RiskReport | null> {
   await delay(150);
-  return unlockedReports.has(invoiceId) ? buildReport(invoiceId, "already paid") : null;
+  if (!unlockedReports.has(invoiceId)) return null;
+  const s = mockSettlements.get(invoiceId);
+  return s ? buildReport(invoiceId, s, true) : null;
 }
 function getOrDefaultReport(invoiceId: string): Omit<RiskReport, "paymentTx" | "hashscanUrl"> | undefined {
   if (riskReports[invoiceId]) return riskReports[invoiceId];
@@ -222,18 +229,39 @@ function getOrDefaultReport(invoiceId: string): Omit<RiskReport, "paymentTx" | "
     ],
   };
 }
-function buildReport(invoiceId: string, tx: string): RiskReport {
+function buildReport(invoiceId: string, settlement: ReportSettlement, replayed: boolean): RiskReport {
   const r = getOrDefaultReport(invoiceId);
-  if (!r) throw new Error("Risk service unavailable: no report returned, nothing was charged.");
-  return { ...r, paymentTx: tx, hashscanUrl: `${HASHSCAN}/transaction/${tx}` };
+  if (!r) throw new ApiError("RISK_UNAVAILABLE", "Risk service unavailable — nothing was charged.", 503);
+  return {
+    ...r,
+    settlement,
+    replayed,
+    paymentTx: settlement.transactionId,
+    hashscanUrl: settlement.hashscanUrl,
+  };
 }
 export async function buyRiskReport(invoiceId: string): Promise<RiskReport> {
   await delay(1200);
   const r = getOrDefaultReport(invoiceId);
-  if (!r) throw new Error("Risk service unavailable: no report returned, nothing was charged.");
-  const tx = record("risk_report", `Paid ${PAID_REPORT_FEE_USDC} USDC for risk report on ${invoiceId}`, "Investor", invoiceId);
+  if (!r) throw new ApiError("RISK_UNAVAILABLE", "Risk service unavailable — nothing was charged.", 503);
+  const prev = mockSettlements.get(invoiceId);
+  if (prev) return buildReport(invoiceId, prev, true);
+  const tx = record("report_paid", `Paid ₹1.01 in uINR over x402 for risk report on ${invoiceId}`, "Investor", invoiceId);
+  const settlement: ReportSettlement = {
+    transactionId: tx.txId,
+    hashscanUrl: tx.hashscanUrl,
+    payer: ACCOUNTS.investor.accountId,
+    payTo: "0.0.11310322",
+    network: "hedera:testnet",
+    token: "0.0.11327250",
+    amount: 1,
+    feeToPool: 0.01,
+    onChainConfirmed: true,
+    settledAt: new Date().toISOString(),
+  };
+  mockSettlements.set(invoiceId, settlement);
   unlockedReports.add(invoiceId);
-  return { ...r, paymentTx: tx.txId, hashscanUrl: tx.hashscanUrl };
+  return buildReport(invoiceId, settlement, false);
 }
 
 export async function buyUnits(input: { invoiceId: string; units: number }): Promise<TxResult> {
@@ -339,7 +367,134 @@ export async function getAuditLog(): Promise<Transaction[]> {
 
 export async function loginDemoAdmin(passcode: string): Promise<{ ok: boolean }> {
   await delay(300);
-  if (!passcode.trim()) throw new Error("Enter the demo passcode.");
+  if (!passcode.trim()) throw new ApiError("INVALID_PASSCODE", "Wrong passcode", 401);
+  setAdminSession({
+    token: `mock-admin-${Date.now()}`,
+    expiresAt: new Date(Date.now() + 1800 * 1000).toISOString(),
+  });
+  setStoredRole("admin");
   return { ok: true };
+}
+
+export async function loginDemoInvestor(): Promise<InvestorSession> {
+  await delay(200);
+  return {
+    token: `mock-investor-${Date.now()}`,
+    expiresAt: new Date(Date.now() + 1800 * 1000).toISOString(),
+    expiresInSeconds: 1800,
+    accountId: ACCOUNTS.investor.accountId,
+    tokenType: "Bearer",
+    hashscanUrl: `${HASHSCAN}/account/${ACCOUNTS.investor.accountId}`,
+  };
+}
+
+export async function runAgent(rules: AgentRules): Promise<AgentRun> {
+  await delay(1500);
+  if (rules.reportBudget <= 0 || rules.reportBudget > 50) {
+    throw new ApiError("VALIDATION_ERROR", "reportBudget must be between 1 and 50 rupees.", 400);
+  }
+  if (rules.investmentBudget <= 0 || rules.investmentBudget > 50000) {
+    throw new ApiError("VALIDATION_ERROR", "investmentBudget must be between 1 and 50,000 rupees.", 400);
+  }
+  const startedAt = new Date().toISOString();
+  const rank: Record<string, number> = { A: 3, B: 2, C: 1, D: 0 };
+  const candidates = invoices.filter((i) => i.status === "tokenized" || i.status === "funded" || i.seeded);
+  const invoicesChecked: string[] = [];
+  const reports: AgentReportItem[] = [];
+  const purchases: AgentPurchaseItem[] = [];
+  const skipped: AgentSkipItem[] = [];
+  let spentOnReports = 0;
+  let spentOnUnits = 0;
+
+  for (const inv of candidates) {
+    if (!inv.seeded && available(inv) <= 0) continue;
+    invoicesChecked.push(inv.id);
+    if (spentOnReports + 1.01 > rules.reportBudget) {
+      skipped.push({ invoiceId: inv.id, code: "REPORT_BUDGET_EXHAUSTED", reason: "Report budget left does not cover ₹1.01", paidForReport: false });
+      continue;
+    }
+    const rep = await buyRiskReport(inv.id);
+    spentOnReports = Number((spentOnReports + 1.01).toFixed(2));
+    reports.push({
+      invoiceId: inv.id,
+      amount: 1,
+      feeToPool: 0.01,
+      transactionId: rep.settlement!.transactionId,
+      hashscanUrl: rep.settlement!.hashscanUrl,
+      grade: rep.grade,
+      riskScore: rep.riskScore,
+      fraudFlags: rep.fraudFlags,
+      anomaly: rep.anomaly,
+    });
+    if (rep.fraudFlags.length > 0) {
+      skipped.push({ invoiceId: inv.id, code: "FRAUD", reason: `Fraud flags: ${rep.fraudFlags.join(", ")}`, paidForReport: true });
+      continue;
+    }
+    if (rep.anomaly) {
+      skipped.push({ invoiceId: inv.id, code: "ANOMALY", reason: "Invoice carries an anomaly warning", paidForReport: true });
+      continue;
+    }
+    if ((rank[rep.grade] ?? 0) < rank[rules.minGrade]) {
+      skipped.push({ invoiceId: inv.id, code: "BELOW_MIN_GRADE", reason: `Grade ${rep.grade} is below minimum ${rules.minGrade}`, paidForReport: true });
+      continue;
+    }
+    if (!inv.tokenId) {
+      skipped.push({ invoiceId: inv.id, code: "NOT_BUYABLE", reason: "No token available to buy", paidForReport: true });
+      continue;
+    }
+    const held = holdersOf(inv).find((h) => h.accountId === ACCOUNTS.investor.accountId)?.units ?? 0;
+    const room = rules.maxUnitsPerInvoice - held;
+    if (room <= 0) {
+      skipped.push({ invoiceId: inv.id, code: "MAX_UNITS_REACHED", reason: `Already holds ${held} units`, paidForReport: true });
+      continue;
+    }
+    const price = unitPrice(inv);
+    const perUnitWithFee = price * 1.01;
+    const affordable = Math.floor((rules.investmentBudget - spentOnUnits) / perUnitWithFee);
+    const qty = Math.min(room, available(inv), affordable);
+    if (qty <= 0) {
+      skipped.push({ invoiceId: inv.id, code: "INVESTMENT_BUDGET_EXHAUSTED", reason: "Remaining investment budget cannot cover 1 unit + 1% fee", paidForReport: true });
+      continue;
+    }
+    const tx = await buyUnits({ invoiceId: inv.id, units: qty });
+    const amt = Number((qty * price).toFixed(2));
+    const fee = Number((amt * 0.01).toFixed(2));
+    spentOnUnits = Number((spentOnUnits + amt + fee).toFixed(2));
+    purchases.push({
+      invoiceId: inv.id,
+      units: qty,
+      unitPrice: price,
+      amount: amt,
+      feeToPool: fee,
+      paymentHashscanUrl: tx.hashscanUrl,
+      unitsHashscanUrl: tx.hashscanUrl,
+    });
+  }
+
+  const auditTx = record("agent_run", `Auto-invest agent checked ${invoicesChecked.length} invoices, bought ${purchases.length}`, "Investor");
+  const run: AgentRun = {
+    runId: `run-${Date.now()}`,
+    status: "completed",
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    investor: ACCOUNTS.investor.accountId,
+    rules,
+    invoicesChecked,
+    reports,
+    spentOnReports,
+    purchases,
+    spentOnUnits,
+    skipped,
+    auditTopicId: "0.0.11332556",
+    auditMessages: [{ type: "run.completed", hashscanUrl: auditTx.hashscanUrl, txId: auditTx.txId }],
+    hashscanUrl: `${HASHSCAN}/topic/0.0.11332556`,
+  };
+  mockAgentRuns.unshift(run);
+  return clone(run);
+}
+
+export async function getAgentRuns(): Promise<AgentRun[]> {
+  await delay(200);
+  return clone(mockAgentRuns);
 }
 

@@ -135,11 +135,17 @@ function InvoiceRow({ inv }: { inv: Invoice }) {
           </div>
         </div>
         <StatusTracker status={inv.status} />
-        {inv.links && inv.links.length > 0 && (
+        {inv.links && inv.links.some((l) => Boolean(l.url)) && (
           <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-[#C9B98F] pt-3">
-            {inv.links.map((l) => (
-              <HashscanLink key={`${l.label}-${l.url}`} href={l.url} label={`HashScan: ${l.label}`} />
-            ))}
+            {inv.links
+              .filter((l) => Boolean(l.url))
+              .map((l) => (
+                <HashscanLink
+                  key={`${l.label}-${l.url}`}
+                  href={l.url}
+                  label={`HashScan: ${l.label}`}
+                />
+              ))}
           </div>
         )}
       </CardContent>
