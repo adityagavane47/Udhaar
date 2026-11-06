@@ -283,14 +283,29 @@ interface KycRequest {
   country: string;
   status: "pending" | "approved" | "rejected";
   submittedAt: string;
-  walletScan: "clean" | "flagged" | "not_checked";
-  walletScanNote?: string;
+  walletCheck?: WalletCheck;  // See below. Filled in when the request is made, or on the first GET /kyc
   hashscanUrl: string;
   pendingBonds: string[];      // Bonds not yet joined, such as paused ones
 }
+
+interface WalletCheck {
+  source: "mirror";
+  checkedAt: string;
+  status: "clean" | "warnings" | "unavailable";   // "unavailable": the mirror node couldn't be read, so nothing is claimed
+  accountCreatedAt?: string;
+  accountAgeDays?: number;
+  transactionCount?: number;                      // Counted up to 500
+  transactionCountCapped?: boolean;
+  transfersChecked?: number;                      // Up to the latest 100 crypto transfers
+  counterpartiesChecked?: number;
+  warnings: { code: "ACCOUNT_TOO_NEW" | "BLOCKLISTED_COUNTERPARTY"; message: string; accountId?: string }[];
+  blocklist: "mock";                              // The blocklist is fictional
+  note?: string;                                  // Why it was unavailable
+  hashscanUrl: string;                            // The wallet's account page
+}
 ```
 
-**Difference from the mock:** `walletScan` adds `"not_checked"`. The scan (F19) isn't built, so the API doesn't report wallets as `"clean"`.
+**The wallet check** reads the applicant's account from the mirror node and raises a warning when the account is **under 7 days old**, or when any of its **latest 100 transfers** involves an account on the mock blocklist (`backend/data/risk/blocklist.json`, fictional). It costs no HBAR. It replaces the old `walletScan` and `walletScanNote` fields, which are gone.
 
 ### AuditEntry
 
@@ -1199,7 +1214,9 @@ If this wallet already has a request, it returns that one with `created: false`.
 
 ### POST /kyc/:id/approve
 
-**Admin token required.** Approves the request and adds the wallet to every live bond's allowlist. No request body.
+**Admin token required.** Approves the request and adds the wallet to every live bond's allowlist.
+
+**Request, optional:** `{ confirmWarnings?: boolean }`. If the [wallet check](#kycrequest) has warnings, or couldn't run, the request is refused until you send `confirmWarnings: true`. Unknown fields are refused. A request that is already approved needs no confirmation.
 
 **Response `200`**
 
@@ -1219,7 +1236,7 @@ If this wallet already has a request, it returns that one with `created: false`.
 
 A paused bond can't change its allowlist. It appears in `results` with `ok: false`, the bond ID goes into `pendingBonds`, and the wallet is added automatically on unpause. If there are no live bonds, `tx.txId` is empty and the links point to the wallet.
 
-**Errors:** `409 KYC_REJECTED`, `409 WALLET_FLAGGED`
+**Errors:** `409 KYC_REJECTED`, `409 WALLET_CHECK_WARNINGS` (nothing was written, so there is no `hashscanUrl`; `error.warnings` lists the reasons and `error.walletCheck` the full result)
 
 ### POST /kyc/:id/reject
 

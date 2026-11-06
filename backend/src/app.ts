@@ -10,7 +10,7 @@ import { ApiError } from "./errors.js";
 import { allParties, getParty } from "./hedera/client.js";
 import { getAccount } from "./hedera/mirror.js";
 import { accountName, buyUnits, confirmInvoice, createInvoice, getInvoice, holdersOf, invoiceView, paySupplier, tokenizeInvoice } from "./invoices.js";
-import { approveKyc, liveInvoices, rejectKyc, submitKyc } from "./kyc.js";
+import { approveKyc, ensureWalletCheck, liveInvoices, rejectKyc, submitKyc } from "./kyc.js";
 import { limits } from "./limits.js";
 import { navForReport, navView, publishNav } from "./nav.js";
 import { repayInvoice } from "./repayment.js";
@@ -67,6 +67,7 @@ const schemas = {
   buy: z.object({ investorId: accountId.optional(), units: positiveInt, idempotencyKey: z.string().min(1).optional() }),
   paySupplier: z.object({ supplierId: accountId, units: positiveInt, amount: z.number().positive().optional(), idempotencyKey: z.string().min(1).optional() }),
   freeze: z.object({ accountId, units: positiveInt.optional() }),
+  approveKyc: z.strictObject({ confirmWarnings: z.boolean().optional() }),
   navPublish: z.strictObject({ invoiceId: z.string().min(1).optional() }),
   // Strict, so a misspelled limit is refused rather than ignored.
   agentRules: z.strictObject({
@@ -364,7 +365,7 @@ export function createApp() {
     requireAdmin,
     limits.hbar,
     mutation(200, async (req) => {
-      const result = await approveKyc(param(req, "id"));
+      const result = await approveKyc(param(req, "id"), parse(schemas.approveKyc, req.body));
       return { ...result, hashscanUrl: result.tx.hashscanUrl };
     }),
   );
@@ -376,9 +377,11 @@ export function createApp() {
       return { ...result, hashscanUrl: result.tx.hashscanUrl };
     }),
   );
-  app.get("/kyc", (req, res) => {
+  app.get("/kyc", async (req, res) => {
     const wallet = typeof req.query.walletAddress === "string" ? req.query.walletAddress : undefined;
     const requests = Object.values(state.kyc).filter((request) => !wallet || request.walletAddress === wallet);
+    // A request with no wallet check yet gets one here, once. A failure is reported in the result, not as an error.
+    for (const request of requests) await ensureWalletCheck(request);
     res.json({ requests, hashscanUrl: requests[0]?.hashscanUrl ?? hashscan.token(config.uinrTokenId), links: requests.map((request) => ({ label: request.walletAddress, url: hashscan.account(request.walletAddress) })) });
   });
 

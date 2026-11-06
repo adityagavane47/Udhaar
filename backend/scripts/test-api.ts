@@ -234,12 +234,12 @@ async function main() {
   await step("POST /kyc", 0, async () => {
     const first = await call("POST", "/kyc", { fullName: "Demo Investor", walletAddress: investor.id, country: "IN" });
     assert(first.status === 201 && first.json.request.status === "pending", `kyc returned ${first.status}: ${JSON.stringify(first.json)}`);
-    assert(first.json.request.walletScan === "not_checked", "an unbuilt scan does not claim clean");
+    assert(["clean", "warnings", "unavailable"].includes(first.json.request.walletCheck?.status), `the wallet check ran: ${first.json.request.walletCheck?.status}`);
     progress.investorKycId = first.json.request.id;
     const second = await call("POST", "/kyc", { fullName: "Demo Sand Supplier", walletAddress: supplier.id, country: "IN" });
     assert(second.status === 201, `kyc returned ${second.status}`);
     progress.supplierKycId = second.json.request.id;
-    report("kyc", "POST /kyc", first.status, `2 requests pending (investor, supplier); walletScan is ${first.json.request.walletScan}`, first.json.hashscanUrl);
+    report("kyc", "POST /kyc", first.status, `2 requests pending (investor, supplier); wallet check is ${first.json.request.walletCheck?.status}`, first.json.hashscanUrl);
   });
 
   await step("POST /invoices/:id/buy before KYC", 0, async () => {
@@ -251,10 +251,10 @@ async function main() {
   });
 
   await step("POST /kyc/:id/approve", 0.5, async () => {
-    const investorResult = await call("POST", `/kyc/${progress.investorKycId}/approve`);
+    const investorResult = await call("POST", `/kyc/${progress.investorKycId}/approve`, { confirmWarnings: true });
     assert(investorResult.status === 200 && investorResult.json.request.status === "approved", `approve returned ${investorResult.status}: ${JSON.stringify(investorResult.json)}`);
     assert(investorResult.json.results.length === 1 && investorResult.json.results[0].ok, "added to the live bond");
-    const supplierResult = await call("POST", `/kyc/${progress.supplierKycId}/approve`);
+    const supplierResult = await call("POST", `/kyc/${progress.supplierKycId}/approve`, { confirmWarnings: true });
     assert(supplierResult.status === 200 && supplierResult.json.results[0].ok, `approve returned ${supplierResult.status}`);
     report("approve", "POST /kyc/:id/approve", investorResult.status, "investor and supplier added to every live bond", investorResult.json.hashscanUrl);
   });

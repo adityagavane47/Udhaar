@@ -180,7 +180,8 @@ try {
 
     const second = await request("POST", "/kyc", { body: { fullName: "Auth Test Two", walletAddress: businessId, country: "IN" } });
     const secondId = second.json.request?.id as string;
-    const approved = await request("POST", `/kyc/${secondId}/approve`, { token });
+    // The demo accounts are new, so the wallet check warns about them and approval has to be confirmed.
+    const approved = await request("POST", `/kyc/${secondId}/approve`, { token, body: { confirmWarnings: true } });
     check("approve works with a token", approved.status === 200 && approved.json.request.status === "approved", code(approved));
     const rejectApproved = await request("POST", `/kyc/${secondId}/reject`, { token });
     check("an approved request can't be rejected", code(rejectApproved) === "409 KYC_ALREADY_APPROVED", code(rejectApproved));

@@ -727,9 +727,12 @@ const real: typeof mock = {
   async getKycRequests() {
     return (await http<{ requests: KycRequest[] }>("GET", "/kyc")).requests;
   },
-  async reviewKyc(id, approve) {
+  async reviewKyc(id, approve, opts) {
     return txOf(
-      await post<TxResponse>(`/kyc/${encodeURIComponent(id)}/${approve ? "approve" : "reject"}`),
+      await post<TxResponse>(
+        `/kyc/${encodeURIComponent(id)}/${approve ? "approve" : "reject"}`,
+        approve && opts?.confirmWarnings ? { confirmWarnings: true } : {},
+      ),
     );
   },
   async getAwaitingTokenization() {

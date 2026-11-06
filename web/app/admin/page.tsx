@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Async,
@@ -27,7 +28,7 @@ import {
   setTokenPaused,
 } from "@/lib/api";
 import { RATE_BY_GRADE, demoMaturityText, fmtDate, fmtDateTime, inr, pct, termText } from "@/lib/utils";
-import type { TokenInfo } from "@/lib/types";
+import type { KycRequest, TokenInfo, WalletCheck } from "@/lib/types";
 
 export default function AdminPage() {
   return (
@@ -71,7 +72,7 @@ function AdminContent() {
           <CardHeader className="pl-7 sm:pl-10">
             <CardTitle>KYC approvals</CardTitle>
             <CardDescription>
-              Every applicant&apos;s wallet is scanned against known scam wallets.
+              Each applicant&apos;s wallet is checked on the mirror node: how old the account is, and whether its latest transfers touch a blocklisted account (mock list).
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-7 sm:pl-10">
@@ -93,38 +94,11 @@ function AdminContent() {
                               · {k.walletAddress} · {k.country}
                             </span>
                           </p>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge
-                              variant={
-                                k.walletScan === "clean"
-                                  ? "green"
-                                  : k.walletScan === "flagged"
-                                    ? "red"
-                                    : "default"
-                              }
-                            >
-                              Wallet scan:{" "}
-                              {k.walletScan === "not_checked"
-                                ? "not checked (simulated)"
-                                : k.walletScan}
-                            </Badge>
-                            {k.walletScanNote && (
-                              <span className="font-mono text-xs text-[#B3261E]">
-                                {k.walletScanNote}
-                              </span>
-                            )}
-                          </div>
+                          <WalletCheckNote check={k.walletCheck} />
                         </div>
                         {k.status === "pending" ? (
                           <div className="flex flex-wrap items-start gap-3">
-                            <AsyncButton
-                              action={() => reviewKyc(k.id, true)}
-                              onDone={refresh}
-                              disabled={k.walletScan === "flagged"}
-                              pendingMessage="Adding the wallet to the token allowlist on Hedera…"
-                            >
-                              Approve
-                            </AsyncButton>
+                            <ApproveKyc k={k} onDone={refresh} />
                             <AsyncButton
                               variant="outline"
                               action={() => reviewKyc(k.id, false)}
@@ -280,6 +254,77 @@ function AdminContent() {
           </CardContent>
         </Card>
       </div>
+  );
+}
+
+/** What the wallet check found, with the facts it was based on and a link to the wallet. Never shown as clean if it could not run. */
+function WalletCheckNote({ check }: { check: WalletCheck | undefined }) {
+  if (!check) return <Badge>Wallet check: not run yet</Badge>;
+  const n = check.warnings.length;
+  const facts = [
+    check.accountCreatedAt && `created ${fmtDate(check.accountCreatedAt)} (${check.accountAgeDays} ${check.accountAgeDays === 1 ? "day" : "days"} old)`,
+    check.transactionCount !== undefined && `${check.transactionCount}${check.transactionCountCapped ? "+" : ""} transactions`,
+    check.counterpartiesChecked !== undefined && `${check.counterpartiesChecked} counterparties in the last ${check.transfersChecked} transfers`,
+  ].filter(Boolean);
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant={check.status === "clean" ? "green" : check.status === "warnings" ? "red" : "default"}>
+          Wallet check: {check.status === "clean" ? "clean" : check.status === "warnings" ? `${n} ${n === 1 ? "warning" : "warnings"}` : "unavailable"}
+        </Badge>
+        <HashscanLink href={check.hashscanUrl} label="Wallet" />
+      </div>
+      {check.warnings.length > 0 && (
+        <ul className="list-disc space-y-0.5 pl-5 font-mono text-xs text-[#B3261E]">
+          {check.warnings.map((w) => (
+            <li key={`${w.code}-${w.accountId ?? ""}`}>{w.message}</li>
+          ))}
+        </ul>
+      )}
+      {check.status === "unavailable" && <p className="font-mono text-xs text-[#B3261E]">{check.note ?? "The wallet check could not run."}</p>}
+      {facts.length > 0 && (
+        <p className="font-mono text-xs text-[#5A5E78]">
+          {facts.join(" · ")} · read from the mirror node, blocklist is mock data
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Approves at once when the wallet check is clean. With warnings, asks first and then approves with confirmWarnings. */
+function ApproveKyc({ k, onDone }: { k: KycRequest; onDone: () => void }) {
+  const [asking, setAsking] = useState(false);
+  const status = k.walletCheck?.status;
+  if (status === "clean") {
+    return (
+      <AsyncButton action={() => reviewKyc(k.id, true)} onDone={onDone} pendingMessage="Adding the wallet to the token allowlist on Hedera…">
+        Approve
+      </AsyncButton>
+    );
+  }
+  const count = k.walletCheck?.warnings.length ?? 0;
+  const what = status === "warnings" ? `${count} ${count === 1 ? "warning" : "warnings"}` : "no result";
+  if (!asking) {
+    return (
+      <Button type="button" onClick={() => setAsking(true)}>
+        Approve…
+      </Button>
+    );
+  }
+  return (
+    <div className="flex max-w-sm flex-col items-start gap-2.5 border-2 border-[#B3261E] bg-[#FBF6EA] p-3">
+      <p className="font-mono text-xs font-semibold text-[#B3261E]">
+        The wallet check has {what}. Approve {k.fullName} anyway?
+      </p>
+      <div className="flex flex-wrap items-start gap-3">
+        <AsyncButton action={() => reviewKyc(k.id, true, { confirmWarnings: true })} onDone={onDone} pendingMessage="Adding the wallet to the token allowlist on Hedera…">
+          Approve anyway
+        </AsyncButton>
+        <Button type="button" variant="outline" onClick={() => setAsking(false)}>
+          Cancel
+        </Button>
+      </div>
+    </div>
   );
 }
 

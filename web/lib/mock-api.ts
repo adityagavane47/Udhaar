@@ -317,8 +317,9 @@ export async function submitKyc(input: { fullName: string; walletAddress: string
   if (!/^0\.0\.\d+$/.test(input.walletAddress)) throw new Error("Wallet must look like 0.0.12345");
   const req: KycRequest = {
     id: `kyc-${seq++}`, ...input, status: "pending", submittedAt: new Date().toISOString(),
-    walletScan: input.walletAddress === "0.0.666013" ? "flagged" : "clean",
-    walletScanNote: input.walletAddress === "0.0.666013" ? "Known scam wallet" : undefined,
+    walletCheck: input.walletAddress === "0.0.666013"
+      ? { source: "mirror", checkedAt: new Date().toISOString(), status: "warnings", accountAgeDays: 2, transactionCount: 3, transfersChecked: 3, counterpartiesChecked: 2, warnings: [{ code: "ACCOUNT_TOO_NEW", message: "The account is 2 days old, under the 7-day minimum" }], blocklist: "mock", hashscanUrl: `${HASHSCAN}/account/${input.walletAddress}` }
+      : { source: "mirror", checkedAt: new Date().toISOString(), status: "clean", accountAgeDays: 90, transactionCount: 52, transfersChecked: 30, counterpartiesChecked: 7, warnings: [], blocklist: "mock", hashscanUrl: `${HASHSCAN}/account/${input.walletAddress}` },
   };
   investorKyc.current = req;
   kycRequests.unshift(req);
@@ -450,11 +451,11 @@ export async function getKycRequests(): Promise<KycRequest[]> {
   await delay(300);
   return clone(kycRequests);
 }
-export async function reviewKyc(id: string, approve: boolean): Promise<TxResult> {
+export async function reviewKyc(id: string, approve: boolean, opts?: { confirmWarnings?: boolean }): Promise<TxResult> {
   await delay(900);
   const k = kycRequests.find((x) => x.id === id);
   if (!k) throw new Error("KYC request not found");
-  if (approve && k.walletScan === "flagged") throw new Error("Wallet scan flagged this applicant. Reject instead.");
+  if (approve && k.walletCheck?.status === "warnings" && !opts?.confirmWarnings) throw new Error("The wallet check has warnings: confirm them to approve anyway.");
   k.status = approve ? "approved" : "rejected";
   const tx = record(approve ? "kyc_approve" : "kyc_reject", `${k.fullName} ${approve ? "added to" : "kept off"} the allowlist`, "Admin");
   k.hashscanUrl = tx.hashscanUrl;

@@ -1,0 +1,9 @@
+{
+  "source": "mock",
+  "notice": "MOCK DATA. This blocklist is fictional. The accounts and reasons are made up for the demo and say nothing about any real account. See docs/DATA.md.",
+  "accounts": [
+    { "accountId": "0.0.666013", "reason": "Fictional case: reported in a made-up phishing scheme" },
+    { "accountId": "0.0.666014", "reason": "Fictional case: linked to a made-up fake-invoice ring" },
+    { "accountId": "0.0.666015", "reason": "Fictional case: on a made-up sanctions list" }
+  ]
+}

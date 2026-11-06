@@ -69,8 +69,8 @@ export const holdersByToken: Record<string, Holder[]> = {
 export const pausedTokens: Record<string, boolean> = {};
 
 export const kycRequests: KycRequest[] = [
-  { id: "kyc-1", fullName: "Arjun Mehta", walletAddress: "0.0.11320001", country: "India", status: "pending", submittedAt: isoIn(-1), walletScan: "clean" },
-  { id: "kyc-2", fullName: "Kavita Rao", walletAddress: "0.0.11320077", country: "India", status: "pending", submittedAt: isoIn(-2), walletScan: "flagged", walletScanNote: "Funded by a known scam wallet (0.0.666013)" },
+  { id: "kyc-1", fullName: "Arjun Mehta", walletAddress: "0.0.11320001", country: "India", status: "pending", submittedAt: isoIn(-1), walletCheck: { source: "mirror", checkedAt: isoIn(-1), status: "clean", accountAgeDays: 120, transactionCount: 84, transfersChecked: 40, counterpartiesChecked: 9, warnings: [], blocklist: "mock", hashscanUrl: "https://hashscan.io/testnet/account/0.0.11320001" } },
+  { id: "kyc-2", fullName: "Kavita Rao", walletAddress: "0.0.11320077", country: "India", status: "pending", submittedAt: isoIn(-2), walletCheck: { source: "mirror", checkedAt: isoIn(-1), status: "warnings", accountAgeDays: 3, transactionCount: 11, transfersChecked: 11, counterpartiesChecked: 4, warnings: [{ code: "ACCOUNT_TOO_NEW", message: "The account is 3 days old, under the 7-day minimum" }, { code: "BLOCKLISTED_COUNTERPARTY", accountId: "0.0.666013", message: "Transferred with 0.0.666013, which is on the (mock) blocklist: Fictional case: reported in a made-up phishing scheme" }], blocklist: "mock", hashscanUrl: "https://hashscan.io/testnet/account/0.0.11320077" } },
 ];
 
 export const transactions: Transaction[] = [

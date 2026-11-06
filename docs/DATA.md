@@ -17,6 +17,7 @@ The seed is fixed (`20261101`), and so is the reference date (`2026-11-01`). Reg
 | `directors.json` | 80 | `id`, `name`, `companyIds` |
 | `invoices.json` | 500 | `id`, `supplierId`, `buyerId`, `amount`, `issueDate`, `dueDate`, `paidDate`, `status`, `discountRatePctPa` |
 | `account-links.json` | 4 | Real account role → company ID |
+| `blocklist.json` | 3 | **Mock.** Fictional account IDs and reasons, used by the KYC wallet check |
 | `manifest.json` | 1 | Seed, reference date, counts, measured calibration, and which IDs belong to which story |
 | `gst-registry.json` | 52 | **Trust layer, mock.** By GSTIN: `legalName`, `tradeName`, `status`, `registrationDate`, 6 months of `filings`. See [Trust data](#trust-data-mock) |
 | `external-profiles.json` | 52 | **Trust layer, mock.** By company ID: `gstin`, `udyam`, `bureauScore`, `creditRating`, `msme1DuesOver45DaysInr`, `samadhaanComplaints`, `gstFilingRegularity`, plus the trust test stories |
@@ -166,5 +167,5 @@ The e-invoice signer's private key is `MOCK_IRP_PRIVATE_KEY` in the root `.env`.
 - **Real activity doesn't feed back.** Real invoices are scored against the dataset but aren't added to it, so a real late payment won't change a score, and a ring among real accounts wouldn't be found.
 - **The scorecard is hand-tuned.** Its weights come from the brief and its sub-scores are my judgment. Nothing has been checked against real defaults.
 - **No machine learning.** The anomaly check is the 10× rule, not the Isolation Forest in the PRD.
-- **No wallet data.** The PRD's `wallets` and `scam_wallets` tables and its scam wallet story belong to the wallet scan (F19), which isn't built.
+- **No wallet history.** The PRD's `wallets` and `scam_wallets` tables aren't in the dataset. The KYC wallet check (F19) reads each applicant's real account from the mirror node, and only its blocklist is mock data: `blocklist.json` lists 3 fictional account IDs, so no real account is named.
 - **Deployment.** The store and seed data are both under `backend/data/` by default. A persistent disk mounted there would hide the seed data, so mount it elsewhere and set `DATA_DIR`.

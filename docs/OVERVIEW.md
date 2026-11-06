@@ -92,7 +92,7 @@ The discount is the annual rate × days to the invoice's due date / 365, so a sh
 
 **Anomaly flag:** an invoice amount over 10× the supplier's usual (the median of at least 3 settled invoices) raises a warning and takes off 10 points; it never decides alone. (An Isolation Forest was planned and is not built.)
 
-**Wallet check (not built):** checking investor and business wallets against known scam wallets before KYC approval or payout was planned and is not part of the current build.
+**Wallet check:** before KYC approval, the admin KYC card shows what the mirror node says about the applicant's wallet: a warning if the account is under 7 days old, or if any of its latest 100 transfers involves an account on a mock blocklist. Approval still works with warnings, but asks for confirmation. Payouts are not checked.
 
 **Report output:** score, grade, confidence, credit risk, fraud flags, anomaly flag, suggested discount and plain-language reasons (for example, "Buyer paid 90% of past invoices on time").
 

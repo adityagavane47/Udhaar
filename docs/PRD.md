@@ -112,7 +112,7 @@ P0 items qualify the Tokenize track and must ship; P1 items add bonus points and
 | F16 | Auto-invest agent: rules, budget, pays for reports and buys with no human approval, shows a receipt | P1 |
 | F17 | Admin network graph with fraud patterns highlighted; investor 2D mini-graph with masked names. The report returns graph data with masked names; the 3D view is not confirmed built | P1 |
 | F18 | Repayment triggered by a Scheduled Transaction on the due date. **Not built:** the backend triggers repayment when it sees the buyer's payment, because a scheduled transaction lasts about 62 days at most | P1 |
-| F19 | KYC wallet scan against known scam wallets. **Not built** | P1 |
+| F19 | KYC wallet check: account age and the latest 100 transfers against a mock blocklist, shown on the admin KYC card (built; approval with warnings asks for confirmation) | P1 |
 | F20 | Audit log of all actions | P1 |
 | F21 | Price feed (fair value per token) over x402 | P2 |
 | F22 | uINR, a test rupee stablecoin (HTS token with a 1% custom fee), used for units and x402 reports | P0 |

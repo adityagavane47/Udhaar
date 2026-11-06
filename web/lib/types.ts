@@ -191,10 +191,34 @@ export interface KycRequest {
   country: string;
   status: KycStatus;
   submittedAt: string;
-  walletScan: "clean" | "flagged" | "not_checked";
-  walletScanNote?: string;
+  /** Read from the mirror node. Absent only in old saved data. */
+  walletCheck?: WalletCheck;
   hashscanUrl?: string;
   pendingBonds?: string[];
+}
+
+export interface WalletWarning {
+  code: "ACCOUNT_TOO_NEW" | "BLOCKLISTED_COUNTERPARTY";
+  message: string;
+  accountId?: string;
+}
+
+/** The wallet check on a KYC applicant: account age and counterparties from the mirror node, against a mock blocklist. */
+export interface WalletCheck {
+  source: "mirror";
+  checkedAt: string;
+  /** "unavailable" means the mirror node could not be read, so nothing is claimed either way. */
+  status: "clean" | "warnings" | "unavailable";
+  accountCreatedAt?: string;
+  accountAgeDays?: number;
+  transactionCount?: number;
+  transactionCountCapped?: boolean;
+  transfersChecked?: number;
+  counterpartiesChecked?: number;
+  warnings: WalletWarning[];
+  blocklist: "mock";
+  note?: string;
+  hashscanUrl: string;
 }
 
 export type TransactionType =

@@ -1,4 +1,5 @@
 // Field names follow web/lib/types.ts wherever the frontend already has a shape.
+import type { WalletCheck } from "./walletCheck.js";
 
 export interface Link {
   label: string;
@@ -144,9 +145,8 @@ export interface KycRequest {
   country: string;
   status: "pending" | "approved" | "rejected";
   submittedAt: string;
-  /** "not_checked" until the wallet scan (F19) exists, because a scan that never ran must not read as clean. */
-  walletScan: "clean" | "flagged" | "not_checked";
-  walletScanNote?: string;
+  /** Read from the mirror node. Absent until it has run once. See walletCheck.ts. */
+  walletCheck?: WalletCheck;
   hashscanUrl: string;
   /** Live bonds this wallet could not be added to yet, such as paused ones. Retried on unpause. */
   pendingBonds: string[];

@@ -54,7 +54,11 @@ export const fmtDateTime = (iso: string) =>
 export const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong");
 
 
+/**
+ * The HashScan link to show beside an error, only when it points at a transaction. A link to a token, account,
+ * topic or contract means nothing was written on-chain, so it would prove nothing.
+ */
 export const errLink = (e: unknown): string | undefined => {
   const u = (e as { hashscanUrl?: unknown } | null)?.hashscanUrl;
-  return typeof u === "string" && u ? u : undefined;
+  return typeof u === "string" && /\/transaction\//.test(u) ? u : undefined;
 };
