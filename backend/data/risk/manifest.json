@@ -1,0 +1,66 @@
+{
+  "notice": "Simulated data. Every company, person and invoice is fictional. See docs/DATA.md.",
+  "seed": 20261101,
+  "referenceDate": "2026-11-01",
+  "counts": {
+    "companies": 50,
+    "directors": 80,
+    "invoices": 500
+  },
+  "calibration": {
+    "meanDebtorDays": {
+      "micro": 123,
+      "small": 58,
+      "medium": 45
+    },
+    "ratios": {
+      "microToSmall": 2.12,
+      "microToMedium": 2.73
+    },
+    "discountRatePctPa": {
+      "min": 6.5,
+      "max": 9
+    }
+  },
+  "stories": {
+    "reliableBuyer": {
+      "invoiceId": "DEMO-RELIABLE",
+      "buyer": "27JFNCN6467E1ZJ"
+    },
+    "latePayer": {
+      "invoiceId": "DEMO-LATE",
+      "buyer": "33XWCCX6421W1ZR"
+    },
+    "newBuyer": {
+      "invoiceId": "DEMO-NEW",
+      "buyer": "23SCKCS9376A1ZO"
+    },
+    "fraudRing": {
+      "invoiceId": "DEMO-RING",
+      "companies": [
+        "24XZHCV3181Q1ZQ",
+        "33PPLCU2211D1ZM",
+        "24EZWCT2893W1ZB"
+      ]
+    },
+    "hiddenOwner": {
+      "invoiceId": "DEMO-HIDDEN",
+      "director": "DIR-012",
+      "companies": [
+        "08PIUCQ1219N1ZX",
+        "36QNKCU1583T1Z6"
+      ]
+    },
+    "sharedAddress": {
+      "invoiceId": "DEMO-ADDRESS",
+      "companies": [
+        "27JWSCE2996Z1ZF",
+        "27GWHCY4169O1Z2"
+      ]
+    },
+    "amountAnomaly": {
+      "invoiceId": "DEMO-ANOMALY",
+      "supplier": "27DVDCD1429T1ZX"
+    }
+  }
+}

@@ -9,6 +9,7 @@
  * Uses its own store in data/api-test/, separate from the real one. Keys are never printed.
  */
 import { spawn, type ChildProcess } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -77,9 +78,12 @@ async function checkBudget(nextEstimate: number, label: string) {
 }
 
 let server: ChildProcess | undefined;
+let adminToken: string | undefined;
+/** Only for the test servers started here, so the real passcode in .env isn't needed. */
+const TEST_PASSCODE = randomBytes(16).toString("hex");
 
 async function startServer(crashAt?: string) {
-  const env: NodeJS.ProcessEnv = { ...process.env, PORT: String(PORT), DATA_DIR };
+  const env: NodeJS.ProcessEnv = { ...process.env, PORT: String(PORT), DATA_DIR, DEMO_ADMIN_PASSCODE: TEST_PASSCODE };
   if (crashAt) env.UDHAAR_CRASH_AT = crashAt;
   else delete env.UDHAAR_CRASH_AT;
   const child = spawn(process.execPath, ["--import", "tsx", "src/server.ts"], { cwd: BACKEND, env, stdio: ["ignore", "pipe", "pipe"] });
@@ -92,14 +96,19 @@ async function startServer(crashAt?: string) {
     if (text && !text.includes("ExperimentalWarning") && !text.includes("trace-warnings")) console.log(`    server: ${text}`);
   });
   server = child;
-  for (let i = 0; i < 60; i++) {
+  let up = false;
+  for (let i = 0; i < 60 && !up; i++) {
     try {
-      if ((await fetch(`${BASE}/health`)).ok) return;
+      up = (await fetch(`${BASE}/health`)).ok;
     } catch {
       await sleep(500);
     }
   }
-  throw new Error("Server did not start");
+  if (!up) throw new Error("Server did not start");
+  // Each server start makes a new signing key, so earlier tokens stop working.
+  const login = await call("POST", "/auth/demo-admin", { passcode: TEST_PASSCODE });
+  assert(login.status === 200, `login returned ${login.status}`);
+  adminToken = login.json.token;
 }
 
 async function stopServer() {
@@ -117,7 +126,11 @@ type Json = Record<string, any>;
 async function call(method: string, path: string, body?: unknown): Promise<{ status: number; json: Json }> {
   const response = await fetch(`${BASE}${path}`, {
     method,
-    ...(body !== undefined ? { headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {}),
+    headers: {
+      ...(adminToken ? { authorization: `Bearer ${adminToken}` } : {}),
+      ...(body !== undefined ? { "content-type": "application/json" } : {}),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   return { status: response.status, json: (await response.json()) as Json };
 }
@@ -199,13 +212,17 @@ async function main() {
   });
 
   await step("POST /tokenize", 11, async () => {
-    const { status, json } = await call("POST", `${invoicePath()}/tokenize`, { maturityMinutes: MATURITY_MINUTES, unitFaceValue: 1000, discountPct: 4 });
+    const { status, json } = await call("POST", `${invoicePath()}/tokenize`, { maturityMinutes: MATURITY_MINUTES, unitFaceValue: 1000 });
     assert(status === 201, `tokenize returned ${status}: ${JSON.stringify(json)}`);
     progress.tokenId = json.invoice.tokenId;
     progress.symbol = json.invoice.symbol;
     assert(json.invoice.totalUnits === 100, "100 units");
     assert(json.invoice.retainedUnits === 100, "all units with the business");
-    report("tokenize", "POST /invoices/:id/tokenize", status, `bond ${json.invoice.tokenId} (${json.invoice.symbol}), 100 units to business, matures ${json.invoice.maturityDate}`, json.hashscanUrl);
+    const annualRate = ({ A: 12, B: 16, C: 20 } as Record<string, number>)[json.invoice.grade];
+    assert(annualRate !== undefined, `grade ${json.invoice.grade} has an annual rate`);
+    const daysToDue = Math.ceil((Date.parse(json.invoice.dueDate) - Date.parse(json.invoice.gradedAt)) / 86_400_000);
+    assert(Math.abs(json.invoice.discountPct - ((annualRate ?? 0) * daysToDue) / 365) < 0.0001, `discount follows the ${daysToDue} days to the due date, not the ${MATURITY_MINUTES}-minute maturity: ${json.invoice.discountPct}%`);
+    report("tokenize", "POST /invoices/:id/tokenize", status, `bond ${json.invoice.tokenId} (${json.invoice.symbol}), 100 units to business, matures ${json.invoice.maturityDate}, grade ${json.invoice.grade}, ${json.invoice.discountPct}% discount`, json.hashscanUrl);
     for (const link of json.links.slice(-4)) console.log(`     ${link.label}: ${link.url}`);
   });
 
@@ -242,18 +259,21 @@ async function main() {
     const { status, json } = await call("POST", `${invoicePath()}/buy`, { investorId: investor.id, units: 20, idempotencyKey: "api-test-buy" });
     assert(status === 201, `buy returned ${status}: ${JSON.stringify(json)}`);
     assert(json.invoice.status === "funded", "status is funded");
-    assert(json.purchase.unitPrice === 960, "4% discount on ₹1000 is ₹960");
+    const price = Math.round(1000 * (100 - json.invoice.discountPct)) / 100;
+    assert(json.purchase.unitPrice === price, `the unit price follows the discount: ₹${json.purchase.unitPrice}`);
+    const paid = 20 * Math.round(price * 100);
+    const fee = Math.floor(paid / 100);
     await waitForMirrorToReach();
-    assert((await uinrBalance(business.id)) - before.business === 1_920_000, "business received 19,200.00 uINR");
-    assert(before.investor - (await uinrBalance(investor.id)) === 1_939_200, "investor paid 19,392.00 including the 1% fee");
-    assert((await uinrBalance(pool.id)) - before.pool === 19_200, "POOL received 192.00 uINR");
-    report("buy", "POST /invoices/:id/buy", status, "20 units at ₹960: business +19,200, POOL +192, investor -19,392", json.hashscanUrl);
+    assert((await uinrBalance(business.id)) - before.business === paid, `business received ${paid / 100} uINR`);
+    assert(before.investor - (await uinrBalance(investor.id)) === paid + fee, `investor paid ${(paid + fee) / 100} including the 1% fee`);
+    assert((await uinrBalance(pool.id)) - before.pool === fee, `POOL received ${fee / 100} uINR`);
+    report("buy", "POST /invoices/:id/buy", status, `20 units at ₹${price}: business +${paid / 100}, POOL +${fee / 100}, investor -${(paid + fee) / 100}`, json.hashscanUrl);
     for (const link of json.links) console.log(`     ${link.label}: ${link.url}`);
 
     const again = await call("POST", `${invoicePath()}/buy`, { investorId: investor.id, units: 20, idempotencyKey: "api-test-buy" });
     assert(again.status === 201 && again.json.replayed === true, "same idempotency key replays");
     await waitForMirrorToReach();
-    assert(before.investor - (await uinrBalance(investor.id)) === 1_939_200, "retry did not charge again");
+    assert(before.investor - (await uinrBalance(investor.id)) === paid + fee, "retry did not charge again");
     console.log("     Retry with the same idempotencyKey replayed: no second charge.");
   });
 

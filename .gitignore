@@ -4,4 +4,5 @@ __pycache__/
 .next/
 *.log
 *.err
-backend/data/
+backend/data/*
+!backend/data/risk/

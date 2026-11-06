@@ -3,13 +3,16 @@ import cors from "cors";
 import express, { type NextFunction, type Request, type RequestHandler, type Response } from "express";
 import { z } from "zod";
 import { read } from "./ats/bond.js";
+import { loginAdmin, requireAdmin } from "./auth.js";
 import { config, fromBaseUnits, hashscan } from "./config.js";
 import { ApiError } from "./errors.js";
 import { allParties } from "./hedera/client.js";
 import { getAccount } from "./hedera/mirror.js";
 import { accountName, buyUnits, confirmInvoice, createInvoice, getInvoice, holdersOf, invoiceView, paySupplier, tokenizeInvoice } from "./invoices.js";
-import { approveKyc, liveInvoices, submitKyc } from "./kyc.js";
+import { approveKyc, liveInvoices, rejectKyc, submitKyc } from "./kyc.js";
+import { limits } from "./limits.js";
 import { repayInvoice } from "./repayment.js";
+import { isSeededInvoiceId, marketplaceDemoInvoice, riskReport, riskSummary, seededInvoiceView } from "./risk/service.js";
 import { serialized, state } from "./store.js";
 import { freezeHolder, listTokens, pauseToken, unfreezeHolder, unpauseToken } from "./tokens.js";
 import type { Link } from "./types.js";
@@ -20,6 +23,7 @@ const isoDate = z.string().refine((value) => !Number.isNaN(Date.parse(value)), "
 const positiveInt = z.number().int().positive();
 
 const schemas = {
+  login: z.object({ passcode: z.string().min(1) }),
   invoice: z.object({
     supplierId: accountId.optional(),
     buyerId: accountId.optional(),
@@ -31,11 +35,11 @@ const schemas = {
     invoiceNumber: z.string().min(1).optional(),
     pdfName: z.string().min(1).optional(),
   }),
-  tokenize: z.object({
+  // Strict, because the discount comes from the risk grade and a sent one must not look accepted.
+  tokenize: z.strictObject({
     maturityMinutes: z.number().positive().optional(),
     maturityDate: isoDate.optional(),
     unitFaceValue: positiveInt.optional(),
-    discountPct: z.number().min(0).lt(100).optional(),
   }),
   kyc: z.object({ fullName: z.string().min(1), walletAddress: accountId, country: z.string().min(1) }),
   buy: z.object({ investorId: accountId.optional(), units: positiveInt, idempotencyKey: z.string().min(1).optional() }),
@@ -110,6 +114,7 @@ async function balances() {
 
 export function createApp() {
   const app = express();
+  if (config.trustProxyHops > 0) app.set("trust proxy", config.trustProxyHops);
   app.use(cors());
   app.use(express.json({ limit: "256kb" }));
 
@@ -117,9 +122,16 @@ export function createApp() {
     res.json({ status: "ok", network: "testnet", hashscanUrl: hashscan.token(config.uinrTokenId), links: [{ label: "uINR token", url: hashscan.token(config.uinrTokenId) }, ...topicLinks()] });
   });
 
+  // Auth
+  app.post("/auth/demo-admin", limits.login, (req, res) => {
+    const session = loginAdmin(parse(schemas.login, req.body).passcode);
+    res.json({ ok: true, ...session, tokenType: "Bearer", hashscanUrl: hashscan.token(config.uinrTokenId), links: [{ label: "uINR token", url: hashscan.token(config.uinrTokenId) }] });
+  });
+
   // Invoices
   app.post(
     "/invoices",
+    limits.hbar,
     mutation(201, async (req) => {
       const input = parse(schemas.invoice, req.body);
       const supplierId = input.supplierId ?? process.env.BUSINESS_ID?.trim();
@@ -131,6 +143,7 @@ export function createApp() {
   );
   app.post(
     "/invoices/:id/confirm",
+    limits.hbar,
     mutation(200, async (req) => {
       const result = await confirmInvoice(param(req, "id"));
       return { ...result, hashscanUrl: result.tx.hashscanUrl, links: result.invoice.links };
@@ -138,6 +151,8 @@ export function createApp() {
   );
   app.post(
     "/invoices/:id/tokenize",
+    requireAdmin,
+    limits.tokenize,
     mutation(201, async (req) => {
       const result = await tokenizeInvoice(param(req, "id"), parse(schemas.tokenize, req.body));
       return { ...result, hashscanUrl: result.tx.hashscanUrl, links: result.invoice.links };
@@ -145,6 +160,7 @@ export function createApp() {
   );
   app.post(
     "/invoices/:id/buy",
+    limits.hbar,
     mutation(201, async (req) => {
       const input = parse(schemas.buy, req.body);
       const investorId = input.investorId ?? process.env.INVESTOR_ID?.trim();
@@ -155,6 +171,7 @@ export function createApp() {
   );
   app.post(
     "/invoices/:id/pay-supplier",
+    limits.hbar,
     mutation(201, async (req) => {
       const result = await paySupplier(param(req, "id"), parse(schemas.paySupplier, req.body));
       return { ...result, hashscanUrl: result.tx.hashscanUrl };
@@ -162,6 +179,7 @@ export function createApp() {
   );
   app.post(
     "/invoices/:id/repay",
+    limits.hbar,
     mutation(200, async (req) => {
       const invoice = getInvoice(param(req, "id"));
       const { repayment, links } = await repayInvoice(invoice);
@@ -169,16 +187,31 @@ export function createApp() {
     }),
   );
 
-  app.get("/invoices", (_req, res) => {
+  app.get("/invoices", async (_req, res) => {
     const links = topicLinks();
-    res.json({ invoices: Object.values(state.invoices).map(invoiceView), hashscanUrl: links[0]?.url ?? hashscan.token(config.uinrTokenId), links });
+    const demo = await marketplaceDemoInvoice();
+    res.json({ invoices: [...Object.values(state.invoices).map(invoiceView), ...(demo ? [demo] : [])], hashscanUrl: links[0]?.url ?? hashscan.token(config.uinrTokenId), links });
   });
-  app.get("/invoices/:id", (req, res) => {
-    const invoice = invoiceView(getInvoice(param(req, "id")));
+  app.get("/invoices/:id", async (req, res) => {
+    const id = param(req, "id");
+    if (!state.invoices[id] && isSeededInvoiceId(id)) {
+      const invoice = await seededInvoiceView(id);
+      res.json({ invoice, hashscanUrl: invoice.hashscanUrl, links: invoice.links });
+      return;
+    }
+    const invoice = invoiceView(getInvoice(id));
     res.json({ invoice, hashscanUrl: invoice.hashscanUrl, links: invoice.links });
   });
   app.get("/invoices/:id/holders", async (req, res) => {
     res.json(await holdersOf(param(req, "id")));
+  });
+
+  // Risk
+  app.get("/risk/:invoiceId/summary", async (req, res) => {
+    res.json(await riskSummary(param(req, "invoiceId")));
+  });
+  app.get("/risk/:invoiceId/report", async (req, res) => {
+    res.json(await riskReport(param(req, "invoiceId")));
   });
 
   // KYC
@@ -191,8 +224,18 @@ export function createApp() {
   );
   app.post(
     "/kyc/:id/approve",
+    requireAdmin,
+    limits.hbar,
     mutation(200, async (req) => {
       const result = await approveKyc(param(req, "id"));
+      return { ...result, hashscanUrl: result.tx.hashscanUrl };
+    }),
+  );
+  app.post(
+    "/kyc/:id/reject",
+    requireAdmin,
+    mutation(200, async (req) => {
+      const result = rejectKyc(param(req, "id"));
       return { ...result, hashscanUrl: result.tx.hashscanUrl };
     }),
   );
@@ -203,10 +246,10 @@ export function createApp() {
   });
 
   // Token controls
-  app.post("/tokens/:id/pause", mutation(200, (req) => pauseToken(param(req, "id")).then((result) => ({ ...result, hashscanUrl: result.tx.hashscanUrl }))));
-  app.post("/tokens/:id/unpause", mutation(200, (req) => unpauseToken(param(req, "id")).then((result) => ({ ...result, hashscanUrl: result.tx.hashscanUrl }))));
-  app.post("/tokens/:id/freeze", mutation(200, (req) => freezeHolder(param(req, "id"), parse(schemas.freeze, req.body)).then((result) => ({ ...result, hashscanUrl: result.tx.hashscanUrl }))));
-  app.post("/tokens/:id/unfreeze", mutation(200, (req) => unfreezeHolder(param(req, "id"), parse(schemas.freeze, req.body)).then((result) => ({ ...result, hashscanUrl: result.tx.hashscanUrl }))));
+  app.post("/tokens/:id/pause", requireAdmin, limits.hbar, mutation(200, (req) => pauseToken(param(req, "id")).then((result) => ({ ...result, hashscanUrl: result.tx.hashscanUrl }))));
+  app.post("/tokens/:id/unpause", requireAdmin, limits.hbar, mutation(200, (req) => unpauseToken(param(req, "id")).then((result) => ({ ...result, hashscanUrl: result.tx.hashscanUrl }))));
+  app.post("/tokens/:id/freeze", requireAdmin, limits.hbar, mutation(200, (req) => freezeHolder(param(req, "id"), parse(schemas.freeze, req.body)).then((result) => ({ ...result, hashscanUrl: result.tx.hashscanUrl }))));
+  app.post("/tokens/:id/unfreeze", requireAdmin, limits.hbar, mutation(200, (req) => unfreezeHolder(param(req, "id"), parse(schemas.freeze, req.body)).then((result) => ({ ...result, hashscanUrl: result.tx.hashscanUrl }))));
   app.get("/tokens", async (_req, res) => {
     const tokens = await listTokens();
     res.json({ tokens, hashscanUrl: tokens[0]?.hashscanUrl ?? hashscan.token(config.uinrTokenId), links: tokens.map((token) => ({ label: token.symbol, url: token.hashscanUrl })) });

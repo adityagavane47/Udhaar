@@ -14,9 +14,14 @@ function readUinrTokenId(): string {
 
 export const config = {
   port: Number(process.env.PORT ?? 4000),
+  /** Proxies in front of the server, such as 1 on Railway or Render. Rate limits need this to see the real client IP. */
+  trustProxyHops: Number(process.env.TRUST_PROXY ?? 0),
+  adminTokenMinutes: Number(process.env.DEMO_ADMIN_TOKEN_MINUTES ?? 30),
   mirrorUrl: "https://testnet.mirrornode.hedera.com/api/v1",
   hashscanUrl: "https://hashscan.io/testnet",
   dataDir: process.env.DATA_DIR ?? `${BACKEND_ROOT}data/`,
+  /** Committed seed data, separate from dataDir so tests and deployments that move the store still find it. */
+  riskDataDir: process.env.RISK_DATA_DIR ?? `${BACKEND_ROOT}data/risk/`,
   hcsRecordPath: `${BACKEND_ROOT}deployments/hcs.json`,
   uinrTokenId: readUinrTokenId(),
   /** A single transaction that could cost more than this is refused until a person approves it. */
@@ -31,7 +36,6 @@ export const config = {
   htsMaxFeeHbar: 2,
   hcsMaxFeeHbar: 2,
   defaultUnitFaceValue: 1000,
-  defaultDiscountPct: 4,
   uinrDecimals: 2,
   /** HBAR kept per pending payout. Covers the fee, plus an automatic association if one is needed. */
   payoutHbarReserve: 1,
@@ -39,7 +43,7 @@ export const config = {
 
 mkdirSync(config.dataDir, { recursive: true });
 
-/** Whole rupees to uINR base units. */
+/** Rupees to uINR base units. */
 export const toBaseUnits = (rupees: number) => Math.round(rupees * 10 ** config.uinrDecimals);
 export const fromBaseUnits = (baseUnits: number) => baseUnits / 10 ** config.uinrDecimals;
 

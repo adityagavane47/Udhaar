@@ -155,14 +155,14 @@ The risk API exposes one free and one paid route; the paid route follows the x40
   "credit_risk": "LOW",
   "fraud_flags": [],
   "anomaly": false,
-  "suggested_discount_pct": 4,
+  "suggested_discount_pct": 2.9589,
   "reasons": ["Buyer paid 90% of past invoices on time"],
   "graph": {"nodes": [], "links": []},
   "payment_tx": "0.0.11310322@..."
 }
 ```
 
-**Rules:** grade thresholds A ≥80, B 65–79, C 50–64, D below 50 (not listed). New buyers get a neutral payment-history score and `confidence: LOW`. Any fraud flag sets grade D. If the scoring or graph service is down, the route returns an error and no payment settles; it never returns a default "safe" result.
+**Rules:** grade thresholds A ≥80, B 65–79, C 50–64, D below 50 (not listed). The suggested discount is the grade's annual rate (A 12%, B 16%, C 20%) × days to the invoice's due date / 365; the example above is due in 90 days. New buyers get a neutral payment-history score and `confidence: LOW`. Any fraud flag sets grade D. If the scoring or graph service is down, the route returns an error and no payment settles; it never returns a default "safe" result.
 
 ## Non-functional requirements
 

@@ -104,6 +104,9 @@ export interface Invoice {
   unitFaceValue?: number;
   retainedUnits?: number;
   discountPct?: number;
+  /** Set when tokenized. The score itself is left out, because it belongs to the full report. */
+  grade?: "A" | "B" | "C" | "D";
+  gradedAt?: string;
   hashscanUrl?: string;
   links: Link[];
   tokenization?: Tokenization;
@@ -134,6 +137,8 @@ export type AuditType =
   | "buyer_payment"
   | "kyc_submit"
   | "kyc_approve"
+  | "kyc_reject"
+  | "risk_blocked"
   | "token_create"
   | "token_pause"
   | "token_unpause"

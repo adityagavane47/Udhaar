@@ -93,6 +93,18 @@ export async function approveKyc(id: string) {
   return { request, results, links, tx: { hashscanUrl: request.hashscanUrl, txId: firstTx?.txId ?? "" } };
 }
 
+/** Off-chain, so it spends no HBAR. An approved wallet is refused, because rejecting it wouldn't take it off any allowlist. */
+export function rejectKyc(id: string) {
+  const request = getKyc(id);
+  if (request.status === "approved") throw new ApiError(409, "KYC_ALREADY_APPROVED", `KYC request ${id} is already approved, and the wallet may be on bond allowlists`, { hashscanUrl: request.hashscanUrl });
+  if (request.status !== "rejected") {
+    request.status = "rejected";
+    save();
+    audit({ type: "kyc_reject", description: `KYC rejected for ${request.walletAddress}`, actor: "admin", hashscanUrl: request.hashscanUrl });
+  }
+  return { request, links: [{ label: "Wallet", url: hashscan.account(request.walletAddress) }], tx: { hashscanUrl: request.hashscanUrl, txId: "" } };
+}
+
 /** Retries wallets a paused bond refused earlier. Called after unpausing. */
 export async function syncPendingAllowlists(invoice: Invoice): Promise<AllowlistResult[]> {
   const tokenId = invoice.tokenization?.bond?.contractId;

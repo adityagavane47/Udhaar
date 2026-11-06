@@ -5,6 +5,8 @@ import { ApiError } from "./errors.js";
 import { ensureTopics, findFingerprint, signMessage, submitMessage } from "./hcs.js";
 import { getParty, getSigner, knownAccountName, ROLES } from "./hedera/client.js";
 import { getAccount, waitForMirrorToReach } from "./hedera/mirror.js";
+import { discountedUnitPrice } from "./risk/scorecard.js";
+import { assessForTokenizing, isSeededInvoiceId } from "./risk/service.js";
 import { audit, save, state } from "./store.js";
 import type { Invoice, Link, Purchase } from "./types.js";
 import { sendUinrOnce, uinrBalance } from "./uinr.js";
@@ -28,7 +30,6 @@ export interface TokenizeInput {
   maturityMinutes?: number | undefined;
   maturityDate?: string | undefined;
   unitFaceValue?: number | undefined;
-  discountPct?: number | undefined;
 }
 
 export const accountName = (accountId: string) => {
@@ -40,11 +41,12 @@ export const accountName = (accountId: string) => {
 
 export function getInvoice(id: string): Invoice {
   const invoice = state.invoices[id];
-  if (!invoice) throw new ApiError(404, "INVOICE_NOT_FOUND", `Invoice ${id} not found`);
-  return invoice;
+  if (invoice) return invoice;
+  if (isSeededInvoiceId(id)) throw new ApiError(409, "SEEDED_INVOICE", `${id} is simulated demo data, so it can be viewed and scored but nothing can be done with it`);
+  throw new ApiError(404, "INVOICE_NOT_FOUND", `Invoice ${id} not found`);
 }
 
-export const unitPrice = (invoice: Invoice) => Math.round((invoice.unitFaceValue ?? config.defaultUnitFaceValue) * (1 - (invoice.discountPct ?? 0) / 100));
+export const unitPrice = (invoice: Invoice) => discountedUnitPrice(invoice.unitFaceValue ?? config.defaultUnitFaceValue, invoice.discountPct ?? 0);
 
 export const invoiceView = (invoice: Invoice) => ({
   ...invoice,
@@ -153,7 +155,18 @@ export async function confirmInvoice(invoiceId: string) {
   return { invoice: invoiceView(invoice), tx: { hashscanUrl: record.hashscanUrl ?? "", txId: record.transactionId } };
 }
 
+/** Grade D stops here, before any plan is saved or HBAR spent. An engine failure is also an error, so nothing is priced without a real score. */
+async function riskCheckBeforeTokenizing(invoiceId: string) {
+  const risk = await assessForTokenizing(invoiceId);
+  if (risk.grade === "D") {
+    audit({ type: "risk_blocked", description: `${invoiceId} refused: grade D (${risk.fraudFlags.join(", ") || "score under 50"})`, actor: "risk engine", hashscanUrl: risk.hashscanUrl, invoiceId, status: "rejected" });
+    throw new ApiError(409, "RISK_BLOCKED", `${invoiceId} is grade D, so it can't be tokenized`, { grade: risk.grade, riskScore: risk.riskScore, fraudFlags: risk.fraudFlags, reasons: risk.reasons, hashscanUrl: risk.hashscanUrl });
+  }
+  return risk;
+}
+
 export async function tokenizeInvoice(invoiceId: string, input: TokenizeInput) {
+  if (isSeededInvoiceId(invoiceId)) await riskCheckBeforeTokenizing(invoiceId);
   const invoice = getInvoice(invoiceId);
   if (invoice.tokenization?.status === "complete") {
     return { invoice: invoiceView(invoice), tx: { hashscanUrl: hashscan.contract(invoice.tokenId ?? ""), txId: state.ledger[`${invoice.symbol}:deploy`]?.transactionId ?? "" }, replayed: true };
@@ -164,6 +177,9 @@ export async function tokenizeInvoice(invoiceId: string, input: TokenizeInput) {
 
   // The plan is saved once, so a retry resumes the same bond and cannot deploy a second one.
   if (!invoice.tokenization) {
+    const risk = await riskCheckBeforeTokenizing(invoice.id);
+    // The discount is worked out from the invoice's due date, so a demo's early maturity can't change it.
+    if (risk.suggestedDiscountPct === null) throw new ApiError(422, "BAD_DUE_DATE", `${invoice.id} can't be priced: its due date ${invoice.dueDate} has passed or is too far away`, { hashscanUrl: risk.hashscanUrl });
     const now = new Date();
     const nowUnix = Math.floor(now.getTime() / 1000);
     const maturity = input.maturityMinutes !== undefined ? nowUnix + Math.round(input.maturityMinutes * 60) : Math.floor(new Date(input.maturityDate ?? invoice.dueDate).getTime() / 1000);
@@ -178,10 +194,12 @@ export async function tokenizeInvoice(invoiceId: string, input: TokenizeInput) {
       name: `Udhaar demo invoice ${invoice.id}`,
       units: invoice.amount / unitFaceValue,
       unitFaceValue,
-      discountPct: input.discountPct ?? config.defaultDiscountPct,
+      discountPct: risk.suggestedDiscountPct,
       startingDateUnix: nowUnix + 60,
       maturityDateUnix: Math.max(maturity, nowUnix + 60),
     };
+    invoice.grade = risk.grade;
+    invoice.gradedAt = risk.scoredAt;
     save();
   }
 
@@ -289,7 +307,7 @@ export async function buyUnits(invoiceId: string, input: { investorId: string; u
     if (!canTransfer.ok) throwForTransferRevert(canTransfer.revert, bondUrl, input.investorId);
 
     const price = unitPrice(invoice);
-    const amountBaseUnits = toBaseUnits(input.units * price);
+    const amountBaseUnits = input.units * toBaseUnits(price);
     const feeBaseUnits = Math.floor(amountBaseUnits / FEE_DENOMINATOR);
     const held = await uinrBalance(investor.id);
     if (held < amountBaseUnits + feeBaseUnits) {
@@ -325,7 +343,7 @@ export async function buyUnits(invoiceId: string, input: { investorId: string; u
   if (units.record.hashscanUrl) purchase.unitsHashscanUrl = units.record.hashscanUrl;
   invoice.status = "funded";
   invoice.retainedUnits = (invoice.retainedUnits ?? 0) - purchase.units;
-  invoice.amountPaidBy[input.investorId] = (invoice.amountPaidBy[input.investorId] ?? 0) + purchase.units * purchase.unitPrice;
+  invoice.amountPaidBy[input.investorId] = fromBaseUnits(toBaseUnits(invoice.amountPaidBy[input.investorId] ?? 0) + purchase.amountBaseUnits);
   const links: Link[] = [
     ...(payment.hashscanUrl ? [{ label: "Payment to business", url: payment.hashscanUrl, txId: payment.transactionId }] : []),
     ...(units.record.hashscanUrl ? [{ label: "Units to investor", url: units.record.hashscanUrl, txId: units.record.transactionId }] : []),

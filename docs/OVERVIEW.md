@@ -22,10 +22,10 @@ One invoice goes from upload to automatic repayment in eight steps; the demo fol
 2. **Buyer confirms.** BigBuild confirms on-chain that it owes the amount. Unconfirmed invoices never reach investors, which blocks fake invoices.
 3. **Risk check.** The risk engine grades the invoice (credit, fraud, anomaly) and suggests a discount.
 4. **Tokenize.** The admin issues the invoice through the Asset Tokenization Studio as a bond-like security token: 500 units of ₹1,000, maturity on the due date, KYC-only transfers.
-5. **Investors buy.** KYC-verified investors buy units at a discount (₹960 each for a Grade A invoice). Ramesh receives about ₹4,80,000 today.
+5. **Investors buy.** KYC-verified investors buy units at a discount (₹970.41 each for a Grade A invoice due in 90 days). Ramesh receives about ₹4,85,000 today.
 6. **Agents pay for research.** Before buying, an investor's auto-invest agent pays 0.01 USDC over x402 for each full risk report, with no human approving.
 7. **Buyer pays.** On the due date BigBuild pays the full ₹5,00,000.
-8. **Automatic repayment.** A Scheduled Transaction redeems the tokens and pays each investor ₹1,000 per unit. An investor who paid ₹96,000 for 100 units gets ₹1,00,000.
+8. **Automatic repayment.** A Scheduled Transaction redeems the tokens and pays each investor ₹1,000 per unit. An investor who paid ₹97,041 for 100 units gets ₹1,00,000.
 
 If fraud is found at any point, the admin freezes the token and nobody can move it.
 
@@ -63,12 +63,14 @@ Each invoice gets a score out of 100 from an explainable points system, plus fra
 
 A buyer with no history gets a neutral 20/40 for payment history, and the report says **Confidence: LOW**.
 
-| Score | Grade | Suggested discount |
-| --- | --- | --- |
-| 80–100 | A | 4% |
-| 65–79 | B | 6% |
-| 50–64 | C | 8% |
-| Below 50 | D | Not listed |
+| Score | Grade | Rate a year | Discount if due in 90 days |
+| --- | --- | --- | --- |
+| 80–100 | A | 12% | 2.96% |
+| 65–79 | B | 16% | 3.95% |
+| 50–64 | C | 20% | 4.93% |
+| Below 50 | D | Not listed | Not listed |
+
+The discount is the annual rate × days to the invoice's due date / 365, so a shorter invoice gets a smaller discount.
 
 **Fraud checks (graph, Neo4j)** — any hit blocks the invoice or sends it to the admin:
 
