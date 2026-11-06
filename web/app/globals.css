@@ -44,24 +44,6 @@
   }
 }
 
-@keyframes stampIn {
-  0% {
-    opacity: 0;
-    transform: scale(2.4);
-  }
-  60% {
-    opacity: 1;
-    transform: scale(0.92);
-  }
-  80% {
-    transform: scale(1.04);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -142,6 +124,249 @@
     animation: writeIn linear both;
     animation-timeline: view();
     animation-range: entry 20% cover 45%;
+  }
+}
+
+/* Landing page: the hero and the invoice section. Media queries match MOTION in components/landing/gsap.ts. */
+.invoice-split__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 16px 72px;
+}
+.invoice-split__eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #B3261E;
+}
+.invoice-split__board {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  width: 100%;
+}
+.invoice-card {
+  position: relative;
+  width: min(100%, 620px);
+  font-size: 15px;
+  background: #FBF6EA;
+  border: 1px solid #C9B98F;
+  box-shadow: 8px 8px 0 #1B2340;
+}
+.invoice-card__content {
+  position: relative;
+  z-index: 1; /* Above the perforations, so nothing is ever drawn across the text. */
+  display: flex;
+  flex-direction: column;
+  gap: 0.55em;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 1.5em 1.75em;
+}
+.invoice-card__content p {
+  margin: 0;
+}
+.invoice-card__number {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #B3261E;
+}
+.invoice-card__parties {
+  font-family: var(--font-serif);
+  font-size: 1.65em;
+  line-height: 1.1;
+}
+.invoice-card__amount {
+  margin-top: auto !important;
+  font-family: var(--font-serif);
+  font-size: 3.5em;
+  line-height: 1;
+}
+.invoice-card__due {
+  align-self: flex-start;
+  padding: 0.1em 0.35em;
+  margin-left: -0.35em;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: #FBF6EA;
+}
+.invoice-card__stamp {
+  position: absolute;
+  right: 1.4em;
+  bottom: 1.5em;
+  rotate: -7deg;
+  padding: 0.45em 0.7em;
+  border: 3px double #B3261E;
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #B3261E;
+  mix-blend-mode: multiply;
+}
+.invoice-card__perf {
+  display: none;
+  z-index: 0;
+}
+.token-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  max-width: 1080px;
+}
+.token-chip {
+  min-width: 0;
+  min-height: 0;
+}
+.token-chip__face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  background: #F2B544;
+  border: 1px solid #1B2340;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: #1B2340;
+}
+.split-counter {
+  margin: 0;
+  font-size: clamp(22px, 3.2vw, 42px);
+  line-height: 1.2;
+  text-align: center;
+}
+.split-counter__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15em 0.45em;
+}
+.split-counter__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  white-space: nowrap;
+}
+.split-counter__group > .odometer + .odometer {
+  margin-left: -0.28em;
+}
+.split-counter__word {
+  font-family: var(--font-serif);
+  font-style: italic;
+}
+.split-counter__arrow {
+  font-family: var(--font-serif);
+  color: #B3261E;
+}
+.odometer {
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.odometer__digit {
+  display: inline-block;
+  height: 1.2em;
+  overflow: hidden;
+}
+.odometer__strip {
+  display: block;
+  white-space: pre;
+  line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+  .token-grid {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+  .token-chip__face {
+    height: 38px;
+  }
+}
+
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  /* Hidden until the hero starts writing. The delayed animation shows the page if scripts never arrive. */
+  .landing-hero:not([data-ink-ready]) .ink-pending {
+    visibility: hidden;
+    animation: landing-safety-net 0s linear 4s forwards;
+  }
+}
+
+@media (scripting: enabled) and (min-width: 768px) and (min-height: 560px) and (prefers-reduced-motion: no-preference) {
+  /* Tall from the first paint, with the stage held by sticky, so the pin adds no layout shift. */
+  .invoice-split {
+    height: 320vh;
+  }
+  .invoice-split__stage {
+    position: sticky;
+    top: 0;
+    justify-content: center;
+    gap: 2.6vh;
+    height: 100vh;
+    box-sizing: border-box;
+    padding: 16px 24px;
+    overflow: clip;
+  }
+  .invoice-split__board {
+    --card-w: min(620px, 64vw, 108vh);
+    display: grid;
+    place-items: center;
+  }
+  .invoice-split__board > * {
+    grid-area: 1 / 1;
+  }
+  .invoice-card {
+    width: var(--card-w);
+    aspect-ratio: 620 / 300;
+    font-size: calc(var(--card-w) / 38.75);
+    box-shadow: 10px 10px 0 #1B2340;
+  }
+  .invoice-card__perf {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .token-grid {
+    position: relative;
+    z-index: 1;
+    grid-template-rows: repeat(10, minmax(0, 1fr));
+    height: min(58vh, 470px);
+    pointer-events: none;
+  }
+  .token-grid.is-on-card {
+    width: var(--card-w);
+    height: auto;
+    aspect-ratio: 620 / 300;
+    gap: 0;
+  }
+  .token-chip__face {
+    height: 100%;
+    font-size: clamp(10px, min(1.05vw, 1.75vh), 14px);
+  }
+  .invoice-split:not([data-split-ready]) .token-grid,
+  .invoice-split:not([data-split-ready]) .split-counter {
+    visibility: hidden;
+    animation: landing-safety-net 0s linear 4s forwards;
+  }
+}
+
+@keyframes landing-safety-net {
+  to {
+    visibility: visible;
   }
 }
 

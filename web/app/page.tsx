@@ -3,16 +3,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ErrorNote } from "@/components/common";
+import { LandingHero } from "@/components/landing/hero";
+import { InvoiceSplit } from "@/components/landing/invoice-split";
+import { SmoothScroll } from "@/components/landing/smooth-scroll";
 import { getAuditLog, loginDemoAdmin, loginDemoInvestor } from "@/lib/api";
 import { clearAdminSession, setStoredRole } from "@/lib/auth";
 import { PERSONAS, type Persona, type Role, type Transaction } from "@/lib/types";
-import { errMsg, inr } from "@/lib/utils";
+import { errMsg } from "@/lib/utils";
 
 /** The worked example on the landing page: a Grade A invoice due in 90 days. */
 const DEMO_GRADE = "A";
 const DEMO_RATE = 12;
 const DEMO_DAYS = 90;
-const DEMO_PRICE = Math.round(1000 * (1 - (DEMO_RATE * DEMO_DAYS) / 365 / 100));
+const DEMO_PRICE = (1000 * (1 - (DEMO_RATE * DEMO_DAYS) / 365 / 100)).toFixed(2);
 
 interface LedgerEntry {
   n: string;
@@ -116,95 +119,24 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="bg-[#F1E8D2] text-[#1B2340]">
-      {/* Hero */}
-      <section className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-14 px-6 pt-20 pb-24">
-        <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-6">
-          <span className="animate-[fadeUp_.6s_ease_both] font-mono text-[13px] uppercase tracking-[0.1em] text-[#B3261E]">
-            Bahi-khata, on-chain
-          </span>
-          <h1 className="m-0 animate-[fadeUp_.7s_.1s_ease_both] font-serif text-[clamp(48px,6.4vw,92px)] font-normal leading-[0.98] tracking-[-0.01em]">
-            Every business in India runs on udhaar.{" "}
-            <span className="italic text-[#B3261E]">Now it settles itself.</span>
-          </h1>
-          <p className="m-0 max-w-[560px] animate-[fadeUp_.7s_.25s_ease_both] text-[19px] leading-[1.6]">
-            Suppliers wait months for big buyers to pay. Udhaar turns a buyer-confirmed invoice
-            into a token that investors fund today, that suppliers can pass down the chain, and
-            that repays every holder automatically on the due date.
-          </p>
-          <div className="flex animate-[fadeUp_.7s_.4s_ease_both] flex-wrap gap-3.5">
-            <Link
-              href="/login"
-              className="btn bg-[#1B2340] px-[26px] py-4 text-[17px] font-semibold text-[#F1E8D2] no-underline hover:text-[#F1E8D2]"
-            >
-              Open the khata
-            </Link>
-            <a
-              href="#entries"
-              className="btn border-2 border-[#1B2340] px-6 py-3.5 text-[17px] font-semibold text-[#1B2340] no-underline hover:text-[#B3261E]"
-            >
-              See it on HashScan
-            </a>
-          </div>
-        </div>
+    <div className="overflow-x-clip bg-[#F1E8D2] text-[#1B2340]">
+      <SmoothScroll />
+      <LandingHero />
 
-        {/* Ledger sheet */}
-        <div className="relative min-w-0 flex-[1_1_480px]">
-          <div className="khata-sheet relative pt-7 pr-4 pb-9 pl-12 font-hand text-[17px] leading-[44px] sm:pr-7 sm:pl-[76px] sm:text-[21px]">
-            <div
-              aria-hidden="true"
-              className="absolute top-0 bottom-0 left-9 w-0.5 bg-[#B3261E] sm:left-[56px]"
-            />
-            <div className="animate-[writeIn_.8s_.2s_ease-out_both] truncate text-[20px] font-bold sm:text-[24px]">
-              Khata — Shree Ganesh Cement, Pune
-            </div>
-            <div className="grid animate-[writeIn_1s_.8s_ease-out_both] grid-cols-[54px_minmax(0,1fr)_88px] gap-x-2 sm:grid-cols-[70px_minmax(0,1fr)_120px] sm:gap-x-3">
-              <span>01 Nov</span>
-              <span className="truncate">BigBuild Ltd · 1,000 bags</span>
-              <span className="text-right">₹5,00,000</span>
-            </div>
-            <div className="grid animate-[writeIn_1s_1.4s_ease-out_both] grid-cols-[54px_minmax(0,1fr)_88px] gap-x-2 sm:grid-cols-[70px_minmax(0,1fr)_120px] sm:gap-x-3">
-              <span>03 Nov</span>
-              <span className="truncate">Suresh · sand, 40 loads</span>
-              <span className="text-right">₹50,000</span>
-            </div>
-            <div className="grid animate-[writeIn_1s_2s_ease-out_both] grid-cols-[54px_minmax(0,1fr)_88px] gap-x-2 sm:grid-cols-[70px_minmax(0,1fr)_120px] sm:gap-x-3">
-              <span>05 Nov</span>
-              <span className="truncate">Lakshmi Transport</span>
-              <span className="text-right">₹18,500</span>
-            </div>
-            <div className="grid animate-[writeIn_1s_2.6s_ease-out_both] grid-cols-[54px_minmax(0,1fr)_88px] gap-x-2 sm:grid-cols-[70px_minmax(0,1fr)_120px] sm:gap-x-3">
-              <span>06 Nov</span>
-              <span className="truncate text-[#6B6F86]">due from BigBuild: 30 Jan</span>
-              <span className="text-right text-[#6B6F86]">90 days</span>
-            </div>
-          </div>
-
-          <div className="pointer-events-none absolute top-[58px] right-[92px] -rotate-[9deg] animate-[stampIn_.55s_3.6s_both] border-4 border-double border-[#B3261E] bg-transparent px-4 py-2.5 text-center font-mono text-[13px] font-semibold uppercase leading-[1.4] tracking-[0.06em] text-[#B3261E] mix-blend-multiply sm:top-[62px] sm:right-[118px] sm:text-[15px]">
-            Tokenized
-            <br />
-            500 × ₹1,000
-            <br />
-            <span className="text-xs font-medium">bond 0.0.11328164</span>
-          </div>
-          <div className="pointer-events-none absolute top-[156px] right-[88px] rotate-[4deg] animate-[stampIn_.5s_4.3s_both] border-[3px] border-[#2F6B4F] bg-transparent px-3 py-1.5 font-mono text-[13px] font-semibold uppercase tracking-[0.06em] text-[#2F6B4F] mix-blend-multiply sm:top-[160px] sm:right-[114px]">
-            Paid in units
-          </div>
-        </div>
-      </section>
+      <InvoiceSplit />
 
       {/* The arithmetic */}
       <section aria-label="The arithmetic" className="bg-[#1B2340] text-[#F1E8D2]">
         <div className="mx-auto flex max-w-[1240px] flex-wrap items-end justify-between gap-12 px-6 py-[72px]">
           <div className="reveal min-w-0 flex-[1_1_520px] font-serif text-[clamp(40px,5.2vw,72px)] leading-[1.05]">
-            Pay <span className="italic text-[#F2B544]">{inr(DEMO_PRICE)}</span> today →
+            Pay <span className="italic text-[#F2B544]">₹{DEMO_PRICE}</span> today →
             <br />
             Collect <span className="italic text-[#F2B544]">₹1,000</span> on the due date.
           </div>
           <div className="reveal flex-[0_1_380px] font-mono text-base leading-[2]">
             <div className="flex justify-between gap-6">
-              <span>Invoice</span>
-              <span>₹5,00,000</span>
+              <span>Invoice INV-0042</span>
+              <span>₹1,00,000</span>
             </div>
             <div className="flex justify-between gap-6">
               <span>÷ face value</span>
@@ -212,10 +144,10 @@ export default function LandingPage() {
             </div>
             <div className="flex justify-between gap-6 border-t border-[#F1E8D2] border-b-4 border-double border-b-[#F1E8D2]">
               <span>Tokens</span>
-              <span>500</span>
+              <span>100</span>
             </div>
             <div className="flex justify-between gap-6 text-sm text-[#C9CDEB]">
-              <span>Grade {DEMO_GRADE}, {DEMO_RATE}% a year, due in {DEMO_DAYS} days.</span>
+              <span>Per token: Grade {DEMO_GRADE}, {DEMO_RATE}% a year, due in {DEMO_DAYS} days.</span>
             </div>
           </div>
         </div>
@@ -236,7 +168,7 @@ export default function LandingPage() {
           <p className="m-0 text-[18px] leading-[1.6]">
             India&apos;s TReDS platforms finance the supplier who sells to the big company. The
             smaller firms who supply <span className="italic">him</span> still wait. Ramesh can
-            hand Suresh part of the invoice token instead of cash, and BigBuild&apos;s payment
+            hand Suresh part of the invoice token instead of cash, and BigBuild Constructions&apos; payment
             reaches Suresh directly.
           </p>
           <p className="m-0 font-mono text-[13px] text-[#5A5E78]">
@@ -247,12 +179,12 @@ export default function LandingPage() {
 
         <div className="flex min-w-0 flex-[1_1_460px] flex-col">
           <div className="reveal flex flex-wrap items-baseline justify-between gap-4 border-2 border-[#1B2340] px-[26px] py-[22px]">
-            <span className="font-serif text-[30px]">BigBuild Ltd</span>
-            <span className="font-mono text-sm">buyer · owes ₹5,00,000</span>
+            <span className="font-serif text-[30px]">BigBuild Constructions</span>
+            <span className="font-mono text-sm">buyer · owes ₹1,00,000</span>
           </div>
           <div className="draw ml-10 h-11 border-l-2 border-dashed border-[#1B2340]" />
           <div className="reveal flex flex-wrap items-baseline justify-between gap-4 border-2 border-[#1B2340] bg-[#FBF6EA] px-[26px] py-[22px]">
-            <span className="font-serif text-[30px]">Ramesh</span>
+            <span className="font-serif text-[30px]">Ramesh Cement Works</span>
             <span className="font-mono text-sm">tier 1 · funded today</span>
           </div>
           <div className="draw ml-10 flex h-[72px] items-center border-l-2 border-dashed border-[#B3261E] pl-5">
@@ -290,7 +222,7 @@ export default function LandingPage() {
             <span className="font-mono text-[13px] tracking-[0.08em] text-[#B3261E]">FOLIO 03</span>
             <h3 className="m-0 font-serif text-[32px] font-normal">Split it</h3>
             <p className="m-0 text-base leading-[1.6]">
-              It becomes 500 tokens that only verified wallets can hold. Investors buy them, or
+              It becomes 100 tokens that only verified wallets can hold. Investors buy them, or
               Ramesh pays his suppliers with them.
             </p>
           </div>
@@ -399,7 +331,7 @@ export default function LandingPage() {
                 aria-hidden="true"
                 className="mr-2 inline-block h-2 w-2 animate-[pulse_1.6s_ease-in-out_infinite] rounded-full bg-[#8FE3C3]"
               />
-              invoice INV-0001 · bond 0.0.11328164
+              invoice INV-0042 · bond 0.0.11328164
             </span>
           </div>
 

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { scrollToSection } from "@/components/landing/scroll-to";
 import { USE_MOCK, loginDemoInvestor } from "@/lib/api";
 import {
   clearAdminSession,
@@ -17,6 +18,12 @@ const isPortalPath = (p: string) =>
   p.startsWith("/buyer") ||
   p.startsWith("/investor") ||
   p.startsWith("/admin");
+
+const SECTION_LINKS = [
+  ["chain", "Who waits"],
+  ["folios", "How it works"],
+  ["entries", "Today's entries"],
+] as const;
 
 export function Header() {
   const path = usePathname();
@@ -132,15 +139,21 @@ export function Header() {
             aria-label="Main"
             className="flex flex-wrap items-center gap-5 text-[15px] sm:gap-7"
           >
-            <a href="#chain" className="text-[#1B2340] no-underline hover:text-[#B3261E]">
-              Who waits
-            </a>
-            <a href="#folios" className="text-[#1B2340] no-underline hover:text-[#B3261E]">
-              How it works
-            </a>
-            <a href="#entries" className="text-[#1B2340] no-underline hover:text-[#B3261E]">
-              Today&apos;s entries
-            </a>
+            {SECTION_LINKS.map(([id, label]) => (
+              <Link
+                key={id}
+                href={`/#${id}`}
+                onClick={(e) => {
+                  // On the landing page, scroll in place so no # history entry is added.
+                  if (path !== "/" || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                  e.preventDefault();
+                  scrollToSection(id);
+                }}
+                className="text-[#1B2340] no-underline hover:text-[#B3261E]"
+              >
+                {label}
+              </Link>
+            ))}
             <Link
               href="/login"
               className="btn bg-[#1B2340] px-[18px] py-3 font-semibold text-[#F1E8D2] no-underline hover:text-[#F1E8D2]"
