@@ -16,6 +16,9 @@
     "test:auth": "tsx scripts/test-auth.ts",
     "generate-data": "tsx scripts/generate-data.ts",
     "test:risk": "tsx scripts/test-risk.ts",
+    "generate-trust-data": "tsx scripts/generate-trust-data.ts",
+    "generate-irp-key": "tsx scripts/generate-irp-key.ts",
+    "test:trust": "tsx scripts/test-trust.ts",
     "test:x402": "tsx scripts/test-x402.ts",
     "test:x402:live": "tsx scripts/test-x402-live.ts"
   },

@@ -17,6 +17,9 @@ import { isSeededInvoiceId, marketplaceDemoInvoice, riskReport, riskSummary, see
 import { serialized, state } from "./store.js";
 import { freezeHolder, listTokens, pauseToken, unfreezeHolder, unpauseToken } from "./tokens.js";
 import type { Link } from "./types.js";
+import { publicKeyRecord, signEInvoice } from "./trust/irp.js";
+import { validateGstin } from "./trust/gstin.js";
+import { companyTrust, gstinOf, invoiceTrust } from "./trust/service.js";
 import { uinrBalance } from "./uinr.js";
 import { assertQuoteAllowed, payForReport, QuoteRefused, ReportCallError } from "./x402/client.js";
 import { chargeForReport, reportPayTo, serviceManifest, settlementOf } from "./x402/paywall.js";
@@ -37,6 +40,16 @@ const schemas = {
     issueDate: isoDate.optional(),
     invoiceNumber: z.string().min(1).optional(),
     pdfName: z.string().min(1).optional(),
+    signedQr: z.string().min(1).optional(),
+  }),
+  eInvoice: z.object({
+    supplierId: z.string().min(1).optional(),
+    buyerId: z.string().min(1).optional(),
+    sellerGstin: z.string().min(1).optional(),
+    buyerGstin: z.string().min(1).optional(),
+    invoiceNumber: z.string().min(1),
+    amount: z.number().positive(),
+    date: isoDate.optional(),
   }),
   // Strict, because the discount comes from the risk grade and a sent one must not look accepted.
   tokenize: z.strictObject({
@@ -275,6 +288,33 @@ export function createApp() {
   );
   app.get("/.well-known/x402", (req, res) => {
     res.json(serviceManifest(`${req.protocol}://${req.get("host")}`));
+  });
+
+  // Trust: free. Outside data in these responses is MOCK, and says so.
+  app.get("/trust/company/:id", async (req, res) => {
+    const result = await companyTrust(param(req, "id"));
+    res.json({ ...result, externalDataSource: "mock" });
+  });
+  app.get("/trust/:invoiceId", async (req, res) => {
+    res.json(await invoiceTrust(param(req, "invoiceId")));
+  });
+
+  // The mock e-invoice signer. It stands in for India's IRP, which can't be called here.
+  app.post("/mock-irp/e-invoice", (req, res) => {
+    const input = parse(schemas.eInvoice, req.body);
+    const sellerGstin = (input.sellerGstin ?? (input.supplierId ? gstinOf(input.supplierId) : undefined))?.toUpperCase();
+    const buyerGstin = (input.buyerGstin ?? (input.buyerId ? gstinOf(input.buyerId) : undefined))?.toUpperCase();
+    if (!sellerGstin || !buyerGstin) throw new ApiError(422, "GSTIN_REQUIRED", "Send sellerGstin and buyerGstin, or supplierId and buyerId of companies that have a GSTIN on record");
+    for (const [role, gstin] of [["sellerGstin", sellerGstin], ["buyerGstin", buyerGstin]] as const) {
+      const check = validateGstin(gstin);
+      if (!check.valid) throw new ApiError(422, "INVALID_GSTIN", `${role} ${gstin}: ${check.reason}`);
+    }
+    const date = (input.date ? new Date(input.date) : new Date()).toISOString().slice(0, 10);
+    const signed = signEInvoice({ sellerGstin, buyerGstin, invoiceNumber: input.invoiceNumber, amount: input.amount, date });
+    res.json({ source: "mock", notice: "Signed by this project's mock IRP. It proves nothing about a real invoice.", ...signed, hashscanUrl: hashscan.token(config.uinrTokenId), links: [{ label: "uINR token", url: hashscan.token(config.uinrTokenId) }] });
+  });
+  app.get("/mock-irp/public-key", (_req, res) => {
+    res.json({ ...publicKeyRecord(), hashscanUrl: hashscan.token(config.uinrTokenId), links: [{ label: "uINR token", url: hashscan.token(config.uinrTokenId) }] });
   });
 
   // Agent

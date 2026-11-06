@@ -94,6 +94,9 @@ export interface Invoice {
   pdfName?: string;
   fingerprint: string;
   registered: boolean;
+  /** The (mock) IRP's signed QR, kept only after it verified against this invoice's fields. */
+  signedQr?: string;
+  eInvoice?: { source: "mock"; irn: string; verifiedAt: string };
   /** Fixed by the first attempt, so a retry resends exactly the same signed message. */
   confirmationPayload?: string;
   confirmation?: { message: string; signature: string; signedBy: string; hashscanUrl: string };

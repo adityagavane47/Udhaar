@@ -1,0 +1,449 @@
+{
+  "source": "mock",
+  "notice": "MOCK DATA. Every GSTIN, registry record, score and complaint here is fictional. See docs/DATA.md.",
+  "referenceDate": "2026-11-01",
+  "profiles": {
+    "27JFNCN6467E1ZJ": {
+      "gstin": "27AXSCB0000E1ZW",
+      "udyam": null,
+      "bureauScore": 777,
+      "creditRating": "A",
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 1
+    },
+    "27WNZCS4534S1ZR": {
+      "gstin": "27ZIECR0000O1ZE",
+      "udyam": "UDYAM-MH-99-0247799",
+      "bureauScore": 668,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 1
+    },
+    "33XWCCX6421W1ZR": {
+      "gstin": "33SUUCD0000E1ZN",
+      "udyam": null,
+      "bureauScore": 552,
+      "creditRating": "C",
+      "msme1DuesOver45DaysInr": 4400000,
+      "samadhaanComplaints": 10,
+      "gstFilingRegularity": 1
+    },
+    "23SCKCS9376A1ZO": {
+      "gstin": "23FDDCC0000W1ZH",
+      "udyam": "UDYAM-MP-99-5109987",
+      "bureauScore": 672,
+      "msme1DuesOver45DaysInr": 420000,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "24XZHCV3181Q1ZQ": {
+      "gstin": "24NRWCU0000A1ZM",
+      "udyam": "UDYAM-GJ-99-7921953",
+      "bureauScore": 784,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "33PPLCU2211D1ZM": {
+      "gstin": "33TZVCP0000W1ZY",
+      "udyam": "UDYAM-TN-99-6776424",
+      "bureauScore": 798,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "24EZWCT2893W1ZB": {
+      "gstin": "24XZNCI0000F1Z7",
+      "udyam": "UDYAM-GJ-99-3945905",
+      "bureauScore": 813,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 1,
+      "gstFilingRegularity": 0.83
+    },
+    "08PIUCQ1219N1ZX": {
+      "gstin": "08UPGFI0000Z1ZK",
+      "udyam": "UDYAM-RJ-99-1868133",
+      "bureauScore": 698,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "36QNKCU1583T1Z6": {
+      "gstin": "36DEQCH0000C1ZX",
+      "udyam": "UDYAM-TS-99-6268287",
+      "bureauScore": 756,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 1,
+      "gstFilingRegularity": 1
+    },
+    "27JWSCE2996Z1ZF": {
+      "gstin": "27ARTFU0000J1Z7",
+      "udyam": "UDYAM-MH-99-0641211",
+      "bureauScore": 694,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "27GWHCY4169O1Z2": {
+      "gstin": "27GXTCV0000W1Z4",
+      "udyam": "UDYAM-MH-99-7249458",
+      "bureauScore": 600,
+      "msme1DuesOver45DaysInr": 1400000,
+      "samadhaanComplaints": 2,
+      "gstFilingRegularity": 1
+    },
+    "27DVDCD1429T1ZX": {
+      "gstin": "27POZFS0000L1ZQ",
+      "udyam": "UDYAM-MH-99-0076077",
+      "bureauScore": 667,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 1
+    },
+    "33BIPCD5137E1ZA": {
+      "gstin": "33WJECO0000R1ZJ",
+      "udyam": null,
+      "bureauScore": 676,
+      "creditRating": "A",
+      "msme1DuesOver45DaysInr": 180000,
+      "samadhaanComplaints": 2,
+      "gstFilingRegularity": 1
+    },
+    "33CTVCR2150N1ZT": {
+      "gstin": "33AXWFS0000K1ZZ",
+      "udyam": "UDYAM-TN-99-5768226",
+      "bureauScore": 610,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.33
+    },
+    "08MQOCT2028P1ZI": {
+      "gstin": "08PVCFS0000W1ZD",
+      "udyam": "UDYAM-RJ-99-3238446",
+      "bureauScore": 665,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 1
+    },
+    "24CHBCC5025T1Z0": {
+      "gstin": "24NZCFV0000R1ZK",
+      "udyam": "UDYAM-GJ-99-3340199",
+      "bureauScore": 685,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 1
+    },
+    "19NGXCS8554W1ZU": {
+      "gstin": "19TKYFN0000B1ZI",
+      "udyam": "UDYAM-WB-99-4198966",
+      "bureauScore": 726,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "07XXVCY7783H1ZC": {
+      "gstin": "07TLKFN0000J1ZI",
+      "udyam": "UDYAM-DL-99-3793059",
+      "bureauScore": 680,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "27IAXCH2016R1ZM": {
+      "gstin": "27YMGFN0000J1ZD",
+      "udyam": "UDYAM-MH-99-6428148",
+      "bureauScore": 720,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 1
+    },
+    "07OCUCN8814B1ZQ": {
+      "gstin": "07QEFFC0000B1ZX",
+      "udyam": "UDYAM-DL-99-1652205",
+      "bureauScore": 703,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "19AYBCA6860I1Z5": {
+      "gstin": "19ZBPFG0000N1ZM",
+      "udyam": "UDYAM-WB-99-7061612",
+      "bureauScore": 740,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "19YQWCB0509Z1ZV": {
+      "gstin": "19GAWFR0000X1Z5",
+      "udyam": "UDYAM-WB-99-0609197",
+      "bureauScore": 698,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 1
+    },
+    "08RNUCR3766Q1ZY": {
+      "gstin": "08YUUCI0000N1ZM",
+      "udyam": "UDYAM-RJ-99-9404986",
+      "bureauScore": 682,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 1
+    },
+    "33SAACP4194U1Z9": {
+      "gstin": "33VLTCN0000H1ZN",
+      "udyam": "UDYAM-TN-99-3935481",
+      "bureauScore": 707,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "07EBNCL1657O1ZP": {
+      "gstin": "07VWHCM0000V1ZG",
+      "udyam": "UDYAM-DL-99-7260549",
+      "bureauScore": 711,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "19SXWCS2784I1ZN": {
+      "gstin": "19WHYCC0000F1ZV",
+      "udyam": "UDYAM-WB-99-9105942",
+      "bureauScore": 693,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "36VVTCM1540Q1Z1": {
+      "gstin": "36XNECT0000X1ZN",
+      "udyam": "UDYAM-TS-99-8951390",
+      "bureauScore": 700,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "23JUVCK9173D1ZS": {
+      "gstin": "23WKBCG0000U1ZN",
+      "udyam": "UDYAM-MP-99-9816564",
+      "bureauScore": 702,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 1
+    },
+    "24HKKCE5056R1ZA": {
+      "gstin": "24XKXCO0000I1ZE",
+      "udyam": "UDYAM-GJ-99-1615699",
+      "bureauScore": 737,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "36CEOCN7918R1Z3": {
+      "gstin": "36MAFCS0000E1ZS",
+      "udyam": "UDYAM-TS-99-2788423",
+      "bureauScore": 675,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "09IFUCX7321S1ZL": {
+      "gstin": "09EKWCP0000Y1ZT",
+      "udyam": "UDYAM-UP-99-5716216",
+      "bureauScore": 707,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 1
+    },
+    "36OWQCH1544V1Z0": {
+      "gstin": "36KQWCK0000F1ZM",
+      "udyam": "UDYAM-TS-99-7879284",
+      "bureauScore": 679,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "19WCQCD0030X1Z6": {
+      "gstin": "19RRACH0000K1ZN",
+      "udyam": "UDYAM-WB-99-9372655",
+      "bureauScore": 718,
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 0.83
+    },
+    "27GHYCF4888O1ZP": {
+      "gstin": "27NOYCV0000F1Z9",
+      "udyam": "UDYAM-MH-99-3299331",
+      "bureauScore": 642,
+      "msme1DuesOver45DaysInr": 650000,
+      "samadhaanComplaints": 2,
+      "gstFilingRegularity": 1
+    },
+    "08BZHCK1101R1ZZ": {
+      "gstin": "08APFCJ0000F1ZF",
+      "udyam": "UDYAM-RJ-99-7829331",
+      "bureauScore": 610,
+      "msme1DuesOver45DaysInr": 1400000,
+      "samadhaanComplaints": 3,
+      "gstFilingRegularity": 1
+    },
+    "24MWFCO8169Y1ZM": {
+      "gstin": "24OXXCJ0000R1ZK",
+      "udyam": "UDYAM-GJ-99-8170898",
+      "bureauScore": 611,
+      "msme1DuesOver45DaysInr": 650000,
+      "samadhaanComplaints": 2,
+      "gstFilingRegularity": 0.83
+    },
+    "27ZLGCX3574O1Z8": {
+      "gstin": "27TUFCD0000A1Z2",
+      "udyam": "UDYAM-MH-99-0129552",
+      "bureauScore": 471,
+      "msme1DuesOver45DaysInr": 3200000,
+      "samadhaanComplaints": 13,
+      "gstFilingRegularity": 1
+    },
+    "09ICOCF2027Q1ZQ": {
+      "gstin": "09WIACG0000O1ZU",
+      "udyam": "UDYAM-UP-99-2418995",
+      "bureauScore": 635,
+      "msme1DuesOver45DaysInr": 1400000,
+      "samadhaanComplaints": 2,
+      "gstFilingRegularity": 0.83
+    },
+    "36IPSCP4526C1Z9": {
+      "gstin": "36JGDCT0000Y1ZF",
+      "udyam": "UDYAM-TS-99-4647080",
+      "bureauScore": 625,
+      "msme1DuesOver45DaysInr": 1400000,
+      "samadhaanComplaints": 2,
+      "gstFilingRegularity": 0.83
+    },
+    "08OYRCR0047Z1ZG": {
+      "gstin": "08RAECV0000X1ZH",
+      "udyam": "UDYAM-RJ-99-8880789",
+      "bureauScore": 603,
+      "msme1DuesOver45DaysInr": 650000,
+      "samadhaanComplaints": 3,
+      "gstFilingRegularity": 0.83
+    },
+    "32AGYCZ4140J1ZJ": {
+      "gstin": "32NYYCM0000F1Z7",
+      "udyam": "UDYAM-KL-99-0539997",
+      "bureauScore": 508,
+      "msme1DuesOver45DaysInr": 6500000,
+      "samadhaanComplaints": 9,
+      "gstFilingRegularity": 1
+    },
+    "32UEMCZ9407O1ZT": {
+      "gstin": "32IRACA0000U1ZV",
+      "udyam": "UDYAM-KL-99-4517375",
+      "bureauScore": 620,
+      "msme1DuesOver45DaysInr": 650000,
+      "samadhaanComplaints": 3,
+      "gstFilingRegularity": 1
+    },
+    "33UYBCV5975A1ZL": {
+      "gstin": "33GBRCU0000P1Z1",
+      "udyam": "UDYAM-TN-99-3817717",
+      "bureauScore": 649,
+      "msme1DuesOver45DaysInr": 650000,
+      "samadhaanComplaints": 2,
+      "gstFilingRegularity": 0.83
+    },
+    "09AOPCG7843B1ZK": {
+      "gstin": "09WWVCS0000C1ZU",
+      "udyam": null,
+      "bureauScore": 618,
+      "creditRating": "B",
+      "msme1DuesOver45DaysInr": 900000,
+      "samadhaanComplaints": 3,
+      "gstFilingRegularity": 0.83
+    },
+    "33ROZCW1524B1Z4": {
+      "gstin": "33BITCS0000Q1ZP",
+      "udyam": null,
+      "bureauScore": 638,
+      "creditRating": "B",
+      "msme1DuesOver45DaysInr": 900000,
+      "samadhaanComplaints": 2,
+      "gstFilingRegularity": 1
+    },
+    "32AQPCA6660M1ZD": {
+      "gstin": "32CUECT0000T1ZA",
+      "udyam": null,
+      "bureauScore": 635,
+      "creditRating": "BB",
+      "msme1DuesOver45DaysInr": 900000,
+      "samadhaanComplaints": 3,
+      "gstFilingRegularity": 1
+    },
+    "27MQBCA5461Z1ZJ": {
+      "gstin": "27BYQCS0000S1ZL",
+      "udyam": null,
+      "bureauScore": 595,
+      "creditRating": "B",
+      "msme1DuesOver45DaysInr": 900000,
+      "samadhaanComplaints": 2,
+      "gstFilingRegularity": 0.83
+    },
+    "24ISNCA1487W1ZH": {
+      "gstin": "24IXZCV0000Y1ZY",
+      "udyam": null,
+      "bureauScore": 601,
+      "creditRating": "B",
+      "msme1DuesOver45DaysInr": 1400000,
+      "samadhaanComplaints": 2,
+      "gstFilingRegularity": 0.83
+    },
+    "24FSACX8147F1Z6": {
+      "gstin": "24VIWCK0000D1Z0",
+      "udyam": null,
+      "bureauScore": 638,
+      "creditRating": "B",
+      "msme1DuesOver45DaysInr": 1400000,
+      "samadhaanComplaints": 3,
+      "gstFilingRegularity": 0.83
+    },
+    "24ENICN7393E1ZF": {
+      "gstin": "24OYICS0000W1ZE",
+      "udyam": null,
+      "bureauScore": 791,
+      "creditRating": "A",
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 1,
+      "gstFilingRegularity": 1
+    }
+  },
+  "stories": {
+    "goodBuyer": {
+      "invoiceId": "DEMO-RELIABLE",
+      "buyer": "27JFNCN6467E1ZJ"
+    },
+    "newBuyer": {
+      "invoiceId": "DEMO-NEW",
+      "buyer": "23SCKCS9376A1ZO"
+    },
+    "badBuyers": [
+      {
+        "buyer": "33XWCCX6421W1ZR",
+        "invoiceId": "DEMO-LATE"
+      },
+      {
+        "buyer": "27ZLGCX3574O1Z8",
+        "invoiceId": "SEED-0105"
+      },
+      {
+        "buyer": "32AGYCZ4140J1ZJ",
+        "invoiceId": "SEED-0177"
+      }
+    ],
+    "cancelledGstin": {
+      "supplier": "33CTVCR2150N1ZT",
+      "invoiceId": "SEED-0152"
+    },
+    "nameMismatch": {
+      "supplier": "07EBNCL1657O1ZP",
+      "invoiceId": "SEED-0015"
+    }
+  }
+}

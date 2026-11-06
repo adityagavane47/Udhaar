@@ -1,0 +1,2505 @@
+{
+  "source": "mock",
+  "notice": "MOCK DATA. Every GSTIN, registry record, score and complaint here is fictional. See docs/DATA.md.",
+  "referenceDate": "2026-11-01",
+  "entries": {
+    "27AXSCB0000E1ZW": {
+      "legalName": "BIGBUILD LTD",
+      "tradeName": "BigBuild Ltd",
+      "status": "Active",
+      "registrationDate": "2003-06-17",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-13"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-15"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-17"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-10"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-13"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-17"
+        }
+      ]
+    },
+    "27ZIECR0000O1ZE": {
+      "legalName": "RAMESH CEMENT TRADERS",
+      "tradeName": "Ramesh Cement Traders",
+      "status": "Active",
+      "registrationDate": "2011-11-17",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-08"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-08"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-09"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-09"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-15"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-10"
+        }
+      ]
+    },
+    "33SUUCD0000E1ZN": {
+      "legalName": "DEVGIRI INFRA PROJECTS LTD",
+      "tradeName": "Devgiri Infra Projects Ltd",
+      "status": "Active",
+      "registrationDate": "2006-04-10",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-10"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-10"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-16"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-14"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-08"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-14"
+        }
+      ]
+    },
+    "23FDDCC0000W1ZH": {
+      "legalName": "CHANDAN CONSTRUCTIONS ENTERPRISES",
+      "tradeName": "Chandan Constructions Enterprises",
+      "status": "Active",
+      "registrationDate": "2025-04-13",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-13"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-15"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-10"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-08"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-23"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-16"
+        }
+      ]
+    },
+    "24NRWCU0000A1ZM": {
+      "legalName": "UJWAL FABRICATORS ENTERPRISES",
+      "tradeName": "Ujwal Fabricators Enterprises",
+      "status": "Active",
+      "registrationDate": "2022-09-08",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-16"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-09"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-09"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-19"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-08"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-11-08"
+        }
+      ]
+    },
+    "33TZVCP0000W1ZY": {
+      "legalName": "PRABHAT MODULAR INTERIORS ENTERPRISES",
+      "tradeName": "Prabhat Modular Interiors Enterprises",
+      "status": "Active",
+      "registrationDate": "2022-07-23",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-11"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-11"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-19"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-15"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-10-09"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-09"
+        }
+      ]
+    },
+    "24XZNCI0000F1Z7": {
+      "legalName": "INDRAYANI GLASS WORKS ENTERPRISES",
+      "tradeName": "Indrayani Glass Works Enterprises",
+      "status": "Active",
+      "registrationDate": "2023-04-10",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-06-02"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-12"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-12"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-15"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-19"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-11"
+        }
+      ]
+    },
+    "08UPGFI0000Z1ZK": {
+      "legalName": "INDRAYANI SAND SUPPLY & CO",
+      "tradeName": "Indrayani Sand Supply & Co",
+      "status": "Active",
+      "registrationDate": "2019-06-06",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-08"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-08"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-09"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-09-09"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-14"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-12"
+        }
+      ]
+    },
+    "36DEQCH0000C1ZX": {
+      "legalName": "HEMANT CONSTRUCTIONS PVT LTD",
+      "tradeName": "Hemant Constructions Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2010-05-13",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-15"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-13"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-13"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-14"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-14"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-17"
+        }
+      ]
+    },
+    "27ARTFU0000J1Z7": {
+      "legalName": "UJWAL PAINT DEPOT & CO",
+      "tradeName": "Ujwal Paint Depot & Co",
+      "status": "Active",
+      "registrationDate": "2017-12-04",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-09"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-09"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-08-12"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-12"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-12"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-12"
+        }
+      ]
+    },
+    "27GXTCV0000W1Z4": {
+      "legalName": "VASANT CONSTRUCTIONS PVT LTD",
+      "tradeName": "Vasant Constructions Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2012-12-23",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-17"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-19"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-09"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-19"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-09"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-17"
+        }
+      ]
+    },
+    "27POZFS0000L1ZQ": {
+      "legalName": "SHUBHAM PAINT DEPOT & CO",
+      "tradeName": "Shubham Paint Depot & Co",
+      "status": "Active",
+      "registrationDate": "2014-05-15",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-15"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-18"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-10"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-14"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-10"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-19"
+        }
+      ]
+    },
+    "33WJECO0000R1ZJ": {
+      "legalName": "OMKAR RETAIL CHAIN LTD",
+      "tradeName": "Omkar Retail Chain Ltd",
+      "status": "Active",
+      "registrationDate": "2005-03-05",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-12"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-14"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-08"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-16"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-19"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-16"
+        }
+      ]
+    },
+    "33AXWFS0000K1ZZ": {
+      "legalName": "SHUBHAM PIPE FITTINGS & CO",
+      "tradeName": "Shubham Pipe Fittings & Co",
+      "status": "Cancelled",
+      "registrationDate": "2014-11-10",
+      "cancellationDate": "2026-05-14",
+      "cancellationReason": "Suo moto cancellation: returns not filed",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-14"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-07-13"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-15"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "not_filed",
+          "dueDate": "2026-08-20"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "not_filed",
+          "dueDate": "2026-09-20"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "not_filed",
+          "dueDate": "2026-10-20"
+        }
+      ]
+    },
+    "08PVCFS0000W1ZD": {
+      "legalName": "SHUBHAM SAND SUPPLY & CO",
+      "tradeName": "Shubham Sand Supply & Co",
+      "status": "Active",
+      "registrationDate": "2003-04-05",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-14"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-08"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-13"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-16"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-08"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-12"
+        }
+      ]
+    },
+    "24NZCFV0000R1ZK": {
+      "legalName": "VRINDAVAN TIMBER MART & CO",
+      "tradeName": "Vrindavan Timber Mart & Co",
+      "status": "Active",
+      "registrationDate": "2016-01-15",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-15"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-15"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-19"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-17"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-14"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-13"
+        }
+      ]
+    },
+    "19TKYFN0000B1ZI": {
+      "legalName": "NILGIRI PAINT DEPOT & CO",
+      "tradeName": "Nilgiri Paint Depot & Co",
+      "status": "Active",
+      "registrationDate": "2015-10-16",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-18"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-24"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-09"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-13"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-17"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-19"
+        }
+      ]
+    },
+    "07TLKFN0000J1ZI": {
+      "legalName": "NILGIRI TIMBER MART & CO",
+      "tradeName": "Nilgiri Timber Mart & Co",
+      "status": "Active",
+      "registrationDate": "1998-08-18",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-13"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-14"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-12"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-11"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-09"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-11-07"
+        }
+      ]
+    },
+    "27YMGFN0000J1ZD": {
+      "legalName": "NILGIRI REBAR WORKS & CO",
+      "tradeName": "Nilgiri Rebar Works & Co",
+      "status": "Active",
+      "registrationDate": "2009-11-12",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-15"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-17"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-12"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-10"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-11"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-19"
+        }
+      ]
+    },
+    "07QEFFC0000B1ZX": {
+      "legalName": "CHANDAN ELECTRICALS & CO",
+      "tradeName": "Chandan Electricals & Co",
+      "status": "Active",
+      "registrationDate": "2017-05-22",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-09"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-13"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-13"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-13"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-13"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-11-09"
+        }
+      ]
+    },
+    "19ZBPFG0000N1ZM": {
+      "legalName": "GOMATI PIPE FITTINGS & CO",
+      "tradeName": "Gomati Pipe Fittings & Co",
+      "status": "Active",
+      "registrationDate": "2004-08-17",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-14"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-08"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-08"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-14"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-08"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-28"
+        }
+      ]
+    },
+    "19GAWFR0000X1Z5": {
+      "legalName": "ROHINI AGGREGATES & CO",
+      "tradeName": "Rohini Aggregates & Co",
+      "status": "Active",
+      "registrationDate": "2006-04-04",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-19"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-19"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-11"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-17"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-17"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-09"
+        }
+      ]
+    },
+    "08YUUCI0000N1ZM": {
+      "legalName": "INDRAYANI AGGREGATES ENTERPRISES",
+      "tradeName": "Indrayani Aggregates Enterprises",
+      "status": "Active",
+      "registrationDate": "2005-06-27",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-16"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-14"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-08"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-14"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-10"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-19"
+        }
+      ]
+    },
+    "33VLTCN0000H1ZN": {
+      "legalName": "NILGIRI FASTENERS ENTERPRISES",
+      "tradeName": "Nilgiri Fasteners Enterprises",
+      "status": "Active",
+      "registrationDate": "2018-08-17",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-16"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-09"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-14"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-09-12"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-08"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-15"
+        }
+      ]
+    },
+    "07VWHCM0000V1ZG": {
+      "legalName": "SHREE LAXMI STEEL TRADERS",
+      "tradeName": "Malhar Paint Depot Enterprises",
+      "status": "Active",
+      "registrationDate": "1998-04-09",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-16"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-18"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-15"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-26"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-12"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-11"
+        }
+      ]
+    },
+    "19WHYCC0000F1ZV": {
+      "legalName": "CHANDAN PACKAGING WORKS ENTERPRISES",
+      "tradeName": "Chandan Packaging Works Enterprises",
+      "status": "Active",
+      "registrationDate": "2011-09-02",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-18"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-08"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-12"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-17"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-10-06"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-11"
+        }
+      ]
+    },
+    "36XNECT0000X1ZN": {
+      "legalName": "TEJAS PAINT DEPOT ENTERPRISES",
+      "tradeName": "Tejas Paint Depot Enterprises",
+      "status": "Active",
+      "registrationDate": "2018-02-24",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-19"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-13"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-19"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "not_filed",
+          "dueDate": "2026-08-20"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-14"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-16"
+        }
+      ]
+    },
+    "23WKBCG0000U1ZN": {
+      "legalName": "GOMATI ELECTRICALS ENTERPRISES",
+      "tradeName": "Gomati Electricals Enterprises",
+      "status": "Active",
+      "registrationDate": "2017-01-27",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-16"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-19"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-08"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-14"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-10"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-10"
+        }
+      ]
+    },
+    "24XKXCO0000I1ZE": {
+      "legalName": "OMKAR REBAR WORKS ENTERPRISES",
+      "tradeName": "Omkar Rebar Works Enterprises",
+      "status": "Active",
+      "registrationDate": "2018-05-11",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-06-03"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-16"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-15"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-13"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-10"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-13"
+        }
+      ]
+    },
+    "36MAFCS0000E1ZS": {
+      "legalName": "SARASWATI AGGREGATES PVT LTD",
+      "tradeName": "Saraswati Aggregates Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2008-04-23",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-15"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-10"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-28"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-11"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-08"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-18"
+        }
+      ]
+    },
+    "09EKWCP0000Y1ZT": {
+      "legalName": "PRABHAT REBAR WORKS PVT LTD",
+      "tradeName": "Prabhat Rebar Works Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2021-10-21",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-12"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-14"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-14"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-10"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-10"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-14"
+        }
+      ]
+    },
+    "36KQWCK0000F1ZM": {
+      "legalName": "KALYANI PACKAGING WORKS PVT LTD",
+      "tradeName": "Kalyani Packaging Works Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2016-03-23",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-19"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-27"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-13"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-13"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-17"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-19"
+        }
+      ]
+    },
+    "19RRACH0000K1ZN": {
+      "legalName": "HEMANT SAND SUPPLY PVT LTD",
+      "tradeName": "Hemant Sand Supply Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2010-03-03",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-09"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-09"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-11"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-09-08"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-13"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-10"
+        }
+      ]
+    },
+    "27NOYCV0000F1Z9": {
+      "legalName": "VRINDAVAN GLASS WORKS ENTERPRISES",
+      "tradeName": "Vrindavan Glass Works Enterprises",
+      "status": "Active",
+      "registrationDate": "2000-01-13",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-18"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-11"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-08"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-08"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-16"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-09"
+        }
+      ]
+    },
+    "08APFCJ0000F1ZF": {
+      "legalName": "JANAK MODULAR INTERIORS ENTERPRISES",
+      "tradeName": "Janak Modular Interiors Enterprises",
+      "status": "Active",
+      "registrationDate": "2008-12-01",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-18"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-09"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-11"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-18"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-16"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-15"
+        }
+      ]
+    },
+    "24OXXCJ0000R1ZK": {
+      "legalName": "JANAK FABRICATORS PVT LTD",
+      "tradeName": "Janak Fabricators Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2018-02-09",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-14"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-14"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-10"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-09-08"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-14"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-11"
+        }
+      ]
+    },
+    "27TUFCD0000A1Z2": {
+      "legalName": "DEVGIRI MODULAR INTERIORS PVT LTD",
+      "tradeName": "Devgiri Modular Interiors Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "1998-01-14",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-12"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-15"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-16"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-08"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-16"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-08"
+        }
+      ]
+    },
+    "09WIACG0000O1ZU": {
+      "legalName": "GOMATI PRECAST WORKS PVT LTD",
+      "tradeName": "Gomati Precast Works Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2010-02-24",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-11"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-19"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-30"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-15"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-08"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-10"
+        }
+      ]
+    },
+    "36JGDCT0000Y1ZF": {
+      "legalName": "TEJAS REALTY PVT LTD",
+      "tradeName": "Tejas Realty Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2001-09-28",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-06-11"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-14"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-17"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-18"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-18"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-16"
+        }
+      ]
+    },
+    "08RAECV0000X1ZH": {
+      "legalName": "VRINDAVAN ENGINEERING PROJECTS PVT LTD",
+      "tradeName": "Vrindavan Engineering Projects Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2015-08-14",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-17"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-07-04"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-16"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-15"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-13"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-14"
+        }
+      ]
+    },
+    "32NYYCM0000F1Z7": {
+      "legalName": "MALHAR REALTY PVT LTD",
+      "tradeName": "Malhar Realty Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2010-08-05",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-18"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-16"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-09"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-17"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-12"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-19"
+        }
+      ]
+    },
+    "32IRACA0000U1ZV": {
+      "legalName": "ANANDI DEVELOPERS PVT LTD",
+      "tradeName": "Anandi Developers Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2019-04-10",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-19"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-19"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-16"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-13"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-15"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-13"
+        }
+      ]
+    },
+    "33GBRCU0000P1Z1": {
+      "legalName": "UJWAL REALTY PVT LTD",
+      "tradeName": "Ujwal Realty Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2016-07-06",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-06-07"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-08"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-17"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-13"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-08"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-16"
+        }
+      ]
+    },
+    "09WWVCS0000C1ZU": {
+      "legalName": "SHUBHAM REALTY LTD",
+      "tradeName": "Shubham Realty Ltd",
+      "status": "Active",
+      "registrationDate": "2007-03-01",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-19"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-19"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-11"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-18"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-10-05"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-13"
+        }
+      ]
+    },
+    "33BITCS0000Q1ZP": {
+      "legalName": "SAHYOG INFRA PROJECTS LTD",
+      "tradeName": "Sahyog Infra Projects Ltd",
+      "status": "Active",
+      "registrationDate": "2013-01-04",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-09"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-17"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-16"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-16"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-13"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-14"
+        }
+      ]
+    },
+    "32CUECT0000T1ZA": {
+      "legalName": "TEJAS REALTY LTD",
+      "tradeName": "Tejas Realty Ltd",
+      "status": "Active",
+      "registrationDate": "2009-04-07",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-16"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-17"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-18"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-15"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-14"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-19"
+        }
+      ]
+    },
+    "27BYQCS0000S1ZL": {
+      "legalName": "SAHYOG REALTY LTD",
+      "tradeName": "Sahyog Realty Ltd",
+      "status": "Active",
+      "registrationDate": "2016-05-09",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-16"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-19"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-09"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-23"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-12"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-19"
+        }
+      ]
+    },
+    "24IXZCV0000Y1ZY": {
+      "legalName": "VASANT RETAIL CHAIN LTD",
+      "tradeName": "Vasant Retail Chain Ltd",
+      "status": "Active",
+      "registrationDate": "2017-08-28",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-13"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-08"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-18"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-31"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-11"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-19"
+        }
+      ]
+    },
+    "24VIWCK0000D1Z0": {
+      "legalName": "KESARI REALTY LTD",
+      "tradeName": "Kesari Realty Ltd",
+      "status": "Active",
+      "registrationDate": "2000-06-16",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-06-08"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-15"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-16"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-15"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-11"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-09"
+        }
+      ]
+    },
+    "24OYICS0000W1ZE": {
+      "legalName": "SAHYOG RETAIL CHAIN LTD",
+      "tradeName": "Sahyog Retail Chain Ltd",
+      "status": "Active",
+      "registrationDate": "2011-03-01",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-10"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-15"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-14"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-14"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-13"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-15"
+        }
+      ]
+    }
+  }
+}

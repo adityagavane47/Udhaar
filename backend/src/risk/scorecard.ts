@@ -76,7 +76,7 @@ export interface Scorecard {
   };
 }
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+export const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const oneDecimal = (value: number) => Math.round(value * 10) / 10;
 const rupees = (value: number) => `₹${Math.round(value).toLocaleString("en-IN")}`;
 const percent = (share: number) => `${Math.round(share * 100)}%`;
@@ -87,13 +87,13 @@ function median(values: number[]): number {
   return sorted.length % 2 ? (sorted[middle] ?? 0) : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
 }
 
-interface Settled {
+export interface Settled {
   supplierId: string;
   onTime: boolean;
   daysLate: number;
 }
 
-function settleOutcome(invoice: SeedInvoice, referenceMs: number): Settled {
+export function settleOutcome(invoice: SeedInvoice, referenceMs: number): Settled {
   const due = Date.parse(invoice.dueDate);
   const paid = invoice.paidDate ? Date.parse(invoice.paidDate) : null;
   return { supplierId: invoice.supplierId, onTime: paid !== null && paid <= due, daysLate: Math.max(0, ((paid ?? referenceMs) - due) / DAY_MS) };
@@ -113,7 +113,7 @@ function paymentHistory(settled: Settled[], buyerName: string, reasons: string[]
   return points;
 }
 
-function companyProfile(buyer: Company | undefined, buyerName: string, now: number, reasons: string[]): number {
+export function companyProfile(buyer: Company | undefined, buyerName: string, now: number, reasons: string[]): number {
   if (!buyer) {
     reasons.push(`${buyerName} isn't in the dataset, so it's scored as a new company.`);
     return 9;
@@ -135,7 +135,7 @@ function amountPoints(amount: number, past: number[]): { points: number; usual: 
   return { points: ratio <= 2 ? 8 : ratio <= 5 ? 5 : ratio <= 10 ? 2 : 0, usual };
 }
 
-function networkPoints(settled: Settled[], supplierId: string | undefined, buyerName: string, reasons: string[]): number {
+export function networkPoints(settled: Settled[], supplierId: string | undefined, buyerName: string, reasons: string[]): number {
   const bySupplier = new Map<string, Settled[]>();
   for (const outcome of settled) {
     if (outcome.supplierId === supplierId) continue;

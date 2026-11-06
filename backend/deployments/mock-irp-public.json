@@ -1,0 +1,12 @@
+{
+  "source": "mock",
+  "notice": "MOCK IRP public key. It verifies signed QRs made by this project's mock e-invoice signer, not real ones from the Indian IRP.",
+  "alg": "ES256",
+  "kid": "9fcbe05861a86f48",
+  "jwk": {
+    "kty": "EC",
+    "x": "nBcKTLJ6TqBFZgvpnsBtJCCYXnpGonvxtB7yi3uqAIU",
+    "y": "yPdJK6vEZtFMdl2zBJu3gemTq8RKDOV5kkBSmPvi7HM",
+    "crv": "P-256"
+  }
+}

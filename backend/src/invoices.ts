@@ -7,6 +7,7 @@ import { getParty, getSigner, knownAccountName, ROLES } from "./hedera/client.js
 import { getAccount, waitForMirrorToReach } from "./hedera/mirror.js";
 import { discountedUnitPrice } from "./risk/scorecard.js";
 import { assessForTokenizing, isSeededInvoiceId } from "./risk/service.js";
+import { checkNewInvoice } from "./trust/service.js";
 import { audit, save, state } from "./store.js";
 import type { Invoice, Link, Purchase } from "./types.js";
 import { sendUinrOnce, uinrBalance } from "./uinr.js";
@@ -21,6 +22,8 @@ export interface CreateInvoiceInput {
   issueDate?: string | undefined;
   invoiceNumber?: string | undefined;
   pdfName?: string | undefined;
+  /** The signed QR from the (mock) IRP. Optional. If sent, it must verify and match every field. */
+  signedQr?: string | undefined;
 }
 
 export interface TokenizeInput {
@@ -79,6 +82,9 @@ export async function createInvoice(input: CreateInvoiceInput) {
   await getSigner(input.buyerId);
   await getSigner(input.supplierId);
 
+  // Trust limits and the e-invoice check come first, so a refusal costs nothing and writes nothing.
+  const eInvoice = await checkNewInvoice(input);
+
   const fingerprint = fingerprintOf(input);
   const topics = await ensureTopics();
 
@@ -104,6 +110,7 @@ export async function createInvoice(input: CreateInvoiceInput) {
       status: "submitted",
       ...(input.invoiceNumber ? { invoiceNumber: input.invoiceNumber } : {}),
       ...(input.pdfName ? { pdfName: input.pdfName } : {}),
+      ...(eInvoice ? { signedQr: eInvoice.signedQr, eInvoice: { source: "mock" as const, irn: eInvoice.irn, verifiedAt: new Date().toISOString() } } : {}),
       fingerprint,
       registered: false,
       links: [],

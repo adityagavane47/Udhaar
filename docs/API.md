@@ -11,6 +11,7 @@ The backend service for the Udhaar frontend. It runs on Hedera testnet, and all 
 - **Admin routes need a token.** Log in with the demo passcode and send the token on each admin call. See [Authentication](#authentication).
 - **Investor routes need a session token.** `POST /invoices/:id/buy`, `POST /risk/:id/buy-report` and `POST /agent/run` need the token from `POST /auth/demo-investor`. Without it, buying returns `401`. See [Investor sessions](#post-authdemo-investor).
 - **The full risk report is paid.** `GET /risk/:id/report` now returns `402` without a payment, so the frontend should call `POST /risk/:id/buy-report`. See [Risk](#risk).
+- **New companies have a per-invoice limit.** Until a company has 3 on-time repayments on Udhaar, `POST /invoices` refuses an amount above ₹1,00,000 for either party (`422 TRUST_LIMIT_EXCEEDED`). See [Trust](#trust).
 - **Other routes are still open.** Anyone who can reach the server can call `confirm`, `pay-supplier` and `repay`, signed with the server's keys. They're only rate limited, so don't expose the server beyond a testnet demo.
 - **Routes that spend HBAR are rate limited.** Handle `429 RATE_LIMITED`. See [Rate limits](#rate-limits).
 - **Slow routes.** Routes wait for on-chain confirmation. Most take 5–30 seconds, `tokenize` takes about a minute, and `repay` takes about 15 seconds per holder. Show a loading state, and don't set a short client timeout.
@@ -40,7 +41,7 @@ interface TxResult { hashscanUrl: string; txId: string }
 }
 ```
 
-Input errors that never reach the chain have no HashScan link: `400 VALIDATION_ERROR`, `400 INVALID_JSON`, `404 ROUTE_NOT_FOUND`, `404 INVOICE_NOT_FOUND`, `404 KYC_NOT_FOUND`, `404 TOKEN_NOT_FOUND`, `409 SEEDED_INVOICE`, `422 NO_SIGNING_KEY`, `503 RISK_DATA_UNAVAILABLE`, `503 RISK_UNAVAILABLE`, and the login and rate limit errors below.
+Input errors that never reach the chain have no HashScan link: `400 VALIDATION_ERROR`, `400 INVALID_JSON`, `404 ROUTE_NOT_FOUND`, `404 INVOICE_NOT_FOUND`, `404 KYC_NOT_FOUND`, `404 TOKEN_NOT_FOUND`, `404 COMPANY_NOT_FOUND`, `409 SEEDED_INVOICE`, `422 NO_SIGNING_KEY`, `422 TRUST_LIMIT_EXCEEDED`, `422 EINVOICE_*`, `503 RISK_DATA_UNAVAILABLE`, `503 RISK_UNAVAILABLE`, `503 TRUST_DATA_UNAVAILABLE`, `503 TRUST_UNAVAILABLE`, `503 MOCK_IRP_NOT_CONFIGURED`, and the login and rate limit errors below.
 
 **`502 CHAIN_OPERATION_FAILED`** can be returned by any write route if a chain step fails. Retrying is safe, because finished steps are not repeated.
 
@@ -220,8 +221,10 @@ interface Invoice {
   amountPaidBy: Record<string, number>;  // INR paid or credited, per account
   confirmation?: { message: string; signature: string; signedBy: string; hashscanUrl: string };
   repayment?: Repayment;
+  eInvoice?: { source: "mock"; irn: string; verifiedAt: string };  // Only if a signed QR was sent and verified
 
   // Server bookkeeping: ignore these
+  signedQr?: string;
   confirmationPayload?: string;
   tokenization?: object;
 }
@@ -328,8 +331,11 @@ The hash covers supplier, buyer, amount, due date and invoice number. It leaves 
   issueDate?: string;
   supplierName?: string;
   buyerName?: string;
+  signedQr?: string;       // Optional. The JWS from the (mock) IRP. If sent, it must verify and match every field. Needs invoiceNumber
 }
 ```
+
+Before anything is written, the server checks the [per-invoice limit](#the-per-invoice-limit) for both parties and, if `signedQr` is sent, [verifies it](#the-mock-e-invoice-signer): the signature, then seller GSTIN, buyer GSTIN, invoice number, amount and date. **Any difference fails it.** A refusal writes nothing and costs nothing. The date checked is `issueDate`, or today (UTC) if that's missing.
 
 **Response `201`**
 
@@ -343,6 +349,11 @@ The hash covers supplier, buyer, amount, due date and invoice number. It leaves 
 | --- | --- | --- |
 | 409 | `DUPLICATE_INVOICE` | Already registered. Adds `originalId`, `fingerprint`, and `hashscanUrl` pointing to the original HCS record |
 | 422 | `SAME_PARTY` | Supplier and buyer are the same account |
+| 422 | `TRUST_LIMIT_EXCEEDED` | The amount is above a party's per-invoice limit. Adds `party` (`"supplier"` or `"buyer"`) and `limit` |
+| 422 | `EINVOICE_MISMATCH` | The signature is good but a field differs. Adds `source: "mock"` and `mismatches: { field, expected, found }[]` |
+| 422 | `EINVOICE_SIGNATURE_INVALID` | The `signedQr` was changed, isn't a JWS, or wasn't signed by the mock IRP |
+| 422 | `EINVOICE_NEEDS_INVOICE_NUMBER` | `signedQr` sent without `invoiceNumber` |
+| 422 | `EINVOICE_PARTY_UNKNOWN` | `signedQr` sent, but a party has no GSTIN on record |
 
 ### POST /invoices/:id/confirm
 
@@ -783,6 +794,178 @@ It's read-only:
 | Any other write route, and `GET /invoices/DEMO-RING/holders` | `409 SEEDED_INVOICE` |
 
 If the risk engine is down, `GET /invoices` still returns real invoices and leaves this one out.
+
+## Trust
+
+**All outside data here is fictional mock data.** The GST registry, bureau scores, credit ratings, MSME-1 dues, Samadhaan complaints and the e-invoice signer are made up (see [DATA.md](DATA.md#trust-data-mock)). Responses say so: `externalDataSource: "mock"`, `source: "mock"` on mock records, and every score factor and checklist item names its source. Only repayment history, the buyer's HCS confirmation and the registry check come from Hedera.
+
+Both trust routes are free. Like the risk routes, **a failure returns an error and never a fallback score**: `503 TRUST_UNAVAILABLE` if a chain read fails, `503 TRUST_DATA_UNAVAILABLE` if the mock data can't be loaded.
+
+### The Udhaar Trust Score
+
+A score from **300 to 900** for a company, as a seller or a buyer. It's the risk scorecard's 100 points mapped with `300 + 6 × points`. It describes the company, not one invoice: the invoice-level checks are in the checklist.
+
+| Factor | Max | Source | What it measures |
+| --- | ---: | --- | --- |
+| `paymentHistory` | 40 | `hedera` | On-time share (up to 28) and average days late (up to 12) of the company's repayments confirmed on Hedera. Under 5 repayments, the rest still comes from the outside profile |
+| | | `mock-external` | **Cold start** (no repayments yet): 40 × the mock bureau score's place in 300–900. A credit rating, for big buyers, counts for a fifth of it |
+| `companyProfile` | 25 | `mock-external` | The scorecard's: age (10), GST filing rate (10), size (5) |
+| `externalObligations` | 20 | `mock-external` | MSME-1 dues to small suppliers over 45 days (10, zero at ₹50 lakh) and Samadhaan complaints (10, zero at 8) |
+| `network` | 15 | `mock-external` | The scorecard's: how promptly the company pays its other suppliers |
+
+Each factor is `{ points, max, reason, source: "hedera" | "mock-external" }`, and `reason` is one plain-English sentence.
+
+**Repayment history** comes from the mirror node. For every real invoice where the company was the buyer or the supplier and the buyer's repayment was detected, the server fetches that transaction, checks it succeeded and was a uINR payment from the buyer, and compares its **consensus time** with the due date. Paid by the end of the due day is on time. A company's supplier-side invoices count too, because a supplier's invoice being repaid on time is also evidence about the supplier.
+
+**New on Udhaar:** a company with no repayments yet gets `newOnUdhaar: true` and `label: "New on Udhaar"`.
+
+```ts
+interface TrustScore {
+  score: number;            // 300–900
+  points: number;           // Out of 100, before mapping
+  newOnUdhaar: boolean;
+  label: "New on Udhaar" | null;
+  breakdown: { paymentHistory: Factor; companyProfile: Factor; externalObligations: Factor; network: Factor };
+  limit: TrustLimit;
+}
+interface Factor { points: number; max: number; reason: string; source: "hedera" | "mock-external" }
+```
+
+### The per-invoice limit
+
+```ts
+interface TrustLimit {
+  perInvoiceInr: number | null;  // 100000 until 3 on-time repayments, then null (no cap)
+  onTimeRepayments: number;
+  required: 3;
+  reason: string;
+}
+```
+
+A company with fewer than 3 on-time repayments on Udhaar is capped at **₹1,00,000 per invoice**. That's wider than "New on Udhaar": a company with 1 or 2 repayments is still capped. `POST /invoices` refuses an amount above the cap for either party, and an amount of exactly ₹1,00,000 is allowed. Late repayments don't count toward the 3.
+
+### GET /trust/:invoiceId
+
+Free. Works for real invoices and for `DEMO-*` and `SEED-*` ones.
+
+```ts
+{
+  invoiceId: string;
+  seeded: boolean;
+  externalDataSource: "mock";
+  seller: PartyTrust;
+  buyer: PartyTrust;
+  checklist: ChecklistItem[];
+  summary: { pass: number; warn: number; fail: number; notProvided: number };
+  overall: "pass" | "warn" | "fail";   // fail if any item fails, warn if any warns
+  hashscanUrl: string;
+  links: Link[];
+}
+
+interface PartyTrust extends TrustScore {
+  name: string;
+  companyId: string;
+  inDataset: boolean;
+  repayments: Repayment[];   // See GET /trust/company/:id
+}
+
+interface ChecklistItem {
+  id: string;
+  label: string;
+  status: "pass" | "warn" | "fail" | "not_provided";
+  detail: string;            // Plain English
+  proofUrl?: string;         // A HashScan link, when there is one
+  source: "mock" | "hedera" | "udhaar";   // udhaar: worked out from the simulated risk dataset
+}
+```
+
+The checklist, in order:
+
+| `id` | Checks | Not a pass when |
+| --- | --- | --- |
+| `gstinValid` | Both GSTINs: format, state code and checksum | A mistyped or made-up number fails |
+| `gstActive` | Registry lookup, then status | Not in the registry, or `Cancelled`, fails |
+| `nameMatches` | The registry legal name equals the company's name (case, punctuation and "Ltd"/"Limited" ignored) | The names differ: fail |
+| `gstFiling` | The last 6 GST returns | 5–6 on time passes, 3–4 warns, fewer fails |
+| `udyam` | The seller's Udyam number, **format only** | Bad format fails. `not_provided` if there is none |
+| `eInvoice` | The signed QR, checked again against the invoice every time | `fail` if it no longer matches. `not_provided` if none was sent |
+| `buyerConfirmed` | The buyer's signed message on the HCS confirmations topic: posted by the buyer, good signature, this invoice. The detail has the **sequence number** and `proofUrl` is the HashScan link | `warn` if not confirmed yet, `fail` if the message is wrong or missing |
+| `notFinancedBefore` | The fingerprint is in the HCS registry once, as this invoice. `proofUrl` is the registry entry | `fail` if the registry holds it for another invoice, `warn` if it's absent |
+| `amountNormal` | The amount against the seller's median (simulated) invoice | Warn above 2×, fail above 10×. `not_provided` with under 3 past invoices |
+| `noFraudRing` | Billing loops, shared directors, shared address | Any of them: fail |
+| `buyerMsme1Dues` | The buyer's MSME-1 dues over 45 days | Warn up to ₹10 lakh, fail above |
+| `buyerSamadhaanComplaints` | The buyer's delayed-payment complaints | Warn at 1–2, fail at 3 or more |
+
+GST items run for both parties, and the detail names each. Steps run in order and stop at the first failure: a mistyped GSTIN never reaches the registry, so a cancelled GSTIN's name and filing items read `not_provided` ("not checked"). Simulated invoices have no chain record, so for them `buyerConfirmed` and `notFinancedBefore` are `not_provided`.
+
+**Errors**
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 404 | `INVOICE_NOT_FOUND` | No such invoice |
+| 503 | `TRUST_DATA_UNAVAILABLE`, `TRUST_UNAVAILABLE` | See above |
+
+### GET /trust/company/:id
+
+Free. `:id` is a Hedera account (`0.0.x`), a dataset company ID or a (mock) GSTIN. An account that isn't in the dataset is scored as a new company, with neutral outside factors.
+
+```ts
+{
+  companyId: string;
+  name: string;
+  inDataset: boolean;
+  accounts: string[];        // Hedera accounts that stand for this company
+  externalDataSource: "mock";
+  // ...everything in TrustScore
+  externalProfile: { source: "mock"; gstin: string; udyam: string | null; bureauScore: number; creditRating?: string;
+                     msme1DuesOver45DaysInr: number; samadhaanComplaints: number; gstFilingRegularity: number };
+  repayments: Repayment[];   // On-chain history, oldest first
+  hashscanUrl: string;
+  links: Link[];
+}
+
+interface Repayment {
+  invoiceId: string;
+  role: "buyer" | "supplier";
+  amount: number;
+  dueDate: string;
+  paidAt: string;            // Consensus time of the repayment on Hedera
+  onTime: boolean;
+  daysLate: number;
+  transactionId: string;
+  hashscanUrl: string;       // The repayment transaction
+}
+```
+
+**Errors:** `404 COMPANY_NOT_FOUND` if `:id` isn't an account ID and matches no company or GSTIN.
+
+### The mock e-invoice signer
+
+India's e-invoicing portal (IRP) gives each invoice an IRN and a signed QR, which is a JWS. This server has its own **mock IRP** with an ES256 key. The private key is `MOCK_IRP_PRIVATE_KEY` in `.env`, made by `npm run generate-irp-key`, which writes it there itself and never prints it. The public key is `backend/deployments/mock-irp-public.json`. Nothing it signs says anything about a real invoice.
+
+Claims follow the real signed QR: `Irn`, `IrnDt`, `SellerGstin`, `BuyerGstin`, `DocNo`, `DocTyp`, `DocDt` (ISO date here, where the real one is DD/MM/YYYY), `TotInvVal`, plus `iss: "MOCK-IRP"` and `mock: true`. The IRN uses the real recipe: SHA-256 of seller GSTIN, financial year, document type and number.
+
+Verification accepts only ES256 from the known key, then compares seller GSTIN, buyer GSTIN, invoice number, amount, date and IRN with the invoice. A single difference fails it.
+
+#### POST /mock-irp/e-invoice
+
+Free. Signs an e-invoice for the demo.
+
+```ts
+{
+  sellerGstin?: string; buyerGstin?: string;   // Or give supplierId and buyerId (account or company ID) and the GSTINs are looked up
+  supplierId?: string; buyerId?: string;
+  invoiceNumber: string;
+  amount: number;
+  date?: string;                                // Defaults to today
+}
+```
+
+Response: `{ source: "mock", irn, signedQr, claims, hashscanUrl, links }`. Send `signedQr` with `POST /invoices`. Errors: `422 GSTIN_REQUIRED`, `422 INVALID_GSTIN`.
+
+#### GET /mock-irp/public-key
+
+The public key record: `{ source: "mock", alg: "ES256", kid, jwk, ... }`.
 
 ## Agent
 

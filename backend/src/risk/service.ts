@@ -13,7 +13,7 @@ const SEEDED_ID = /^(DEMO|SEED)-/;
 export const isSeededInvoiceId = (id: string) => SEEDED_ID.test(id);
 
 /** What the scorecard needs from any invoice, real or simulated. */
-interface Subject {
+export interface Subject {
   id: string;
   seeded: boolean;
   supplierRef: string;
@@ -31,7 +31,7 @@ interface Subject {
 
 const seededLinks = (): Link[] => [{ label: "uINR token (this invoice is simulated and has no on-chain record)", url: hashscan.token(config.uinrTokenId) }];
 
-function subjectOf(id: string, dataset: RiskDataset): Subject {
+export function subjectOf(id: string, dataset: RiskDataset): Subject {
   const real = state.invoices[id];
   if (real) {
     const supplier = companyFor(real.supplierId, dataset);
@@ -70,13 +70,13 @@ function subjectOf(id: string, dataset: RiskDataset): Subject {
 }
 
 /** Real invoices name Hedera accounts and simulated ones name companies. Anything else is unknown, so scored as new. */
-function companyFor(ref: string, dataset: RiskDataset): Company | undefined {
+export function companyFor(ref: string, dataset: RiskDataset): Company | undefined {
   return dataset.companies.get(ref) ?? dataset.companies.get(dataset.accountLinks.get(ref) ?? "");
 }
 
 const directorLabel = (index: number) => `Director ${String.fromCharCode(65 + index)}`;
 
-interface Assessment {
+export interface Assessment {
   subject: Subject;
   card: Scorecard;
   supplier: Company | undefined;

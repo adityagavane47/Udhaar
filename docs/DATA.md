@@ -18,6 +18,8 @@ The seed is fixed (`20261101`), and so is the reference date (`2026-11-01`). Reg
 | `invoices.json` | 500 | `id`, `supplierId`, `buyerId`, `amount`, `issueDate`, `dueDate`, `paidDate`, `status`, `discountRatePctPa` |
 | `account-links.json` | 2 | Real account role → company ID |
 | `manifest.json` | 1 | Seed, reference date, counts, measured calibration, and which IDs belong to which story |
+| `gst-registry.json` | 50 | **Trust layer, mock.** By GSTIN: `legalName`, `tradeName`, `status`, `registrationDate`, 6 months of `filings`. See [Trust data](#trust-data-mock) |
+| `external-profiles.json` | 50 | **Trust layer, mock.** By company ID: `gstin`, `udyam`, `bureauScore`, `creditRating`, `msme1DuesOver45DaysInr`, `samadhaanComplaints`, `gstFilingRegularity`, plus the trust test stories |
 
 `status` is `paid`, `overdue` (unpaid past its due date on the reference date) or `open` (unpaid and not yet due).
 
@@ -118,8 +120,45 @@ If `BUYER_ID` or `BUSINESS_ID` isn't set, the engine returns an error, because o
 
 Its link points to the uINR token and says the invoice has no on-chain record, because the API includes a HashScan link on every response and there's no real one here.
 
+## Trust data (mock)
+
+**Every GST registry record, bureau score, credit rating, MSME-1 figure, Samadhaan complaint and e-invoice signature in the trust layer is fictional.** None of it comes from a real registry or bureau, the code and files say `mock` throughout, and API responses carry `source: "mock"` or `externalDataSource: "mock"`. How the API uses it is in [API.md](API.md#trust).
+
+- **Files:** `gst-registry.json` and `external-profiles.json` in `backend/data/risk/`, committed as seed data
+- **Generator:** `backend/scripts/generate-trust-data.ts`, run with `cd backend && npm run generate-trust-data`
+- **Test:** `cd backend && npm run test:trust` (spends no HBAR)
+
+**The existing dataset is untouched.** The generator only reads `companies.json`, `invoices.json`, `manifest.json` and `account-links.json`. Company IDs, invoices and grades are the same as before, and the output is deterministic (seed `20261106`).
+
+**GSTINs.** Each company gets a `gstin` that passes the real format, state-code and checksum rules, so `validateGstin` accepts it. This is separate from the company's `id`, which keeps its old, deliberately invalid check character. To keep a made-up GSTIN from belonging to a real taxpayer, the 10-character PAN inside it uses the serial `0000`, which, as far as I know, the Income Tax Department doesn't issue. I couldn't confirm that from an official source. Udyam numbers use district `99`, which doesn't exist, for the same reason, and are format-checked only.
+
+**Registry.** Each entry has a legal name (the company's name in capitals), a status, a registration date and six GSTR-3B filings (2026-04 to 2026-09). Each company's filings follow its existing `gstFilingRate`: that share of the 6 on time, the rest late or, for poor filers, not filed.
+
+**Profiles.** A company's tier comes from how its buyers' invoices were really paid in `invoices.json`: good (85% or more on time), average (60%), weak, and a few planted bad ones. The tier sets the bureau score (good 745–830, average 660–740, weak 590–660, bad 470–560), MSME-1 dues and Samadhaan complaints. Only large buyers have a credit rating, and only companies that buy have dues or complaints. The numbers are my choices, not sourced figures: they only have to be plausible and consistent with each other.
+
+### Planted trust stories
+
+Scores below are with no on-chain history, so all are cold start. The invoice IDs are in `external-profiles.json`, and only the tests read that list.
+
+| Story | Invoice | What's planted | Buyer score | Checklist |
+| --- | --- | --- | ---: | --- |
+| Good buyer | `DEMO-RELIABLE` | BigBuild Ltd: bureau 777, rating A, no dues, no complaints | 848 | 9 pass, 3 not provided |
+| New buyer | `DEMO-NEW` | Chandan Constructions: founded 2025, bureau 672. Scored from the outside profile, so "New on Udhaar", capped at ₹1,00,000 | 669 | A warning on GST filing |
+| Bad buyer | `DEMO-LATE` | Devgiri Infra Projects: bureau 552, rating C, ₹44 lakh of MSME-1 dues, 10 complaints | 548 | MSME-1 dues and complaints fail |
+| Bad buyers | `SEED-0105`, `SEED-0177` | Two more: dues ₹32 lakh and ₹65 lakh, 13 and 9 complaints | 534, 527 | Both fail |
+| Cancelled GSTIN | `SEED-0152` | The seller, Shubham Pipe Fittings & Co, has a Cancelled registration and stopped filing in the last 3 months | | GSTIN valid passes, GST status fails |
+| Name mismatch | `SEED-0015` | The seller's GSTIN is valid and Active, but the registry holds a different legal name | | GSTIN valid and status pass, name fails |
+| Tampered e-invoice | (test only) | A signed QR whose amount, number, GSTIN or date differs from the invoice, or whose payload was edited | | `EINVOICE_MISMATCH` or `EINVOICE_SIGNATURE_INVALID` |
+
+No real company has any history on Udhaar except the two demo accounts, which have a few real repayments. That's why BigBuild shows `newOnUdhaar: false` on a live server while the table above says cold start.
+
+### The mock IRP key
+
+The e-invoice signer's private key is `MOCK_IRP_PRIVATE_KEY` in the root `.env`. The public key is `backend/deployments/mock-irp-public.json`. Make both with `cd backend && npm run generate-irp-key`, which writes the `.env` line itself and never prints the key. It won't replace an existing key.
+
 ## Limits
 
+- **The trust layer's outside data is invented.** It shows how a real GST, bureau and MSME check would work. Nothing says it would score real companies the same way, and no weight in the Trust Score has been checked against real defaults.
 - **Real activity doesn't feed back.** Real invoices are scored against the dataset but aren't added to it, so a real late payment won't change a score, and a ring among real accounts wouldn't be found.
 - **The scorecard is hand-tuned.** Its weights come from the brief and its sub-scores are my judgment. Nothing has been checked against real defaults.
 - **No machine learning.** The anomaly check is the 10× rule, not the Isolation Forest in the PRD.
