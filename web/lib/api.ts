@@ -27,6 +27,7 @@ import type {
   KycRequest,
   Listing,
   MockEInvoice,
+  NavInfo,
   PortfolioItem,
   RepaymentHolder,
   RiskReport,
@@ -674,6 +675,9 @@ const real: typeof mock = {
   async getInvoiceTrust(invoiceId) {
     return http<InvoiceTrust>("GET", `/trust/${encodeURIComponent(invoiceId)}`);
   },
+  async getNav(invoiceId) {
+    return http<NavInfo>("GET", `/nav/${encodeURIComponent(invoiceId)}`);
+  },
   async getCompanyTrust(id) {
     return http<CompanyTrust>("GET", `/trust/company/${encodeURIComponent(id)}`);
   },
@@ -894,6 +898,7 @@ export const {
   runAgent,
   getAgentRuns,
   getInvoiceTrust,
+  getNav,
   getCompanyTrust,
   getMockEInvoice,
   getKycRequests,

@@ -20,9 +20,45 @@ import {
 } from "@/components/common";
 import { TrustPanel } from "@/components/trust";
 import { useAsync } from "@/hooks/use-async";
-import { buyRiskReport, buyUnits, getListing, isReportUnlocked } from "@/lib/api";
+import { ApiError, buyRiskReport, buyUnits, getListing, getNav, isReportUnlocked } from "@/lib/api";
 import { daysUntil, demoMaturityText, inr, inrPrice, pct, termText } from "@/lib/utils";
-import type { RiskReport } from "@/lib/types";
+import type { NavInfo, RiskReport } from "@/lib/types";
+
+type NavOutcome = { kind: "ok"; nav: NavInfo } | { kind: "unavailable" } | { kind: "hidden" };
+
+/** NAV is a nice-to-have: any failure except NOT_PRICED hides the line, so the page keeps working. */
+function NavToday({ invoiceId }: { invoiceId: string }) {
+  const outcome = useAsync<NavOutcome>(() =>
+    getNav(invoiceId).then(
+      (nav): NavOutcome => ({ kind: "ok", nav }),
+      (e): NavOutcome => (e instanceof ApiError && e.code === "NOT_PRICED" ? { kind: "unavailable" } : { kind: "hidden" }),
+    ),
+  ).data;
+  if (!outcome || outcome.kind === "hidden") return null;
+  const line = "mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 font-mono text-xs";
+  if (outcome.kind === "unavailable") return <dd className={`${line} text-[#5A5E78]`}>NAV not available</dd>;
+  const n = outcome.nav;
+  if (n.status === "overdue") return <dd className={`${line} font-semibold text-[#B3261E]`}>Overdue</dd>;
+  if (n.nav == null) return null;
+  return (
+    <dd className={`${line} text-[#5A5E78]`}>
+      <span>
+        NAV today: <span className="font-semibold text-[#1B2340]">{inrPrice(n.nav)}</span> per token ·{" "}
+        {n.daysRemaining} {n.daysRemaining === 1 ? "day" : "days"} to maturity
+      </span>
+      {n.lastPublished?.hashscanUrl && (
+        <a
+          href={n.lastPublished.hashscanUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="whitespace-nowrap font-medium text-[#B3261E] underline-offset-4 hover:text-[#1B2340] hover:underline"
+        >
+          Published on Hedera ↗
+        </a>
+      )}
+    </dd>
+  );
+}
 
 export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
@@ -103,7 +139,7 @@ export default function InvoiceDetail() {
                           </dd>
                         )}
                       </div>
-                      <div>
+                      <div className="col-span-2">
                         <dt className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
                           Unit price
                         </dt>
@@ -113,6 +149,7 @@ export default function InvoiceDetail() {
                             (face {inr(l.unitFaceValue)})
                           </span>
                         </dd>
+                        {!l.blocked && <NavToday invoiceId={l.invoiceId} />}
                       </div>
                       <div className="col-span-2">
                         <dt className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">

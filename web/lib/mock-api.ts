@@ -12,7 +12,7 @@ import type {
   Company, Grade, Holder, InvestorSession, Invoice, KycRequest, Listing, PortfolioItem,
   ReportSettlement, RiskReport, TokenCatalog, Transaction, TransactionType, TokenInfo, TxResult,
   ChecklistItem, CompanyTrust, InvoiceTrust, MockEInvoice, MockEInvoiceRequest, PartyTrust,
-  TrustFactor, TrustRepayment,
+  NavInfo, TrustFactor, TrustRepayment,
 } from "./types";
 
 const delay = (ms = 600) => new Promise((r) => setTimeout(r, ms));
@@ -660,3 +660,29 @@ export async function getAgentRuns(): Promise<AgentRun[]> {
   return clone(mockAgentRuns);
 }
 
+/* ───────── NAV feed ───────── */
+const MOCK_NAV_TOPIC = "0.0.7002001";
+export async function getNav(invoiceId: string): Promise<NavInfo> {
+  await delay(300);
+  const inv = find(invoiceId);
+  if (!inv.tokenId) throw new ApiError("NOT_TOKENIZED", `${invoiceId} has not been tokenized, so it has no NAV`, 409);
+  // INV-0047 stands for a bond tokenized before grades were saved.
+  if (invoiceId === "INV-0047") throw new ApiError("NOT_PRICED", `${invoiceId} has no grade, so its NAV can't be worked out`, 409);
+  const overdue = invoiceId === "INV-0045";
+  const days = overdue ? -3 : invoiceId === "INV-0042" ? 90 : Math.max(0, daysTo(inv.dueDate));
+  const rate = inv.grade ? (RATE_BY_GRADE[inv.grade] ?? 12) : 12;
+  const face = inv.unitFaceValue ?? 1000;
+  const nav = overdue ? null : invoiceId === "INV-0042" ? 970.41 : Math.round(face * (1 - (rate * days) / 36500) * 100) / 100;
+  const msg = `${HASHSCAN}/transaction/1793958355.504763920`;
+  return clone({
+    invoiceId, bondTokenId: inv.tokenId, symbol: `UDH-${invoiceId.slice(-4)}`,
+    status: overdue ? "overdue" : "active", faceValue: face, annualRatePct: rate, daysRemaining: days, nav,
+    dueDate: inv.dueDate, asOf: new Date().toISOString(),
+    topic: { id: MOCK_NAV_TOPIC, hashscanUrl: `${HASHSCAN}/topic/${MOCK_NAV_TOPIC}` },
+    lastPublished: overdue ? null : {
+      nav: nav ?? 0, daysRemaining: days, timestamp: new Date().toISOString(), topicId: MOCK_NAV_TOPIC,
+      topicUrl: `${HASHSCAN}/topic/${MOCK_NAV_TOPIC}`, transactionId: "0.0.11227777-1793958348-649000000", hashscanUrl: msg,
+    },
+    hashscanUrl: msg, links: [],
+  });
+}

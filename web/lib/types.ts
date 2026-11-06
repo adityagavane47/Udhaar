@@ -469,3 +469,34 @@ export interface MockEInvoice {
   hashscanUrl?: string;
   links?: Link[];
 }
+
+/** The last NAV message published to the HCS "Udhaar NAV feed" topic for an invoice. */
+export interface NavPublished {
+  nav: number;
+  daysRemaining: number;
+  timestamp: string;
+  topicId: string;
+  topicUrl: string;
+  transactionId: string;
+  /** The message's transaction on HashScan. */
+  hashscanUrl: string;
+}
+
+/** GET /nav/:invoiceId. `nav` is null once overdue or repaid. */
+export interface NavInfo {
+  invoiceId: string;
+  bondTokenId: string;
+  symbol: string;
+  status: "active" | "overdue" | "repaid";
+  faceValue: number;
+  annualRatePct: number;
+  /** Whole days to the due date. Negative once overdue. */
+  daysRemaining: number;
+  nav: number | null;
+  dueDate: string;
+  asOf: string;
+  topic: { id: string; hashscanUrl: string } | null;
+  lastPublished: NavPublished | null;
+  hashscanUrl: string;
+  links: Link[];
+}
