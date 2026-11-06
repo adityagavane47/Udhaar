@@ -54,6 +54,7 @@ const schemas = {
   }),
   // Strict, because the discount comes from the risk grade and a sent one must not look accepted.
   tokenize: z.strictObject({
+    demoMaturity: z.boolean().optional(),
     maturityMinutes: z.number().positive().optional(),
     maturityDate: isoDate.optional(),
     unitFaceValue: positiveInt.optional(),
@@ -170,7 +171,7 @@ export function createApp() {
   app.use(express.json({ limit: "256kb" }));
 
   app.get("/health", (_req, res) => {
-    res.json({ status: "ok", network: "testnet", hashscanUrl: hashscan.token(config.uinrTokenId), links: [{ label: "uINR token", url: hashscan.token(config.uinrTokenId) }, ...topicLinks()] });
+    res.json({ status: "ok", network: "testnet", demo: { shortMaturityMinutes: config.demoShortMaturityMinutes }, hashscanUrl: hashscan.token(config.uinrTokenId), links: [{ label: "uINR token", url: hashscan.token(config.uinrTokenId) }, ...topicLinks()] });
   });
 
   // Auth

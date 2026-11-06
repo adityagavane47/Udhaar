@@ -21,6 +21,7 @@
     "test:trust": "tsx scripts/test-trust.ts",
     "test:x402": "tsx scripts/test-x402.ts",
     "test:nav": "tsx scripts/test-nav.ts",
+    "test:demo-maturity": "tsx scripts/test-demo-maturity.ts",
     "test:x402:live": "tsx scripts/test-x402-live.ts"
   },
   "dependencies": {

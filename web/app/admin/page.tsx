@@ -2,10 +2,10 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Async,
   AsyncButton,
+  DemoMaturityTag,
   Empty,
   GradeBadge,
   HashscanLink,
@@ -18,6 +18,7 @@ import { useAsync } from "@/hooks/use-async";
 import {
   createToken,
   getAuditLog,
+  getDemoConfig,
   getAwaitingTokenization,
   getKycRequests,
   getTokens,
@@ -283,20 +284,24 @@ function AdminContent() {
 }
 
 function CreateToken({ id, onDone }: { id: string; onDone: () => void }) {
-  const [minutes, setMinutes] = useState("");
+  const demo = useAsync(getDemoConfig);
+  const [short, setShort] = useState(false);
+  const minutes = demo.data?.shortMaturityMinutes ?? null;
   return (
     <div className="flex flex-wrap items-start gap-3">
-      <Input
-        type="number"
-        min={1}
-        value={minutes}
-        onChange={(e) => setMinutes(e.target.value)}
-        placeholder="Maturity in min (demo)"
-        aria-label="Maturity in minutes (demo)"
-        className="w-48"
-      />
+      {minutes !== null && (
+        <label className="flex cursor-pointer items-center gap-2 border-2 border-[#B3261E] bg-[#FBF6EA] px-3 py-2 font-mono text-xs font-semibold text-[#B3261E]">
+          <input
+            type="checkbox"
+            checked={short}
+            onChange={(e) => setShort(e.target.checked)}
+            className="h-4 w-4 accent-[#B3261E]"
+          />
+          Demo: short maturity ({minutes} min from now)
+        </label>
+      )}
       <AsyncButton
-        action={() => createToken(id, { maturityMinutes: Number(minutes) || undefined })}
+        action={() => createToken(id, { demoMaturity: minutes !== null && short })}
         onDone={onDone}
         pendingMessage="Deploying the bond on Hedera. This takes about a minute…"
       >
@@ -321,6 +326,7 @@ function TokenCard({ t, onDone }: { t: TokenInfo; onDone: () => void }) {
           </CardTitle>
           <CardDescription className="font-mono text-xs">
             Token {t.tokenId} · {t.totalUnits} units of {inr(t.unitFaceValue)}
+            <DemoMaturityTag show={t.demoMaturity} className="ml-2" />
             {demoMaturityText(t.maturityDate, t.dueDate ?? t.maturityDate) && (
               <span className="font-semibold text-[#B3261E]">
                 {" "}

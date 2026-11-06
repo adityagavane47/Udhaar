@@ -19,6 +19,7 @@ import type {
   BondTokenMeta,
   Company,
   CompanyTrust,
+  DemoConfig,
   Grade,
   Holder,
   InvestorSession,
@@ -387,6 +388,7 @@ function toListing(i: Invoice): Listing {
     ),
     dueDate: i.dueDate,
     maturityDate: maturityOf(i),
+    ...(i.demoMaturity ? { demoMaturity: true } : {}),
     annualRatePct: i.grade ? RATE_BY_GRADE[i.grade] : undefined,
     discountPct: i.discountPct,
     grade: i.grade,
@@ -663,6 +665,7 @@ const real: typeof mock = {
             amountPaid: mineNow?.amountPaid ?? units * unitPriceOf(i),
             expectedPayout: units * face,
             dueDate: maturityOf(i),
+            ...(i.demoMaturity ? { demoMaturity: true } : {}),
             grade: i.grade,
             repaid: i.status === "repaid",
           });
@@ -719,10 +722,14 @@ const real: typeof mock = {
     );
     return Promise.all(queue.map(withGrade));
   },
+  async getDemoConfig(): Promise<DemoConfig> {
+    const r = await http<{ demo?: { shortMaturityMinutes?: number | null } }>("GET", "/health");
+    return { shortMaturityMinutes: r.demo?.shortMaturityMinutes ?? null };
+  },
   async createToken(invoiceId, opts) {
     const r = await post<TxResponse>(
       `/invoices/${encodeURIComponent(invoiceId)}/tokenize`,
-      opts?.maturityMinutes ? { maturityMinutes: opts.maturityMinutes } : {},
+      opts?.demoMaturity ? { demoMaturity: true } : {},
     );
     return txOf(r);
   },
@@ -747,6 +754,7 @@ const real: typeof mock = {
               unitFaceValue: i.unitFaceValue ?? 1000,
               maturityDate: maturityOf(i),
               dueDate: i.dueDate,
+              ...(i.demoMaturity ? { demoMaturity: true } : {}),
               paused: live?.paused ?? false,
               holders: h.repaidHolders.map(repaidToHolder),
               repaid: true,
@@ -904,6 +912,7 @@ export const {
   getKycRequests,
   reviewKyc,
   getAwaitingTokenization,
+  getDemoConfig,
   createToken,
   getTokens,
   setTokenPaused,

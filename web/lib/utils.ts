@@ -20,6 +20,10 @@ export const RATE_BY_GRADE: Record<string, number | null> = { A: 12, B: 16, C: 2
 /** Whole days until a date; part of a day counts as a whole day. Zero once passed. */
 export const daysUntil = (iso: string) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
 
+/** True once a bond's maturity has passed, with a few seconds for the chain's clock to catch up. */
+export const maturityReached = (maturityDate: string | undefined, dueDate: string, graceSeconds = 10) =>
+  Date.now() >= new Date(maturityDate ?? dueDate).getTime() + graceSeconds * 1000;
+
 /** "Demo: repays in 5 min" when the bond matures before the invoice is due. Empty otherwise. */
 export function demoMaturityText(maturityDate: string | undefined, dueDate: string): string {
   if (!maturityDate) return "";

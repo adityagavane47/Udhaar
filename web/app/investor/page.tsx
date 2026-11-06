@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import {
   Async,
+  DemoMaturityTag,
   Empty,
   ErrorNote,
   Field,
@@ -105,8 +106,9 @@ export default function InvestorPage() {
                               <p className="font-mono text-xs font-semibold text-[#1B2340]">
                                 {termText(l.annualRatePct, l.dueDate, l.grade)}
                               </p>
-                              {demoMaturityText(l.maturityDate, l.dueDate) && (
-                                <p className="font-mono text-xs font-semibold text-[#B3261E]">
+                              {(l.demoMaturity || demoMaturityText(l.maturityDate, l.dueDate)) && (
+                                <p className="flex flex-wrap items-center gap-2 font-mono text-xs font-semibold text-[#B3261E]">
+                                  <DemoMaturityTag show={l.demoMaturity} />
                                   {demoMaturityText(l.maturityDate, l.dueDate)}
                                 </p>
                               )}
@@ -180,7 +182,10 @@ export default function InvestorPage() {
                             <td className="px-4 py-4 font-semibold text-[#2F6B4F]">
                               {inr(p.expectedPayout)}
                             </td>
-                            <td className="px-4 py-4">{fmtDate(p.dueDate)}</td>
+                            <td className="px-4 py-4">
+                              {fmtDate(p.dueDate)}
+                              <DemoMaturityTag show={p.demoMaturity} className="mt-1 block w-fit" />
+                            </td>
                             <td className="px-4 py-4">
                               <StampBadge
                                 label={p.repaid ? "REPAID" : "FUNDED"}

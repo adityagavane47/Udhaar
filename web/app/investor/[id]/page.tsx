@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import {
   Async,
   AsyncButton,
+  DemoMaturityTag,
   Field,
   GradeBadge,
   HashscanLink,
@@ -133,8 +134,9 @@ export default function InvoiceDetail() {
                         <dd className="mt-1 font-mono text-2xl font-semibold text-[#1B2340]">
                           {daysUntil(l.dueDate)} days
                         </dd>
-                        {demoMaturityText(l.maturityDate, l.dueDate) && (
-                          <dd className="mt-1 font-mono text-xs font-semibold text-[#B3261E]">
+                        {(l.demoMaturity || demoMaturityText(l.maturityDate, l.dueDate)) && (
+                          <dd className="mt-1 flex flex-wrap items-center gap-2 font-mono text-xs font-semibold text-[#B3261E]">
+                            <DemoMaturityTag show={l.demoMaturity} />
                             {demoMaturityText(l.maturityDate, l.dueDate)}
                           </dd>
                         )}

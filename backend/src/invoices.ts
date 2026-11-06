@@ -27,6 +27,8 @@ export interface CreateInvoiceInput {
 }
 
 export interface TokenizeInput {
+  /** Demo only. Needs DEMO_SHORT_MATURITY_MINUTES: matures that many minutes from now. */
+  demoMaturity?: boolean | undefined;
   maturityMinutes?: number | undefined;
   maturityDate?: string | undefined;
   unitFaceValue?: number | undefined;
@@ -48,8 +50,15 @@ export function getInvoice(id: string): Invoice {
 
 export const unitPrice = (invoice: Invoice) => discountedUnitPrice(invoice.unitFaceValue ?? config.defaultUnitFaceValue, invoice.discountPct ?? 0);
 
+/** True when the bond matures well before the invoice is due, which only demos do. Worked out from what is stored, so no bond escapes the label. */
+export const hasDemoMaturity = (invoice: Invoice) => {
+  const maturity = invoice.tokenization?.maturityDateUnix;
+  return maturity !== undefined && maturity * 1000 < Date.parse(invoice.dueDate) - 3_600_000;
+};
+
 export const invoiceView = (invoice: Invoice) => ({
   ...invoice,
+  ...(hasDemoMaturity(invoice) ? { demoMaturity: true } : {}),
   hashscanUrl: invoice.hashscanUrl ?? hashscan.account(invoice.supplierId),
   ...(invoice.tokenId ? { unitPrice: unitPrice(invoice), availableUnits: invoice.retainedUnits ?? 0 } : {}),
 });
@@ -170,6 +179,10 @@ async function riskCheckBeforeTokenizing(invoiceId: string) {
 }
 
 export async function tokenizeInvoice(invoiceId: string, input: TokenizeInput) {
+  if (input.demoMaturity) {
+    if (config.demoShortMaturityMinutes === null) throw new ApiError(422, "DEMO_MATURITY_DISABLED", "Demo maturity is off: set DEMO_SHORT_MATURITY_MINUTES (3 to 1440) on the server and restart it");
+    if (input.maturityMinutes !== undefined || input.maturityDate !== undefined) throw new ApiError(422, "MATURITY_CONFLICT", "Send demoMaturity, or maturityMinutes, or maturityDate, not more than one");
+  }
   if (isSeededInvoiceId(invoiceId)) await riskCheckBeforeTokenizing(invoiceId);
   const invoice = getInvoice(invoiceId);
   if (invoice.tokenization?.status === "complete") {
@@ -186,7 +199,7 @@ export async function tokenizeInvoice(invoiceId: string, input: TokenizeInput) {
     if (risk.suggestedDiscountPct === null) throw new ApiError(422, "BAD_DUE_DATE", `${invoice.id} can't be priced: its due date ${invoice.dueDate} has passed or is too far away`, { hashscanUrl: risk.hashscanUrl });
     const now = new Date();
     const nowUnix = Math.floor(now.getTime() / 1000);
-    const maturity = input.maturityMinutes !== undefined ? nowUnix + Math.round(input.maturityMinutes * 60) : Math.floor(new Date(input.maturityDate ?? invoice.dueDate).getTime() / 1000);
+    const maturity = input.demoMaturity && config.demoShortMaturityMinutes !== null ? nowUnix + Math.round(config.demoShortMaturityMinutes * 60) : input.maturityMinutes !== undefined ? nowUnix + Math.round(input.maturityMinutes * 60) : Math.floor(new Date(input.maturityDate ?? invoice.dueDate).getTime() / 1000);
     if (maturity <= nowUnix) throw new ApiError(422, "BAD_MATURITY", "Maturity must be in the future");
     const unitFaceValue = input.unitFaceValue ?? config.defaultUnitFaceValue;
     if (invoice.amount % unitFaceValue !== 0) throw new ApiError(422, "BAD_FACE_VALUE", `Amount ${invoice.amount} does not divide into whole units of ${unitFaceValue}`);

@@ -14,6 +14,19 @@ function readUinrTokenId(): string {
 
 const PORT = Number(process.env.PORT ?? 4000);
 
+/**
+ * Minutes from now that a demo-maturity bond matures, or null when the option is off. Under 3 is refused:
+ * the bond's start date is a minute ahead and the maturity must clear it.
+ */
+export function parseDemoMaturityMinutes(value: string | undefined): number | null {
+  if (!value?.trim()) return null;
+  const minutes = Number(value);
+  return Number.isFinite(minutes) && minutes >= 3 && minutes <= 1440 ? minutes : null;
+}
+if (process.env.DEMO_SHORT_MATURITY_MINUTES?.trim() && parseDemoMaturityMinutes(process.env.DEMO_SHORT_MATURITY_MINUTES) === null) {
+  console.warn("DEMO_SHORT_MATURITY_MINUTES must be a number from 3 to 1440, so demo maturity is off.");
+}
+
 export const config = {
   port: PORT,
   /** How the server reaches its own paywall when it pays as the investor. */
@@ -21,6 +34,8 @@ export const config = {
   /** Proxies in front of the server, such as 1 on Railway or Render. Rate limits need this to see the real client IP. */
   trustProxyHops: Number(process.env.TRUST_PROXY ?? 0),
   adminTokenMinutes: Number(process.env.DEMO_ADMIN_TOKEN_MINUTES ?? 30),
+  /** Demo only: lets an admin tokenize with a maturity this many minutes away. Null means off. */
+  demoShortMaturityMinutes: parseDemoMaturityMinutes(process.env.DEMO_SHORT_MATURITY_MINUTES),
   investorTokenMinutes: Number(process.env.DEMO_INVESTOR_TOKEN_MINUTES ?? 30),
   facilitatorUrl: (process.env.FACILITATOR_URL ?? "https://x402.org/facilitator").replace(/\/$/, ""),
   x402Network: "hedera:testnet",

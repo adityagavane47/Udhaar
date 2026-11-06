@@ -3,7 +3,7 @@ import { expectRead, freezeUnits, isPaused, pauseBond, read, unfreezeUnits, unpa
 import { hashscan } from "./config.js";
 import { ApiError } from "./errors.js";
 import { getAccount, waitForMirrorToReach } from "./hedera/mirror.js";
-import { accountName, holdersOf } from "./invoices.js";
+import { accountName, hasDemoMaturity, holdersOf } from "./invoices.js";
 import { syncPendingAllowlists } from "./kyc.js";
 import { audit, save, state } from "./store.js";
 import type { AuditType, BondRef, Invoice } from "./types.js";
@@ -101,6 +101,7 @@ export async function listTokens() {
       totalUnits: plan.units,
       unitFaceValue: plan.unitFaceValue,
       maturityDate: new Date(plan.maturityDateUnix * 1000).toISOString(),
+      ...(hasDemoMaturity(invoice) ? { demoMaturity: true } : {}),
       paused: await isPaused(bond),
       holders: (await holdersOf(invoice.id)).holders,
       hashscanUrl: hashscan.contract(bond.contractId),

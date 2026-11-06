@@ -12,7 +12,7 @@ import type {
   Company, Grade, Holder, InvestorSession, Invoice, KycRequest, Listing, PortfolioItem,
   ReportSettlement, RiskReport, TokenCatalog, Transaction, TransactionType, TokenInfo, TxResult,
   ChecklistItem, CompanyTrust, InvoiceTrust, MockEInvoice, MockEInvoiceRequest, PartyTrust,
-  NavInfo, TrustFactor, TrustRepayment,
+  DemoConfig, NavInfo, TrustFactor, TrustRepayment,
 } from "./types";
 
 const delay = (ms = 600) => new Promise((r) => setTimeout(r, ms));
@@ -465,8 +465,11 @@ export async function getAwaitingTokenization(): Promise<Invoice[]> {
   await delay(300);
   return clone(invoices.filter((i) => i.status === "risk_checked"));
 }
-export async function createToken(invoiceId: string, opts?: { maturityMinutes?: number }): Promise<TxResult> {
-  void opts;
+export async function getDemoConfig(): Promise<DemoConfig> {
+  await delay(100);
+  return { shortMaturityMinutes: 5 };
+}
+export async function createToken(invoiceId: string, opts?: { demoMaturity?: boolean }): Promise<TxResult> {
   await delay(1400);
   const inv = find(invoiceId);
   if (inv.grade === "D") {
@@ -477,6 +480,10 @@ export async function createToken(invoiceId: string, opts?: { maturityMinutes?: 
   if (inv.status !== "risk_checked") throw new Error("Only risk-checked invoices can be tokenized");
   const tokenId = `0.0.${7001100 + invoices.indexOf(inv) + seq}`;
   inv.tokenId = tokenId;
+  if (opts?.demoMaturity) {
+    inv.demoMaturity = true;
+    inv.maturityDate = new Date(Date.now() + 5 * 60_000).toISOString();
+  }
   inv.totalUnits = Math.round(inv.amount / 1000);
   inv.unitFaceValue = 1000;
   inv.retainedUnits = 0;

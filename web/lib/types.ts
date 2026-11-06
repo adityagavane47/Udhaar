@@ -97,6 +97,7 @@ export interface Invoice {
   links?: Link[]; // every on-chain step so far (backend only)
   symbol?: string; // bond symbol
   maturityDate?: string; // ISO; can be earlier than dueDate in demos
+  demoMaturity?: boolean; // the bond matures well before the due date: demo only
   unitPrice?: number; // discounted price per unit
   availableUnits?: number; // units still for sale
   registered?: boolean;
@@ -226,6 +227,7 @@ export interface Listing {
   daysToMaturity: number;
   dueDate: string;
   maturityDate?: string; // bond maturity; earlier than dueDate only in demos
+  demoMaturity?: boolean;
   annualRatePct?: number | null;
   discountPct?: number | null;
   grade?: Grade;
@@ -244,6 +246,7 @@ export interface PortfolioItem {
   amountPaid: number;
   expectedPayout: number;
   dueDate: string;
+  demoMaturity?: boolean;
   grade?: Grade;
   repaid: boolean;
 }
@@ -259,6 +262,7 @@ export interface TokenInfo {
   unitFaceValue: number;
   maturityDate: string;
   dueDate?: string;
+  demoMaturity?: boolean;
   paused: boolean;
   holders: Holder[];
 }
@@ -499,4 +503,9 @@ export interface NavInfo {
   lastPublished: NavPublished | null;
   hashscanUrl: string;
   links: Link[];
+}
+
+/** From GET /health. `shortMaturityMinutes` is null unless the server has DEMO_SHORT_MATURITY_MINUTES set. */
+export interface DemoConfig {
+  shortMaturityMinutes: number | null;
 }

@@ -71,6 +71,12 @@ export function StampBadge({
   );
 }
 
+/** Shown wherever a bond's maturity was set short for a demo, so it is never hidden. */
+export function DemoMaturityTag({ show, className }: { show?: boolean; className?: string }) {
+  if (!show) return null;
+  return <StampBadge label="Demo maturity" tone="red" tilt={false} className={cn("px-2 py-0 text-[11px]", className)} />;
+}
+
 const statusStampMap: Record<InvoiceStatus, { label: string; tone: StampTone; double?: boolean }> = {
   submitted: { label: "SUBMITTED", tone: "amber" },
   buyer_confirmed: { label: "CONFIRMED", tone: "blue" },

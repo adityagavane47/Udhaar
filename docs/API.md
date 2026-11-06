@@ -173,6 +173,7 @@ Set these in `.env`, then restart the server.
 | --- | --- | --- |
 | `DEMO_ADMIN_PASSCODE` | None | Required for admin login |
 | `DEMO_ADMIN_TOKEN_MINUTES` | `30` | How long an admin token lasts |
+| `DEMO_SHORT_MATURITY_MINUTES` | off | Demo only. A number from 3 to 1440 lets an admin tokenize with a maturity that many minutes away. Shown to the web app by `GET /health` |
 | `NAV_SCHEDULER` | on | Set to `off` to stop the server publishing NAV once a day. `POST /nav/publish` still works |
 | `DEMO_INVESTOR_TOKEN_MINUTES` | `30` | How long an investor session lasts |
 | `FACILITATOR_URL` | `https://x402.org/facilitator` | The x402 facilitator. `https://api.testnet.blocky402.com` also works |
@@ -229,6 +230,7 @@ interface Invoice {
   confirmationPayload?: string;
   tokenization?: object;
   overdue?: boolean;         // Set by the NAV feed once the due date is missed
+  demoMaturity?: boolean;    // The bond matures well before the due date, for a demo. Absent otherwise
 }
 ```
 
@@ -399,6 +401,7 @@ Sending `discountPct` now returns `400 VALIDATION_ERROR`.
 
 ```ts
 {
+  demoMaturity?: boolean;    // Demo only: matures DEMO_SHORT_MATURITY_MINUTES from now. Don't combine with the two below
   maturityMinutes?: number;  // Minutes from now, for demos. Wins over maturityDate
   maturityDate?: string;     // ISO. Defaults to the invoice's dueDate
   unitFaceValue?: number;    // Default 1000. Must divide the amount exactly
@@ -406,6 +409,8 @@ Sending `discountPct` now returns `400 VALIDATION_ERROR`.
 ```
 
 Maturity must be at least a minute away. An earlier time is moved to one minute out.
+
+**Demo maturity.** With `DEMO_SHORT_MATURITY_MINUTES` set on the server (3 to 1440), `demoMaturity: true` makes the bond mature that many minutes from now. The price still comes from the real days to the due date, which must be at least tomorrow, and the NAV does too, so a bond maturing in minutes is priced near face value. Any bond that matures more than an hour before its due date, however it was set, comes back with `demoMaturity: true` on the invoice, in `GET /invoices` and in `GET /tokens`. Buying closes at maturity, and the buyer can repay from the moment it passes (the web app waits 10 more seconds for the chain's clock).
 
 **Response `201`**
 
@@ -422,6 +427,8 @@ Maturity must be at least a minute away. An earlier time is moved to one minute 
 | 409 | `RISK_BLOCKED` | Grade D. Adds `grade`, `riskScore`, `fraudFlags` and `reasons`, and is recorded in the audit log |
 | 503 | `RISK_DATA_UNAVAILABLE`, `RISK_UNAVAILABLE` | The invoice couldn't be scored, so nothing was priced or spent |
 | 409 | `BAD_STATUS` | Only buyer-confirmed invoices can be tokenized |
+| 422 | `DEMO_MATURITY_DISABLED` | `demoMaturity` was sent but `DEMO_SHORT_MATURITY_MINUTES` isn't set (or is out of range) |
+| 422 | `MATURITY_CONFLICT` | `demoMaturity` was sent with `maturityMinutes` or `maturityDate` |
 | 422 | `BAD_DUE_DATE` | No valid price: the invoice's due date has passed, or is so far away that the discount would reach 100%. Nothing is saved or spent |
 | 422 | `BAD_MATURITY`, `BAD_FACE_VALUE` | Bad request values |
 | 402 | `APPROVAL_REQUIRED` | The gas price pushed the deploy above the `MAX_STEP_HBAR` limit |
@@ -1322,7 +1329,7 @@ Newest first. Includes rejected actions.
 ### GET /health
 
 ```ts
-{ status: "ok"; network: "testnet"; hashscanUrl: string; links: Link[] }
+{ status: "ok"; network: "testnet"; demo: { shortMaturityMinutes: number | null }; hashscanUrl: string; links: Link[] }
 ```
 
 ## Mapping from `web/lib/api.ts`
@@ -1331,7 +1338,7 @@ Newest first. Includes rejected actions.
 | --- | --- | --- |
 | `uploadInvoice` | `POST /invoices` | Send `buyerId` as the company's `hederaAccount`, and add `invoiceNumber`. Map `409 DUPLICATE_INVOICE` to `DuplicateInvoiceError` |
 | `confirmInvoice` | `POST /invoices/:id/confirm` | |
-| `createToken` | `POST /invoices/:id/tokenize` | Admin token. Send `maturityMinutes` for demos |
+| `createToken` | `POST /invoices/:id/tokenize` | Admin token. Send `demoMaturity: true` for demos (needs `DEMO_SHORT_MATURITY_MINUTES`) |
 | `submitKyc` | `POST /kyc` | |
 | `loginDemoAdmin` | `POST /auth/demo-admin` | Keep `token` and send it on every admin route |
 | `reviewKyc(id, true)` | `POST /kyc/:id/approve` | Admin token |

@@ -1,8 +1,10 @@
 "use client";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Async,
   AsyncButton,
+  DemoMaturityTag,
   Empty,
   HashscanLink,
   InvoiceStamp,
@@ -18,9 +20,19 @@ import {
   payInvoice,
   rejectInvoice,
 } from "@/lib/api";
-import { demoMaturityText, fmtDate, inr } from "@/lib/utils";
+import { demoMaturityText, fmtDate, fmtDateTime, inr, maturityReached } from "@/lib/utils";
+
+/** Re-renders every 10 seconds, so a button that waits for maturity appears without a reload. */
+function useTick(ms = 10_000) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((n) => n + 1), ms);
+    return () => clearInterval(timer);
+  }, [ms]);
+}
 
 export default function BuyerPage() {
+  useTick();
   const toConfirm = useAsync(getBuyerToConfirm);
   const upcoming = useAsync(getBuyerUpcoming);
   // Refresh after a pause so the HashScan link stays visible for a moment.
@@ -143,7 +155,8 @@ export default function BuyerPage() {
                               {inr(i.amount)}
                             </strong>{" "}
                             · due {fmtDate(i.dueDate)}
-                            {i.tokenId ? ` · bond ${i.tokenId}` : ""}
+                            {i.tokenId ? ` · bond ${i.tokenId}` : ""}{" "}
+                            <DemoMaturityTag show={i.demoMaturity} />
                             {demoMaturityText(i.maturityDate, i.dueDate) && (
                               <span className="font-semibold text-[#B3261E]">
                                 {" "}
@@ -158,7 +171,13 @@ export default function BuyerPage() {
                             )}
                           </p>
                         </div>
-                        {i.status === "funded" ? (
+                        {i.status === "funded" && !maturityReached(i.maturityDate, i.dueDate) ? (
+                          <StampBadge
+                            label={`Repay opens ${fmtDateTime(i.maturityDate ?? i.dueDate)}`}
+                            tone="amber"
+                            tilt={false}
+                          />
+                        ) : i.status === "funded" ? (
                           <AsyncButton
                             action={() => payInvoice(i.id)}
                             pendingMessage="Settling repayment and redeeming holder units on Hedera…"

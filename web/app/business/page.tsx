@@ -6,6 +6,7 @@ import { Input, Select } from "@/components/ui/input";
 import {
   Async,
   AsyncButton,
+  DemoMaturityTag,
   Empty,
   ErrorNote,
   Field,
@@ -132,6 +133,7 @@ function InvoiceRow({ inv }: { inv: Invoice }) {
             <InvoiceStamp status={inv.status} />
             {inv.grade && <GradeBadge grade={inv.grade} />}
             {inv.tokenId && <StampBadge label={`Bond ${inv.tokenId}`} tone="navy" tilt={false} />}
+            <DemoMaturityTag show={inv.demoMaturity} />
             <HashscanLink href={inv.hashscanUrl} />
           </div>
         </div>

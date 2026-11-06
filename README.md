@@ -345,6 +345,8 @@ REPAYMENT_ID=    REPAYMENT_KEY=
 
 # Admin login for the demo
 DEMO_ADMIN_PASSCODE=
+# Optional, demo only: minutes (3 to 1440) for the admin "Demo: short maturity" option
+# DEMO_SHORT_MATURITY_MINUTES=
 
 # Signs the mock e-invoices. Created by: cd backend && npm run generate-irp-key
 MOCK_IRP_PRIVATE_KEY=
