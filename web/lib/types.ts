@@ -341,3 +341,17 @@ export interface AgentRun {
   hashscanUrl: string;
   links?: Link[];
 }
+
+export interface BondTokenMeta {
+  tokenId: string;
+  invoiceId: string;
+  symbol?: string;
+  buyerName: string;
+  unitFaceValue: number;
+  holders?: { accountId: string; units: number }[];
+}
+
+export interface TokenCatalog {
+  uinrTokenId: string | null;
+  bonds: BondTokenMeta[];
+}

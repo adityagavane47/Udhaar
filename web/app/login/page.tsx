@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ErrorNote, PageHeader, StampBadge } from "@/components/common";
@@ -6,6 +7,48 @@ import { loginDemoAdmin, loginDemoInvestor } from "@/lib/api";
 import { clearAdminSession, setStoredRole } from "@/lib/auth";
 import { PERSONAS, type Persona, type Role } from "@/lib/types";
 import { cn, errMsg } from "@/lib/utils";
+
+const WalletPanel = dynamic(
+  () => import("@/components/wallet-panel").then((m) => m.WalletPanel),
+  {
+    ssr: false,
+    loading: () => (
+      <section className="border-2 border-[#1B2340] bg-[#FBF6EA] p-6 shadow-[6px_6px_0_#1B2340] sm:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <div className="space-y-2">
+            <span className="font-mono text-xs uppercase tracking-[0.08em] text-[#B3261E]">
+              PANEL 01 · WALLET SIGNER
+            </span>
+            <h2 className="m-0 font-serif text-3xl font-normal text-[#1B2340] sm:text-4xl">
+              Connect your wallet
+            </h2>
+            <p className="m-0 max-w-xl text-base leading-[1.6] text-[#5A5E78]">
+              Pair your HashPack wallet on Hedera testnet to see your live HBAR and uINR from the
+              mirror node, and your Udhaar invoice tokens from the bond registry.
+            </p>
+          </div>
+          <div className="flex flex-col items-start gap-2.5 sm:items-end">
+            <div className="flex flex-wrap items-center gap-2 font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+              <span className="border border-[#C9B98F] bg-[#F1E8D2] px-2.5 py-1 text-[#1B2340]">
+                HashPack
+              </span>
+              <span className="border border-[#C9B98F] bg-[#FBF6EA] px-2.5 py-1">
+                Hedera Testnet
+              </span>
+            </div>
+            <div className="border-2 border-[#1B2340]/40 bg-[#F1E8D2] px-5 py-3 font-mono text-xs uppercase tracking-[0.08em] text-[#5A5E78]">
+              Loading HashPack connector…
+            </div>
+            <p className="m-0 max-w-md text-xs leading-relaxed text-[#5A5E78] sm:text-right">
+              Read-only for now. Demo trades are signed by pre-funded testnet personas; wallet
+              signing is next.
+            </p>
+          </div>
+        </div>
+      </section>
+    ),
+  },
+);
 
 function subscribeLocation(cb: () => void) {
   if (typeof window === "undefined") return () => {};
@@ -95,36 +138,8 @@ export default function LoginPage() {
       />
 
       <div className="space-y-12">
-        {/* Panel 1: Connect your wallet */}
-        <section className="border-2 border-[#1B2340] bg-[#FBF6EA] p-6 shadow-[6px_6px_0_#1B2340] sm:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-6">
-            <div className="space-y-2">
-              <span className="font-mono text-xs uppercase tracking-[0.08em] text-[#B3261E]">
-                PANEL 01 · WALLET SIGNER
-              </span>
-              <h2 className="m-0 font-serif text-3xl font-normal text-[#1B2340] sm:text-4xl">
-                Connect your wallet
-              </h2>
-              <p className="m-0 max-w-xl text-base leading-[1.6] text-[#5A5E78]">
-                Sign directly with HashPack or MetaMask on Hedera testnet. For the hackathon demo,
-                use one of the four pre-funded testnet personas below.
-              </p>
-            </div>
-            <div className="flex flex-col items-start gap-2 sm:items-end">
-              <div className="flex flex-wrap items-center gap-2 font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
-                <span className="border border-[#C9B98F] bg-[#F1E8D2] px-2.5 py-1">HashPack</span>
-                <span className="border border-[#C9B98F] bg-[#F1E8D2] px-2.5 py-1">MetaMask</span>
-              </div>
-              <button
-                type="button"
-                disabled
-                className="cursor-not-allowed border-2 border-[#1B2340] bg-[#1B2340]/20 px-6 py-3.5 font-mono text-sm font-semibold uppercase tracking-[0.08em] text-[#1B2340]/60"
-              >
-                Coming soon
-              </button>
-            </div>
-          </div>
-        </section>
+        {/* Panel 1: Connect your wallet (client-only via next/dynamic ssr: false) */}
+        <WalletPanel />
 
         {/* Panel 2: Try the demo */}
         <section className="space-y-6">

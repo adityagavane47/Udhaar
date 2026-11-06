@@ -10,7 +10,7 @@ import {
 import type {
   AgentPurchaseItem, AgentReportItem, AgentRules, AgentRun, AgentSkipItem,
   Company, Grade, Holder, InvestorSession, Invoice, KycRequest, Listing, PortfolioItem,
-  ReportSettlement, RiskReport, Transaction, TransactionType, TokenInfo, TxResult,
+  ReportSettlement, RiskReport, TokenCatalog, Transaction, TransactionType, TokenInfo, TxResult,
 } from "./types";
 
 const delay = (ms = 600) => new Promise((r) => setTimeout(r, ms));
@@ -363,6 +363,20 @@ export async function setHolderFrozen(tokenId: string, accountId: string, frozen
 export async function getAuditLog(): Promise<Transaction[]> {
   await delay(300);
   return clone(transactions);
+}
+
+export async function getTokenCatalog(): Promise<TokenCatalog> {
+  await delay(150);
+  const bonds = invoices
+    .filter((i) => i.tokenId)
+    .map((i) => ({
+      tokenId: i.tokenId!,
+      invoiceId: i.id,
+      symbol: i.symbol,
+      buyerName: i.buyerName,
+      unitFaceValue: i.unitFaceValue ?? 1000,
+    }));
+  return { uinrTokenId: "0.0.11327250", bonds };
 }
 
 export async function loginDemoAdmin(passcode: string): Promise<{ ok: boolean }> {

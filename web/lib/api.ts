@@ -16,6 +16,7 @@ import { ApiError, DuplicateInvoiceError } from "./errors";
 import type {
   AgentRules,
   AgentRun,
+  BondTokenMeta,
   Company,
   Grade,
   Holder,
@@ -26,6 +27,7 @@ import type {
   PortfolioItem,
   RepaymentHolder,
   RiskReport,
+  TokenCatalog,
   TokenInfo,
   Transaction,
   TxResult,
@@ -723,6 +725,47 @@ const real: typeof mock = {
   async getAuditLog(): Promise<Transaction[]> {
     return (await http<{ entries: Transaction[] }>("GET", "/audit")).entries;
   },
+  async getTokenCatalog(): Promise<TokenCatalog> {
+    const [balRes, x402Res, invs, tokRes] = await Promise.all([
+      http<{ uinrTokenId?: string }>("GET", "/balances").catch(() => null),
+      http<{ services?: { token?: string }[] }>("GET", "/.well-known/x402").catch(() => null),
+      listInvoices().catch(() => [] as Invoice[]),
+      http<{ tokens?: TokenInfo[] }>("GET", "/tokens").catch(() => null),
+    ]);
+    const uinrTokenId =
+      balRes?.uinrTokenId || x402Res?.services?.[0]?.token || null;
+    const byToken = new Map<string, BondTokenMeta>();
+    for (const i of invs) {
+      if (!i.tokenId) continue;
+      byToken.set(i.tokenId, {
+        tokenId: i.tokenId,
+        invoiceId: i.id,
+        symbol: i.symbol,
+        buyerName: i.buyerName,
+        unitFaceValue: i.unitFaceValue ?? 1000,
+      });
+    }
+    for (const t of tokRes?.tokens ?? []) {
+      if (!t.tokenId) continue;
+      const existing = byToken.get(t.tokenId);
+      const holders = (t.holders ?? []).map((h) => ({
+        accountId: h.accountId,
+        units: h.units,
+      }));
+      byToken.set(t.tokenId, {
+        tokenId: t.tokenId,
+        invoiceId: existing?.invoiceId || t.invoiceId,
+        symbol: existing?.symbol || t.symbol,
+        buyerName: existing?.buyerName || t.buyerName,
+        unitFaceValue: existing?.unitFaceValue ?? t.unitFaceValue ?? 1000,
+        holders,
+      });
+    }
+    if (!uinrTokenId && byToken.size === 0) {
+      return mock.getTokenCatalog();
+    }
+    return { uinrTokenId, bonds: Array.from(byToken.values()) };
+  },
   async loginDemoAdmin(passcode: string): Promise<{ ok: boolean }> {
     let res: Response;
     try {
@@ -811,6 +854,7 @@ export const {
   setTokenPaused,
   setHolderFrozen,
   getAuditLog,
+  getTokenCatalog,
   loginDemoAdmin,
   loginDemoInvestor,
 } = impl;
