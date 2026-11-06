@@ -1,5 +1,6 @@
 {
   "registryTopicId": "0.0.11327836",
   "confirmationTopicId": "0.0.11327838",
-  "agentAuditTopicId": "0.0.11332556"
+  "agentAuditTopicId": "0.0.11332556",
+  "navTopicId": "0.0.11337348"
 }

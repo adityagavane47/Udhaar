@@ -60,7 +60,7 @@ async function main() {
   const start = await balances();
   console.log(`Start: ${startHbar.toFixed(4)} HBAR across all accounts. Investor ${start.investor / 100} uINR, risk agent ${start.risk / 100}, POOL ${start.pool / 100}. Facilitator: ${config.facilitatorUrl}`);
 
-  const child: ChildProcess = spawn(process.execPath, ["--import", "tsx", "src/server.ts"], { cwd: BACKEND, env: { ...process.env, PORT: String(PORT), SELF_URL: BASE, X402_CONFIRM_ATTEMPTS: "15" }, stdio: ["ignore", "ignore", "inherit"] });
+  const child: ChildProcess = spawn(process.execPath, ["--import", "tsx", "src/server.ts"], { cwd: BACKEND, env: { ...process.env, PORT: String(PORT), SELF_URL: BASE, X402_CONFIRM_ATTEMPTS: "15", NAV_SCHEDULER: "off" }, stdio: ["ignore", "ignore", "inherit"] });
   try {
     let up = false;
     for (let i = 0; i < 60 && !up; i++) {

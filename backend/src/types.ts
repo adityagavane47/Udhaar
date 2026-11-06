@@ -116,6 +116,23 @@ export interface Invoice {
   /** INR-equivalent paid for units, per account. Used for Holder.amountPaid. */
   amountPaidBy: Record<string, number>;
   repayment?: Repayment;
+  /** Set by the NAV feed once the due date has been missed. A repaid invoice keeps it as history. */
+  overdue?: boolean;
+}
+
+/** One NAV message on the "Udhaar NAV feed" HCS topic. */
+export interface NavPublication {
+  invoiceId: string;
+  bondTokenId: string;
+  nav: number;
+  annualRatePct: number;
+  daysRemaining: number;
+  timestamp: string;
+  topicId: string;
+  transactionId: string;
+  consensusTimestamp?: string;
+  hashscanUrl: string;
+  trigger: "daily" | "on-demand";
 }
 
 export interface KycRequest {
@@ -253,4 +270,10 @@ export interface State {
   reportPayments: Record<string, ReportPayment>;
   /** Newest first. */
   agentRuns: AgentRun[];
+  nav: {
+    /** UTC day (YYYY-MM-DD) of the last complete daily run. */
+    lastDailyDate?: string;
+    /** The last message published for each invoice. */
+    latest: Record<string, NavPublication>;
+  };
 }

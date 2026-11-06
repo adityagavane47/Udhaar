@@ -5,7 +5,7 @@ import type { AuditEntry, State } from "./types.js";
 
 const STORE_PATH = `${config.dataDir.replace(/[\\/]$/, "")}/store.json`;
 
-const emptyState = (): State => ({ version: 1, nextInvoiceNumber: 1, invoices: {}, kyc: {}, purchases: {}, ledger: {}, audit: [], reportPayments: {}, agentRuns: [] });
+const emptyState = (): State => ({ version: 1, nextInvoiceNumber: 1, invoices: {}, kyc: {}, purchases: {}, ledger: {}, audit: [], reportPayments: {}, agentRuns: [], nav: { latest: {} } });
 
 /** Spread over the empty state, so a store saved before a field existed still loads. */
 export const state: State = { ...emptyState(), ...(existsSync(STORE_PATH) ? (JSON.parse(readFileSync(STORE_PATH, "utf8")) as Partial<State>) : {}) };

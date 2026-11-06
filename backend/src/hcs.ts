@@ -9,6 +9,7 @@ export interface HcsTopics {
   registryTopicId: string;
   confirmationTopicId: string;
   agentAuditTopicId?: string;
+  navTopicId?: string;
 }
 
 interface MirrorTopicMessage {
@@ -76,6 +77,17 @@ export async function ensureAgentAuditTopic(): Promise<string> {
   known.agentAuditTopicId = await createTopic("hcs:topic:agent-audit", "Udhaar agent spending audit log", investor);
   writeFileSync(config.hcsRecordPath, `${JSON.stringify(known, null, 2)}\n`);
   return known.agentAuditTopicId;
+}
+
+/** The NAV feed. Like the registry, only the admin key can write to it, so a price on it is the platform's own. */
+export async function ensureNavTopic(): Promise<string> {
+  const known = await ensureTopics();
+  if (known.navTopicId) return known.navTopicId;
+  const admin = await getParty("ADMIN");
+  known.navTopicId = await createTopic("hcs:topic:nav-feed", "Udhaar NAV feed", admin);
+  writeFileSync(config.hcsRecordPath, `${JSON.stringify(known, null, 2)}
+`);
+  return known.navTopicId;
 }
 
 export async function submitMessage(topicId: string, payer: Party, message: string, key: string): Promise<TxRecord & { replayed: boolean }> {

@@ -84,7 +84,7 @@ let investorToken: string | undefined;
 const TEST_PASSCODE = randomBytes(16).toString("hex");
 
 async function startServer(crashAt?: string) {
-  const env: NodeJS.ProcessEnv = { ...process.env, PORT: String(PORT), DATA_DIR, DEMO_ADMIN_PASSCODE: TEST_PASSCODE };
+  const env: NodeJS.ProcessEnv = { ...process.env, PORT: String(PORT), DATA_DIR, DEMO_ADMIN_PASSCODE: TEST_PASSCODE, NAV_SCHEDULER: "off" };
   if (crashAt) env.UDHAAR_CRASH_AT = crashAt;
   else delete env.UDHAAR_CRASH_AT;
   const child = spawn(process.execPath, ["--import", "tsx", "src/server.ts"], { cwd: BACKEND, env, stdio: ["ignore", "pipe", "pipe"] });

@@ -32,6 +32,18 @@ export function discountPctFor(grade: Grade, wholeDaysToDue: number): number | n
 /** To the paisa, because uINR has 2 decimals and whole rupees would erase the return on short invoices. */
 export const discountedUnitPrice = (unitFaceValue: number, discountPct: number) => Math.round(unitFaceValue * (100 - discountPct)) / 100;
 
+/**
+ * What one unit is worth with `wholeDaysRemaining` days to the due date: face value × (1 − annual rate × days / 365),
+ * to the paisa. It runs through the same two functions that set the issue price, so on the day a bond is
+ * priced its NAV equals the price. At zero days it is face value. Null when there's no valid price.
+ */
+export function navPerUnit(grade: Grade, unitFaceValue: number, wholeDaysRemaining: number): number | null {
+  if (GRADE_ANNUAL_RATE_PCT[grade] === null || wholeDaysRemaining < 0) return null;
+  if (wholeDaysRemaining === 0) return Math.round(unitFaceValue * 100) / 100;
+  const discount = discountPctFor(grade, wholeDaysRemaining);
+  return discount === null ? null : discountedUnitPrice(unitFaceValue, discount);
+}
+
 export interface FraudFindings {
   cycles: string[][];
   sharedDirectors: GraphPerson[];

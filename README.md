@@ -161,6 +161,7 @@ sequenceDiagram
 | **Asset Tokenization Studio (ATS) bonds**, v8 factory `0.0.9213391` | One bond per invoice. Operations used: `deployBond` (factory), `addToControlList` (allowlist), `issue`, `transfer`, `pause` / `unpause`, `freezePartialTokens` / `unfreezePartialTokens`, `fullRedeemAtMaturity` (burn at repayment) |
 | **HTS: uINR** `0.0.11327250` | Test rupee stablecoin, 2 decimals. Fee schedule: **1% to POOL, paid by the sender on top**, plus a zero-charge second row that makes **REPAYMENT an exempt fee collector**, so repayments and payouts carry no fee. No admin key |
 | **HCS topics** | `registryTopicId` `0.0.11327836` (invoice fingerprints, duplicate guard), `confirmationTopicId` `0.0.11327838` (signed buyer confirmations), `agentAuditTopicId` `0.0.11332556` (every agent payment and decision; only the investor's key can write, no admin key) |
+| **HCS: Udhaar NAV feed** | A daily NAV per token for every tokenized invoice, published to its own topic (admin key only), plus on demand with `POST /nav/publish`. NAV = face value × (1 − annual rate × days remaining / 365), from the same pricing code as the issue price. An overdue invoice gets no price. `GET /nav/:invoiceId` is free. Topic `navTopicId` `0.0.11337348` ([HashScan](https://hashscan.io/testnet/topic/0.0.11337348)), saved in `backend/deployments/hcs.json`. Bonds tokenized before grades were saved (INV-0002 to 0005) have no rate to work from and are skipped |
 | **Mirror node** | Detects buyer repayments, reads on-chain repayment history for the Trust Score, verifies x402 settlements, reads topic messages |
 | **x402 with the facilitator** | Pay-per-call risk reports in uINR, settled through `https://x402.org/facilitator`, which pays the HBAR fee. Packages `@x402/core` and `@x402/hedera` |
 | **HashPack via WalletConnect** | The web app connects a HashPack wallet, **read-only** for now: it shows the wallet but doesn't sign. Demo trades are signed by pre-funded personas |
@@ -255,6 +256,9 @@ The facilitator is public and needs no API key. To use another, set `FACILITATOR
 | HCS invoice registry | [0.0.11327836](https://hashscan.io/testnet/topic/0.0.11327836) |
 | HCS buyer confirmations | [0.0.11327838](https://hashscan.io/testnet/topic/0.0.11327838) |
 | HCS agent audit log | [0.0.11332556](https://hashscan.io/testnet/topic/0.0.11332556) |
+| HCS NAV feed | [0.0.11337348](https://hashscan.io/testnet/topic/0.0.11337348) |
+| NAV published for INV-0006 (999.56) | [1793958355.504763920](https://hashscan.io/testnet/transaction/1793958355.504763920) |
+| NAV published for INV-0007 (999.67) | [1793958358.878345104](https://hashscan.io/testnet/transaction/1793958358.878345104) |
 
 **Trust layer proof**
 
@@ -312,6 +316,12 @@ The facilitator is public and needs no API key. To use another, set `FACILITATOR
 | Setup, architecture, payment flow | This README |
 | Video of 5 minutes or less | TODO |
 
+**Oracle / NAV feed**
+
+| Requirement | Where it's met |
+|---|---|
+| Oracle / NAV feed | A daily NAV per token on the HCS topic "Udhaar NAV feed" (`backend/src/nav.ts`), on demand with `POST /nav/publish`. Free read: `GET /nav/:invoiceId`. The current NAV and its HCS proof are in the paid risk report. Published on testnet: [topic 0.0.11337348](https://hashscan.io/testnet/topic/0.0.11337348), NAV messages for [INV-0006](https://hashscan.io/testnet/transaction/1793958355.504763920) and [INV-0007](https://hashscan.io/testnet/transaction/1793958358.878345104) |
+
 ## Run it locally
 
 **Prerequisites:** Node.js 20+ (24 recommended), Hedera testnet ECDSA accounts with HBAR.
@@ -365,7 +375,7 @@ npm install
 npm run dev
 ```
 
-**Tests** (in `backend/`): `npm run test:risk` and `npm run test:trust` spend no HBAR. `npm run test:x402` uses a fake facilitator and spends nothing. `npm run test:api`, `test:auth` and `test:x402:live` use the real testnet and spend HBAR.
+**Tests** (in `backend/`): `npm run test:risk`, `npm run test:trust` and `npm run test:nav` spend no HBAR. `npm run test:x402` uses a fake facilitator and spends nothing. `npm run test:api`, `test:auth` and `test:x402:live` use the real testnet and spend HBAR.
 
 One-off setup scripts (already run for this deployment): `npm run issue-bond` and `npm run create-stablecoin`. Routes are documented in [`docs/API.md`](docs/API.md).
 

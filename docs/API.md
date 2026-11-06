@@ -173,6 +173,7 @@ Set these in `.env`, then restart the server.
 | --- | --- | --- |
 | `DEMO_ADMIN_PASSCODE` | None | Required for admin login |
 | `DEMO_ADMIN_TOKEN_MINUTES` | `30` | How long an admin token lasts |
+| `NAV_SCHEDULER` | on | Set to `off` to stop the server publishing NAV once a day. `POST /nav/publish` still works |
 | `DEMO_INVESTOR_TOKEN_MINUTES` | `30` | How long an investor session lasts |
 | `FACILITATOR_URL` | `https://x402.org/facilitator` | The x402 facilitator. `https://api.testnet.blocky402.com` also works |
 | `AGENT_DAILY_RUN_CAP` | `20` | Agent runs a UTC day, across all callers |
@@ -227,6 +228,7 @@ interface Invoice {
   signedQr?: string;
   confirmationPayload?: string;
   tokenization?: object;
+  overdue?: boolean;         // Set by the NAV feed once the due date is missed
 }
 ```
 
@@ -698,10 +700,13 @@ The report itself has this shape:
       flagged: boolean;
     }[];
   };
+  nav: NavView | null;      // Current NAV and its HCS proof. Null when the invoice has no bond, such as a simulated one
   hashscanUrl: string;
   links: Link[];
 }
 ```
+
+`nav` is the same object [`GET /nav/:invoiceId`](#get-navinvoiceid) returns. It is added to the paid report, and `POST /risk/:invoiceId/buy-report` returns it too.
 
 The report never includes people's names, addresses or phone numbers. An invoice priced by the risk engine is scored as of the moment it was priced, so its grade and discount stay the ones that set its price. Invoices tokenized earlier have no such moment, so their `suggestedDiscountPct` keeps falling as the due date nears, while `appliedDiscountPct` stays at 4.
 
@@ -966,6 +971,96 @@ Response: `{ source: "mock", irn, signedQr, claims, hashscanUrl, links }`. Send 
 #### GET /mock-irp/public-key
 
 The public key record: `{ source: "mock", alg: "ES256", kid, jwk, ... }`.
+
+## NAV feed
+
+Once a day the server publishes each tokenized invoice's NAV, the value of one token, to a public HCS topic called **Udhaar NAV feed**. The topic is created on the first publish, and its ID is saved in `backend/deployments/hcs.json` as `navTopicId`. Only the admin key can write to it, so a price on the topic is the platform's own.
+
+**NAV per token = face value × (1 − annual rate × days remaining / 365), rounded to the paisa.** It uses the same pricing code as the issue price: the annual rate is the one for the grade the bond was priced with (A 12%, B 16%, C 20%), and days are counted to the invoice's due date, rounded up. On the day a bond is priced its NAV equals its unit price, and it rises to face value as the due date nears.
+
+**Overdue.** The due day still counts. From the day after, the invoice is `overdue`: it has no NAV, nothing is published for it, and the invoice gets `overdue: true`. A repaid invoice has no NAV either.
+
+**What is published.** One message per invoice, as JSON:
+
+```ts
+{
+  v: 1; type: "nav.published";
+  invoiceId: string;
+  bondTokenId: string;      // The bond's contract ID
+  nav: number;              // Per token, in rupees
+  annualRatePct: number;    // 12, 16 or 20
+  daysRemaining: number;    // Whole days to the due date
+  timestamp: string;        // ISO 8601
+}
+```
+
+**When.** A check runs when the server starts and then every hour. It publishes once per UTC day, and tries again at the next check if any invoice failed. The same day's retry reuses its transaction key, so a retry can't post twice. [`POST /nav/publish`](#post-navpublish) publishes on demand.
+
+### GET /nav/:invoiceId
+
+Free. Calculated when you ask, so `nav` is always current, with the last NAV that was published for this invoice.
+
+```ts
+type NavView = {
+  invoiceId: string;
+  bondTokenId: string;
+  symbol: string;
+  status: "active" | "overdue" | "repaid";
+  faceValue: number;
+  annualRatePct: number;
+  daysRemaining: number;     // Negative once overdue
+  nav: number | null;        // Null when overdue or repaid
+  dueDate: string;
+  asOf: string;
+  topic: { id: string; hashscanUrl: string } | null;   // The HCS topic. Null until the first publish
+  lastPublished: {
+    invoiceId: string; bondTokenId: string; nav: number; annualRatePct: number; daysRemaining: number;
+    timestamp: string;
+    trigger: "daily" | "on-demand";
+    topicId: string; topicUrl: string;
+    transactionId: string;
+    consensusTimestamp?: string;
+    hashscanUrl: string;     // The message's transaction on HashScan
+  } | null;
+  hashscanUrl: string;       // The last published message, or the topic, or the bond
+  links: Link[];
+};
+```
+
+`lastPublished` can be older than `nav`. It is the proof of the last price on the topic, not of the one calculated now.
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 404 | `INVOICE_NOT_FOUND` | No such invoice |
+| 409 | `NOT_TOKENIZED` | The invoice has no bond yet |
+| 409 | `NOT_PRICED` | The bond was tokenized before grades were saved, so there is no rate to work from |
+| 409 | `SEEDED_INVOICE` | A simulated invoice |
+
+### POST /nav/publish
+
+**Admin token required.** Publishes now, and spends a little HBAR. It creates the topic if it doesn't exist yet. It counts against the HBAR rate limit.
+
+**Body, optional:** `{ invoiceId?: string }`. Without it, every live tokenized invoice is published. Unknown fields are refused.
+
+**Response `200`**
+
+```ts
+{
+  trigger: "on-demand";
+  asOf: string;
+  published: NavView["lastPublished"][];                // One per invoice
+  skipped: { invoiceId: string; reason: "overdue" | "unpriced" }[];  // Overdue: marked, no price. Unpriced: tokenized before grades were saved
+  failed: { invoiceId: string; error: string }[];       // Others still go through
+  hashscanUrl: string;
+  links: Link[];
+}
+```
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 401 | `ADMIN_TOKEN_REQUIRED`, `ADMIN_TOKEN_INVALID`, `ADMIN_TOKEN_EXPIRED` | Log in again |
+| 404 | `INVOICE_NOT_FOUND` | `invoiceId` is unknown |
+| 409 | `NOT_TOKENIZED`, `ALREADY_REPAID` | That invoice has no NAV to publish |
 
 ## Agent
 

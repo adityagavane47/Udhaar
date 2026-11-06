@@ -12,6 +12,7 @@ import { getAccount } from "./hedera/mirror.js";
 import { accountName, buyUnits, confirmInvoice, createInvoice, getInvoice, holdersOf, invoiceView, paySupplier, tokenizeInvoice } from "./invoices.js";
 import { approveKyc, liveInvoices, rejectKyc, submitKyc } from "./kyc.js";
 import { limits } from "./limits.js";
+import { navForReport, navView, publishNav } from "./nav.js";
 import { repayInvoice } from "./repayment.js";
 import { isSeededInvoiceId, marketplaceDemoInvoice, riskReport, riskSummary, seededInvoiceView } from "./risk/service.js";
 import { serialized, state } from "./store.js";
@@ -61,6 +62,7 @@ const schemas = {
   buy: z.object({ investorId: accountId.optional(), units: positiveInt, idempotencyKey: z.string().min(1).optional() }),
   paySupplier: z.object({ supplierId: accountId, units: positiveInt, amount: z.number().positive().optional(), idempotencyKey: z.string().min(1).optional() }),
   freeze: z.object({ accountId, units: positiveInt.optional() }),
+  navPublish: z.strictObject({ invoiceId: z.string().min(1).optional() }),
   // Strict, so a misspelled limit is refused rather than ignored.
   agentRules: z.strictObject({
     reportBudget: z.number().positive().max(config.agentMaxReportBudget),
@@ -85,7 +87,7 @@ const mutation = (status: number, work: (req: Request) => Promise<object>): Requ
     res.status(status).json(await serialized(() => work(req)));
   };
 
-function knownTopics(): { registryTopicId: string; confirmationTopicId: string; agentAuditTopicId?: string } | undefined {
+function knownTopics(): { registryTopicId: string; confirmationTopicId: string; agentAuditTopicId?: string; navTopicId?: string } | undefined {
   return existsSync(config.hcsRecordPath) ? JSON.parse(readFileSync(config.hcsRecordPath, "utf8")) : undefined;
 }
 
@@ -96,6 +98,7 @@ function topicLinks(): Link[] {
         { label: "HCS invoice registry", url: hashscan.topic(topics.registryTopicId) },
         { label: "HCS buyer confirmations", url: hashscan.topic(topics.confirmationTopicId) },
         ...(topics.agentAuditTopicId ? [{ label: "HCS agent audit log", url: hashscan.topic(topics.agentAuditTopicId) }] : []),
+        ...(topics.navTopicId ? [{ label: "HCS NAV feed", url: hashscan.topic(topics.navTopicId) }] : []),
       ]
     : [];
 }
@@ -107,7 +110,7 @@ async function buyReportAsInvestor(invoiceId: string) {
   if (earlier) {
     const report = await riskReport(invoiceId);
     const settlement = settlementOf(earlier);
-    return { ...report, settlement, replayed: true, hashscanUrl: settlement.hashscanUrl, links: [{ label: "x402 settlement", url: settlement.hashscanUrl, txId: settlement.transactionId }, ...report.links] };
+    return { ...report, nav: navForReport(invoiceId), settlement, replayed: true, hashscanUrl: settlement.hashscanUrl, links: [{ label: "x402 settlement", url: settlement.hashscanUrl, txId: settlement.transactionId }, ...report.links] };
   }
 
   const cost = config.reportPriceBaseUnits + uinrFeeBaseUnits(config.reportPriceBaseUnits);
@@ -278,7 +281,7 @@ export function createApp() {
       return;
     }
     const { settlement } = charge;
-    res.json({ ...report, settlement, hashscanUrl: settlement.hashscanUrl, links: [{ label: "x402 settlement", url: settlement.hashscanUrl, txId: settlement.transactionId }, ...report.links] });
+    res.json({ ...report, nav: navForReport(invoiceId), settlement, hashscanUrl: settlement.hashscanUrl, links: [{ label: "x402 settlement", url: settlement.hashscanUrl, txId: settlement.transactionId }, ...report.links] });
   });
   app.post(
     "/risk/:invoiceId/buy-report",
@@ -289,6 +292,22 @@ export function createApp() {
   app.get("/.well-known/x402", (req, res) => {
     res.json(serviceManifest(`${req.protocol}://${req.get("host")}`));
   });
+
+  // NAV feed: reading is free, publishing is admin-only.
+  app.get("/nav/:invoiceId", (req, res) => {
+    res.json(navView(param(req, "invoiceId")));
+  });
+  app.post(
+    "/nav/publish",
+    requireAdmin,
+    limits.hbar,
+    mutation(200, async (req) => {
+      const input = parse(schemas.navPublish, req.body);
+      const run = await publishNav({ trigger: "on-demand", ...(input.invoiceId ? { invoiceId: input.invoiceId } : {}) });
+      const last = run.published[0];
+      return { ...run, hashscanUrl: last?.hashscanUrl ?? hashscan.token(config.uinrTokenId), links: [...run.published.map((item) => ({ label: `NAV ${item.invoiceId}`, url: item.hashscanUrl, txId: item.transactionId })), ...topicLinks().filter((link) => link.label === "HCS NAV feed")] };
+    }),
+  );
 
   // Trust: free. Outside data in these responses is MOCK, and says so.
   app.get("/trust/company/:id", async (req, res) => {
