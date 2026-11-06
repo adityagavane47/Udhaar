@@ -17,9 +17,9 @@ export interface AllowlistResult {
   txId?: string;
 }
 
-/** Bonds that can still gain holders: tokenized, and with no repayment started. */
+/** Bonds that can still gain holders: tokenized, not archived, and with no repayment started. */
 export const liveInvoices = (): Invoice[] =>
-  Object.values(state.invoices).filter((invoice) => invoice.tokenization?.status === "complete" && invoice.tokenization.bond && !invoice.repayment && invoice.status !== "repaid");
+  Object.values(state.invoices).filter((invoice) => !invoice.archived && invoice.tokenization?.status === "complete" && invoice.tokenization.bond && !invoice.repayment && invoice.status !== "repaid");
 
 export function getKyc(id: string): KycRequest {
   const request = state.kyc[id];

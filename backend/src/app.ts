@@ -250,7 +250,7 @@ export function createApp() {
   app.get("/invoices", async (_req, res) => {
     const links = topicLinks();
     const demo = await marketplaceDemoInvoice();
-    res.json({ invoices: [...Object.values(state.invoices).map(invoiceView), ...(demo ? [demo] : [])], hashscanUrl: links[0]?.url ?? hashscan.token(config.uinrTokenId), links });
+    res.json({ invoices: [...Object.values(state.invoices).filter((invoice) => !invoice.archived).map(invoiceView), ...(demo ? [demo] : [])], hashscanUrl: links[0]?.url ?? hashscan.token(config.uinrTokenId), links });
   });
   app.get("/invoices/:id", async (req, res) => {
     const id = param(req, "id");
@@ -344,7 +344,7 @@ export function createApp() {
   app.get("/agent/runs", (_req, res) => {
     const auditTopicId = knownTopics()?.agentAuditTopicId;
     const link = auditTopicId ? hashscan.topic(auditTopicId) : hashscan.token(config.uinrTokenId);
-    res.json({ runs: state.agentRuns, hashscanUrl: link, links: [{ label: auditTopicId ? "Agent audit log (HCS)" : "uINR token", url: link }] });
+    res.json({ runs: state.agentRuns.filter((run) => !run.archived), hashscanUrl: link, links: [{ label: auditTopicId ? "Agent audit log (HCS)" : "uINR token", url: link }] });
   });
 
   // KYC
@@ -393,7 +393,8 @@ export function createApp() {
     res.json({ accounts: await balances(), uinrTokenId: config.uinrTokenId, hashscanUrl: hashscan.token(config.uinrTokenId), links: [{ label: "uINR token", url: hashscan.token(config.uinrTokenId) }] });
   });
   app.get("/audit", (_req, res) => {
-    res.json({ entries: state.audit, hashscanUrl: state.audit[0]?.hashscanUrl ?? hashscan.token(config.uinrTokenId), links: topicLinks() });
+    const entries = state.audit.filter((entry) => !entry.archived);
+    res.json({ entries, hashscanUrl: entries[0]?.hashscanUrl ?? hashscan.token(config.uinrTokenId), links: topicLinks() });
   });
 
   app.use((req, res) => {

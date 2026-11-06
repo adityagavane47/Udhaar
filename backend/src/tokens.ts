@@ -92,7 +92,7 @@ export async function listTokens() {
   for (const invoice of Object.values(state.invoices)) {
     const plan = invoice.tokenization;
     const bond = plan?.bond;
-    if (!plan || !bond || plan.status !== "complete") continue;
+    if (invoice.archived || !plan || !bond || plan.status !== "complete") continue;
     tokens.push({
       tokenId: bond.contractId,
       symbol: bond.symbol,

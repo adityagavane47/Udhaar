@@ -118,6 +118,8 @@ export interface Invoice {
   repayment?: Repayment;
   /** Set by the NAV feed once the due date has been missed. A repaid invoice keeps it as history. */
   overdue?: boolean;
+  /** Set by demo:reset. Hidden from every list, but still found by ID, so history and duplicate checks keep working. */
+  archived?: true;
 }
 
 /** One NAV message on the "Udhaar NAV feed" HCS topic. */
@@ -182,6 +184,8 @@ export interface AuditEntry {
   txId?: string;
   invoiceId?: string;
   status: "success" | "rejected";
+  /** Set by demo:reset. Hidden from GET /audit. */
+  archived?: true;
 }
 
 /** One settled x402 payment. Saved so a payment can never be used for a second report. */
@@ -237,6 +241,8 @@ export interface AgentSkip {
 }
 
 export interface AgentRun {
+  /** Set by demo:reset. Hidden from GET /agent/runs but still counted toward the daily cap. */
+  archived?: true;
   runId: string;
   status: "running" | "completed" | "stopped" | "interrupted";
   stopReason?: string;

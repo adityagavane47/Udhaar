@@ -22,6 +22,9 @@
     "test:x402": "tsx scripts/test-x402.ts",
     "test:nav": "tsx scripts/test-nav.ts",
     "test:demo-maturity": "tsx scripts/test-demo-maturity.ts",
+    "test:demo-reset": "tsx scripts/test-demo-reset.ts",
+    "demo:reset": "tsx scripts/demo-reset.ts",
+    "demo:restore": "tsx scripts/demo-restore.ts",
     "test:x402:live": "tsx scripts/test-x402-live.ts"
   },
   "dependencies": {

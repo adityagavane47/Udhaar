@@ -377,6 +377,8 @@ npm install
 npm run dev
 ```
 
+**Reset for a recording** (in `backend/`, with the backend stopped): `npm run demo:reset` backs up the data directory to `backend/data/backups/<timestamp>`, archives every invoice, agent run and audit entry (hidden from lists, still found by ID, so duplicate checks, trust history, NAV and paid reports keep working), makes the next invoice INV-0042, and sets the investor's KYC back to pending. It sends no transactions. `npm run demo:restore <backup>` undoes it.
+
 **Tests** (in `backend/`): `npm run test:risk`, `npm run test:trust` and `npm run test:nav` spend no HBAR. `npm run test:x402` uses a fake facilitator and spends nothing. `npm run test:api`, `test:auth` and `test:x402:live` use the real testnet and spend HBAR.
 
 One-off setup scripts (already run for this deployment): `npm run issue-bond` and `npm run create-stablecoin`. Routes are documented in [`docs/API.md`](docs/API.md).

@@ -135,7 +135,7 @@ export async function publishNav(options: { trigger: "daily" | "on-demand"; date
   const date = options.date ?? new Date();
   const targets = options.invoiceId
     ? [tokenizedInvoice(options.invoiceId)]
-    : Object.values(state.invoices).filter((invoice) => invoice.tokenization?.status === "complete" && invoice.tokenization.bond);
+    : Object.values(state.invoices).filter((invoice) => !invoice.archived && invoice.tokenization?.status === "complete" && invoice.tokenization.bond);
   const run: NavRun = { trigger: options.trigger, asOf: date.toISOString(), published: [], skipped: [], failed: [] };
 
   for (const invoice of targets) {

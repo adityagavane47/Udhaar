@@ -12,7 +12,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 process.env.DATA_DIR = `${mkdtempSync(join(tmpdir(), "udhaar-demo-"))}/`;
-delete process.env.DEMO_SHORT_MATURITY_MINUTES;
+// Empty, not deleted: dotenv would refill a deleted variable from .env, but never overrides one that is set.
+process.env.DEMO_SHORT_MATURITY_MINUTES = "";
 
 let passes = 0;
 let failures = 0;
