@@ -14,8 +14,8 @@ Built solo at **ETHGlobal Mumbai 2026** for the Hedera tracks *Tokenize Anything
 
 ## Demo
 
-- **Video (5 min or less):** TODO
-- **Live app:** TODO
+- **Video (5 min or less):** [Watch on YouTube](https://www.youtube.com/watch?v=MzwFGgrLNO4)
+- **Live app:** Run locally (see below); live deployment link to follow
 
 Six personas, each a real testnet account (three of them buyers). Pick one on the login page, or switch in the header:
 
@@ -36,7 +36,7 @@ One invoice, end to end (the **INV-0042** story below is an illustration; the li
 2. **Buyer confirms.** BigBuild posts a message to an HCS topic, signed by its own account, saying it owes the amount.
 3. **Risk check.** The risk engine scores the buyer. BigBuild gets **Grade A**, which earns investors **12% a year**.
 4. **Tokenize.** The admin issues an ATS bond: **100 units of ₹1,000 face value**, maturity on the due date, allowlist-only transfers. All 100 units go to Ramesh.
-5. **Investors buy.** Priya pays **₹970.41 per unit** in uINR (a test rupee stablecoin), so Ramesh receives **₹97,041 today**. A 1% fee goes on top to an investor protection pool.
+5. **Investors buy.** Priya is KYC-approved first: the operator's KYC card shows a **wallet check** read from the mirror node (a warning if the account is under 7 days old or its latest 100 transfers touch a blocklisted account; the blocklist is mock data), and approving with warnings asks for confirmation. Then Priya pays **₹970.41 per unit** in uINR (a test rupee stablecoin), so Ramesh receives **₹97,041 today**. A 1% fee goes on top to an investor protection pool.
 6. **Pay your supplier.** Ramesh sends 20 units to Suresh, his sand supplier, as payment for sand. The token rejects any recipient who isn't KYC-verified.
 7. **Controls.** If something looks wrong, the operator **pauses** the token or **freezes** units on one holder.
 8. **Repayment.** On the due date BigBuild pays ₹1,00,000 to a REPAYMENT account. The backend sees it on the mirror node, then for every holder **burns their units first and pays them second**: ₹1,000 per unit, fee-free. Priya turns ₹970.41 per unit into ₹1,000.
@@ -255,6 +255,8 @@ The facilitator is public and needs no API key. To use another, set `FACILITATOR
 | uINR stablecoin | [0.0.11327250](https://hashscan.io/testnet/token/0.0.11327250) |
 | POOL (1% fee collector) | [0.0.11327247](https://hashscan.io/testnet/account/0.0.11327247) |
 | REPAYMENT (exempt collector) | [0.0.11327249](https://hashscan.io/testnet/account/0.0.11327249) |
+| Apex Infra Pvt Ltd (buyer, good payer) | [0.0.11339577](https://hashscan.io/testnet/account/0.0.11339577) |
+| Nova Retail (buyer, risky payer) | [0.0.11339578](https://hashscan.io/testnet/account/0.0.11339578) |
 | HCS invoice registry | [0.0.11327836](https://hashscan.io/testnet/topic/0.0.11327836) |
 | HCS buyer confirmations | [0.0.11327838](https://hashscan.io/testnet/topic/0.0.11327838) |
 | HCS agent audit log | [0.0.11332556](https://hashscan.io/testnet/topic/0.0.11332556) |
@@ -302,11 +304,13 @@ The facilitator is public and needs no API key. To use another, set `FACILITATOR
 | Use ATS to issue and manage the asset | One ATS v8 bond per invoice, deployed through the factory (`backend/src/ats/bond.ts`) |
 | Deploy and demo on Hedera testnet | [Proof](#proof-on-hedera-testnet) above, full INV-0001 lifecycle |
 | Issuance, configuration, lifecycle operation | Issue, allowlist and roles, then redemption at maturity, freeze and pause |
-| Compliance controls | KYC allowlist, transfer restrictions, freeze, pause, GSTIN and e-invoice checks |
+| Compliance controls | KYC allowlist, a KYC wallet check (account age and transfers against a mock blocklist, read from the mirror node), transfer restrictions, freeze, pause, GSTIN and e-invoice checks |
 | Custom fees and distributions | 1% pool fee on uINR; repayment paid to every holder |
 | Scheduled Transactions | Not built. See [Limitations](#limitations-and-next-steps) |
-| Contribution back to ATS | Not submitted. Candidate docs fixes are in [`docs/ATS_PR_NOTES.md`](docs/ATS_PR_NOTES.md) |
-| Public repo, video of 5 minutes or less | Public GitHub repo (confirm it is public before submitting). Video: TODO |
+| Contribution back to ATS | ✅ Opened [hashgraph/asset-tokenization-studio#1412](https://github.com/hashgraph/asset-tokenization-studio/pull/1412), a developer guide for server-side (headless) signing that answers open issue #1397; the guide is also at [`docs/ats-server-side-signing.md`](docs/ats-server-side-signing.md) |
+| Contracts verified on HashScan (where applicable) | No custom Solidity was written. Every bond is deployed by the official ATS v8 factory [`0.0.9213391`](https://hashscan.io/testnet/contract/0.0.9213391) |
+| Oracle pricing / NAV feed | A daily NAV per token on the HCS topic [`0.0.11337348`](https://hashscan.io/testnet/topic/0.0.11337348) (`GET /nav/:invoiceId`, `POST /nav/publish`; see the Oracle / NAV feed table below) |
+| Public repo, video of 5 minutes or less | Public GitHub repo. Video: [watch on YouTube](https://www.youtube.com/watch?v=MzwFGgrLNO4) |
 
 **AI Agents That Pay: x402 on Hedera**
 
@@ -316,7 +320,7 @@ The facilitator is public and needs no API key. To use another, set `FACILITATOR
 | Agent pays with no human approving | `POST /agent/run`, [one agent run](#one-agent-run) |
 | Settled transaction ID in the README | [Settled payments](#settled-payments) |
 | Setup, architecture, payment flow | This README |
-| Video of 5 minutes or less | TODO |
+| Video of 5 minutes or less | [Watch on YouTube](https://www.youtube.com/watch?v=MzwFGgrLNO4) |
 
 **Oracle / NAV feed**
 
@@ -382,11 +386,13 @@ npm install
 npm run dev
 ```
 
+**Demo maturity.** To show repayment live, set `DEMO_SHORT_MATURITY_MINUTES` (3 to 1440) in `.env`. The admin then sees a "Demo: short maturity" checkbox on Create token, and the bond matures that many minutes from now. Pricing and NAV still use the real days to the due date, which must be at least tomorrow, so the bond is priced close to face value. Every such bond is labelled "Demo maturity" in every portal, and the buyer's Pay button appears once it has matured.
+
 **Reset for a recording** (in `backend/`, with the backend stopped): `npm run demo:reset` backs up the data directory to `backend/data/backups/<timestamp>`, archives every invoice, agent run and audit entry (hidden from lists, still found by ID, so duplicate checks, trust history, NAV and paid reports keep working), makes the next invoice INV-0042, and sets the investor's KYC back to pending. It sends no transactions. `npm run demo:restore <backup>` undoes it.
 
-**Tests** (in `backend/`): `npm run test:risk`, `npm run test:trust` and `npm run test:nav` spend no HBAR. `npm run test:x402` uses a fake facilitator and spends nothing. `npm run test:api`, `test:auth` and `test:x402:live` use the real testnet and spend HBAR.
+**Tests** (in `backend/`): `npm run test:risk`, `test:trust`, `test:nav`, `test:buyers`, `test:wallet-check`, `test:demo-maturity` and `test:demo-reset` spend no HBAR. `npm run test:x402` uses a fake facilitator and spends nothing. `npm run test:api`, `test:auth` and `test:x402:live` use the real testnet and spend HBAR.
 
-One-off setup scripts (already run for this deployment): `npm run issue-bond` and `npm run create-stablecoin`. Routes are documented in [`docs/API.md`](docs/API.md).
+One-off setup scripts (already run for this deployment): `npm run issue-bond`, `npm run create-stablecoin`, `npm run create-buyer-accounts` (the Apex and Nova accounts, written to `.env`) and `npm run add-buyer-companies` (their mock company data). Routes are documented in [`docs/API.md`](docs/API.md).
 
 ## Repository layout
 
@@ -398,7 +404,7 @@ docs/      PRD, overview, API reference, data notes, AI usage, prompts, ATS PR n
 
 ## Design decisions
 
-- **Contracts, not the ATS SDK:** the SDK signs only through wallets, so the backend calls the v8 contracts directly and signs with the Hedera SDK.
+- **Contracts, not the ATS SDK:** the SDK signs only through wallets, so the backend calls the v8 contracts directly and signs with the Hedera SDK. We contributed this approach back to ATS (#1412).
 - **Invoice = bond:** an invoice bought at a discount and repaid at face value on a due date behaves like a zero-coupon bond, so the ATS bond type fits.
 - **Burn first, then pay:** units are burned from a saved holder snapshot before payment, so they can't move between payout and burn. Each payment is recorded, so a crash never pays anyone twice.
 - **Own stablecoin (uINR):** custom fees can't attach to ATS tokens, but they can attach to an HTS payment token. REPAYMENT is an exempt fee collector, so repayments and payouts are fee-free.
@@ -408,7 +414,7 @@ docs/      PRD, overview, API reference, data notes, AI usage, prompts, ATS PR n
 ## Limitations and next steps
 
 - **Custodial demo personas:** the backend holds all role keys so judges can click through without a wallet. Next: investors and businesses sign from their own wallets (HashPack is connected read-only today).
-- **Mocks:** the GST registry, IRP e-invoicing, credit bureau scores, MSME-1 dues and MSME Samadhaan complaints are mocks. Next: a GST Suvidha Provider API, the real IRP, a credit bureau and the MSME portals.
+- **Mocks:** the GST registry, IRP e-invoicing, credit bureau scores, MSME-1 dues, MSME Samadhaan complaints, the company data behind the Apex and Nova buyers, and the wallet-check blocklist are mocks. Next: a GST Suvidha Provider API, the real IRP, a credit bureau and the MSME portals.
 - **Scheduled Transactions for auto-repayment:** repayment is triggered by the backend when it sees the buyer's payment. A Hedera Scheduled Transaction can only wait about 62 days, which is shorter than a 90-day invoice, so it needs a re-scheduling design.
 - **Account Aggregator:** read a business's bank data with consent, to check cash flow and confirm payments.
 - **Regulation:** retail tokenized securities aren't permitted in mainland India today. The realistic path is a technology layer for a licensed NBFC-factor or TReDS platform, tested in an RBI or IFSCA (GIFT City) sandbox.
@@ -425,4 +431,4 @@ Claude Code built the backend (Hedera integration, risk and trust layers, x402 a
 
 ## License
 
-MIT
+MIT. See [`LICENSE`](LICENSE). Copyright (c) 2026 Aditya Gavane.
