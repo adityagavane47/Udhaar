@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Udhaar — the khata, on-chain</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Kalam:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F1E8D2}
+a{color:#1B2340}a:hover{color:#B3261E}
+@keyframes writeIn{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes stampIn{0%{opacity:0;transform:scale(2.4)}60%{opacity:1;transform:scale(0.92)}80%{transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes drawDown{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.btn{transition:transform .15s ease,box-shadow .15s ease}
+.btn:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 #B3261E}
+@supports (animation-timeline: view()){
+.reveal{animation:fadeUp linear both;animation-timeline:view();animation-range:entry 0% cover 28%}
+.draw{transform-origin:top;animation:drawDown linear both;animation-timeline:view();animation-range:entry 10% cover 40%}
+.write{animation:writeIn linear both;animation-timeline:view();animation-range:entry 20% cover 45%}
+}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="background: #F1E8D2; color: #1B2340; font-family: 'IBM Plex Sans', system-ui, sans-serif; min-height: 100vh">
+
+<header style="border-bottom: 2px solid #1B2340">
+<div style="max-width: 1240px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 16px">
+<div style="display: flex; align-items: baseline; gap: 14px">
+<span lang="hi" style="font-family: Kalam, cursive; font-weight: 700; font-size: 34px; color: {{accent}}; line-height: 1">उधार</span>
+<span style="font-family: 'Instrument Serif', serif; font-size: 30px; line-height: 1">Udhaar</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid #1B2340; padding: 3px 8px">Hedera testnet</span>
+</div>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; align-items: center; gap: 28px; font-size: 15px">
+<a href="#chain" style="text-decoration: none">Who waits</a>
+<a href="#folios" style="text-decoration: none">How it works</a>
+<a href="#entries" style="text-decoration: none">Today's entries</a>
+<a href="#open" class="btn" style="text-decoration: none; background: #1B2340; color: #F1E8D2; padding: 12px 18px; font-weight: 600">Open the khata</a>
+</nav>
+</div>
+</header>
+
+<section style="max-width: 1240px; margin: 0 auto; padding: 80px 24px 96px; display: flex; flex-wrap: wrap; gap: 56px; align-items: center">
+<div style="flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: {{accent}}; animation: fadeUp .6s ease both">Bahi-khata, on-chain</span>
+<h1 style="margin: 0; animation: fadeUp .7s .1s ease both; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(48px, 6.4vw, 92px); line-height: 0.98; letter-spacing: -0.01em">Every business in India runs on udhaar. <span style="font-style: italic; color: {{accent}}">Now it settles itself.</span></h1>
+<p style="margin: 0; font-size: 19px; line-height: 1.6; max-width: 560px; animation: fadeUp .7s .25s ease both">Suppliers wait months for big buyers to pay. Udhaar turns a buyer-confirmed invoice into a token that investors fund today, that suppliers can pass down the chain, and that repays every holder automatically on the due date.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 14px; animation: fadeUp .7s .4s ease both">
+<a href="#open" class="btn" style="text-decoration: none; background: #1B2340; color: #F1E8D2; font-weight: 600; font-size: 17px; padding: 16px 26px">Open the khata</a>
+<a href="#entries" class="btn" style="text-decoration: none; border: 2px solid #1B2340; font-weight: 600; font-size: 17px; padding: 14px 24px">See it on HashScan</a>
+</div>
+</div>
+
+<div style="flex: 1 1 480px; min-width: 0; position: relative">
+<div style="background-color: #FBF6EA; background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 43px, #A9BEDB 43px, #A9BEDB 44px); border: 1px solid #C9B98F; box-shadow: 10px 10px 0 #1B2340; padding: 28px 28px 36px 76px; position: relative; font-family: Kalam, cursive; font-size: 21px; line-height: 44px">
+<div aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 56px; width: 2px; background: {{accent}}"></div>
+<div style="font-weight: 700; font-size: 24px; animation: writeIn .8s .2s ease-out both">Khata — Shree Ganesh Cement, Pune</div>
+<div style="display: grid; grid-template-columns: 70px minmax(0, 1fr) 120px; column-gap: 12px; animation: writeIn 1s .8s ease-out both"><span>01 Nov</span><span>BigBuild Ltd · 1,000 bags</span><span style="text-align: right">₹5,00,000</span></div>
+<div style="display: grid; grid-template-columns: 70px minmax(0, 1fr) 120px; column-gap: 12px; animation: writeIn 1s 1.4s ease-out both"><span>03 Nov</span><span>Suresh · sand, 40 loads</span><span style="text-align: right">₹50,000</span></div>
+<div style="display: grid; grid-template-columns: 70px minmax(0, 1fr) 120px; column-gap: 12px; animation: writeIn 1s 2s ease-out both"><span>05 Nov</span><span>Lakshmi Transport</span><span style="text-align: right">₹18,500</span></div>
+<div style="display: grid; grid-template-columns: 70px minmax(0, 1fr) 120px; column-gap: 12px; animation: writeIn 1s 2.6s ease-out both"><span>06 Nov</span><span style="color: #6B6F86">due from BigBuild: 30 Jan</span><span style="text-align: right; color: #6B6F86">90 days</span></div>
+</div>
+<div style="position: absolute; right: 18px; top: 74px; rotate: -9deg; animation: stampIn .55s 3.6s both; border: 4px double {{accent}}; color: {{accent}}; padding: 10px 16px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; background: rgba(251,246,234,0.85); line-height: 1.4; text-align: center">Tokenized<br>500 × ₹1,000<br><span style="font-size: 12px; font-weight: 500">bond 0.0.11328164</span></div>
+<div style="position: absolute; right: 70px; top: 166px; rotate: 4deg; animation: stampIn .5s 4.3s both; border: 3px solid #2F6B4F; color: #2F6B4F; padding: 6px 12px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; background: rgba(251,246,234,0.85)">Paid in units</div>
+</div>
+</section>
+
+<section aria-label="The arithmetic" style="background: #1B2340; color: #F1E8D2">
+<div style="max-width: 1240px; margin: 0 auto; padding: 72px 24px; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-end; justify-content: space-between">
+<div class="reveal" style="flex: 1 1 520px; min-width: 0; font-family: 'Instrument Serif', serif; font-size: clamp(40px, 5.2vw, 72px); line-height: 1.05">Pay <span style="font-style: italic; color: #F2B544">₹960</span> today.<br>Collect <span style="font-style: italic; color: #F2B544">₹1,000</span> on the due date.</div>
+<div class="reveal" style="flex: 0 1 380px; font-family: 'IBM Plex Mono', monospace; font-size: 16px; line-height: 2">
+<div style="display: flex; justify-content: space-between; gap: 24px"><span>Invoice</span><span>₹5,00,000</span></div>
+<div style="display: flex; justify-content: space-between; gap: 24px"><span>÷ face value</span><span>₹1,000</span></div>
+<div style="display: flex; justify-content: space-between; gap: 24px; border-top: 1px solid #F1E8D2; border-bottom: 4px double #F1E8D2"><span>Tokens</span><span>500</span></div>
+<div style="display: flex; justify-content: space-between; gap: 24px; color: #C9CDEB; font-size: 14px"><span>Grade A discount</span><span>4%</span></div>
+</div>
+</div>
+</section>
+
+<section id="chain" style="max-width: 1240px; margin: 0 auto; padding: 112px 24px; display: flex; flex-wrap: wrap; gap: 64px">
+<div class="reveal" style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: {{accent}}">Who waits</span>
+<h2 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(38px, 4.4vw, 60px); line-height: 1.02">The money stops one step too early.</h2>
+<p style="margin: 0; font-size: 18px; line-height: 1.6">India's TReDS platforms finance the supplier who sells to the big company. The smaller firms who supply <span style="font-style: italic">him</span> still wait. Ramesh can hand Suresh part of the invoice token instead of cash, and BigBuild's payment reaches Suresh directly.</p>
+<p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #5A5E78">MSMEs are owed ₹7.34 lakh crore in delayed payments · Delayed Payments Report 3.0, March 2024 figures</p>
+</div>
+<div style="flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column">
+<div class="reveal" style="border: 2px solid #1B2340; padding: 22px 26px; display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap">
+<span style="font-family: 'Instrument Serif', serif; font-size: 30px">BigBuild Ltd</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px">buyer · owes ₹5,00,000</span>
+</div>
+<div class="draw" style="margin-left: 40px; border-left: 2px dashed #1B2340; height: 44px"></div>
+<div class="reveal" style="border: 2px solid #1B2340; background: #FBF6EA; padding: 22px 26px; display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap">
+<span style="font-family: 'Instrument Serif', serif; font-size: 30px">Ramesh</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px">tier 1 · funded today</span>
+</div>
+<div class="draw" style="margin-left: 40px; border-left: 2px dashed {{accent}}; height: 72px; display: flex; align-items: center; padding-left: 20px">
+<span class="write" style="font-family: Kalam, cursive; font-size: 22px; color: {{accent}}">TReDS stops here. Udhaar keeps going.</span>
+</div>
+<div class="reveal" style="border: 2px solid {{accent}}; padding: 22px 26px; display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap">
+<span style="font-family: 'Instrument Serif', serif; font-size: 30px">Suresh</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: {{accent}}">tier 2 · paid in invoice units</span>
+</div>
+</div>
+</section>
+
+<section id="folios" style="border-top: 2px solid #1B2340; border-bottom: 2px solid #1B2340">
+<div class="reveal" style="max-width: 1240px; margin: 0 auto; padding: 0 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr))">
+<div style="padding: 40px 28px 44px 0; border-right: 1px solid #C9B98F; display: flex; flex-direction: column; gap: 12px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.08em; color: {{accent}}">FOLIO 01</span>
+<h3 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 32px">Write it</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6">The invoice is uploaded and its fingerprint goes into a public registry. The same invoice can't be financed twice.</p>
+</div>
+<div style="padding: 40px 28px 44px; border-right: 1px solid #C9B98F; display: flex; flex-direction: column; gap: 12px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.08em; color: {{accent}}">FOLIO 02</span>
+<h3 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 32px">Sign it</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6">The buyer confirms the debt with a message signed by its own Hedera account. No signature, no listing.</p>
+</div>
+<div style="padding: 40px 28px 44px; border-right: 1px solid #C9B98F; display: flex; flex-direction: column; gap: 12px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.08em; color: {{accent}}">FOLIO 03</span>
+<h3 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 32px">Split it</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6">It becomes 500 tokens that only verified wallets can hold. Investors buy them, or Ramesh pays his suppliers with them.</p>
+</div>
+<div style="padding: 40px 0 44px 28px; display: flex; flex-direction: column; gap: 12px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.08em; color: {{accent}}">FOLIO 04</span>
+<h3 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 32px">Settle it</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6">The buyer pays once. Every holder's tokens are burned and paid at full face value, automatically.</p>
+</div>
+</div>
+</section>
+
+<section id="open" style="max-width: 1240px; margin: 0 auto; padding: 112px 24px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<h2 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(38px, 4.4vw, 60px); line-height: 1">Open the khata as…</h2>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px">every click is a real testnet transaction</span>
+</div>
+<div class="reveal" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0; border: 2px solid #1B2340">
+<sc-for list="{{personas}}" as="p" hint-placeholder-count="4">
+<div style="padding: 28px; border-right: 1px solid #1B2340; display: flex; flex-direction: column; gap: 10px; background: {{p.bg}}">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: {{accent}}">{{p.role}}</span>
+<span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1">{{p.name}}</span>
+<span style="font-size: 15px; line-height: 1.55; flex-grow: 1">{{p.desc}}</span>
+<sc-if value="{{p.locked}}" hint-placeholder-val="{{ false }}">
+<label style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 6px">Demo passcode<input type="password" placeholder="••••••" style="font: inherit; font-size: 15px; color: #1B2340; background: #FBF6EA; border: 1px solid #1B2340; padding: 12px"></label>
+</sc-if>
+<button type="button" class="btn" onClick="{{p.pick}}" style="margin-top: 6px; font: inherit; font-weight: 600; font-size: 16px; color: #F1E8D2; background: #1B2340; border: 0; padding: 14px 16px; cursor: pointer; text-align: left">Continue as {{p.name}} →</button>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{picked}}" hint-placeholder-val="{{ false }}">
+<p role="status" style="margin: 0; font-family: Kalam, cursive; font-size: 22px; color: {{accent}}">Opening the {{pickedRole}} khata…</p>
+</sc-if>
+</section>
+
+<section id="entries" style="background: #1B2340; color: #F1E8D2">
+<div style="max-width: 1240px; margin: 0 auto; padding: 96px 24px; display: flex; flex-direction: column; gap: 32px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<h2 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(38px, 4.4vw, 60px); line-height: 1">Today's entries, <span style="font-style: italic; color: #F2B544">on Hedera</span></h2>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: #C9CDEB"><span aria-hidden="true" style="display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: #8FE3C3; margin-right: 8px; animation: pulse 1.6s ease-in-out infinite"></span>invoice INV-0001 · bond 0.0.11328164</span>
+</div>
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; border-top: 1px solid #4A5280">
+<sc-for list="{{entries}}" as="e" hint-placeholder-count="7">
+<div class="reveal" style="display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #4A5280">
+<span style="flex: 0 0 40px; color: #C9CDEB">{{e.n}}</span>
+<span style="flex: 1 1 320px">{{e.what}}</span>
+<a href="{{e.url}}" style="color: #F2B544; text-decoration: none">{{e.id}} ↗</a>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+
+<footer style="border-top: 2px solid #1B2340">
+<div style="max-width: 1240px; margin: 0 auto; padding: 32px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">
+<span>Built on Hedera · ATS · HTS · HCS · x402</span>
+<span>Simulated demo data on testnet. Not real money.</span>
+<a href="https://github.com/adityagavane47/udhaar" style="text-decoration: none">github ↗</a>
+</div>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#B3261E","options":["#B3261E","#1F5C99","#2F6B4F","#8A4B08"]},"$preview":{"width":1440,"height":4200}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { picked: null };
+  }
+  renderVals() {
+    const list = [
+      { id: 'business', role: 'Business', name: 'Ramesh', desc: 'Cement supplier. Upload invoices, get funded, pay your own suppliers in tokens.', locked: false },
+      { id: 'buyer', role: 'Buyer', name: 'BigBuild', desc: 'Construction company. Confirm what you owe, repay once on the due date.', locked: false },
+      { id: 'investor', role: 'Investor', name: 'Priya', desc: 'Buy invoice tokens at a discount and collect face value at maturity.', locked: false },
+      { id: 'admin', role: 'Admin', name: 'Operator', desc: 'Approve KYC, issue tokens, pause or freeze when something looks wrong.', locked: true }
+    ];
+    const picked = list.find((p) => p.id === this.state.picked);
+    const tx = (t) => 'https://hashscan.io/testnet/transaction/' + t;
+    return {
+      accent: this.props.accent ?? '#B3261E',
+      personas: list.map((p, i) => ({ ...p, bg: i % 2 ? '#FBF6EA' : '#F1E8D2', pick: () => this.setState({ picked: p.id }) })),
+      picked: !!picked,
+      pickedRole: picked ? picked.role.toLowerCase() : '',
+      entries: [
+        { n: '01', what: 'Invoice fingerprint written to the registry', id: '1793903625.908', url: tx('1793903625.908487879') },
+        { n: '02', what: 'Buyer signs the confirmation', id: '1793903629.267', url: tx('1793903629.267049104') },
+        { n: '03', what: 'Invoice bond deployed through ATS', id: '0.0.11328164', url: 'https://hashscan.io/testnet/contract/0.0.11328164' },
+        { n: '04', what: 'Investor buys units in uINR, 1% to the pool', id: '1793903678.771', url: tx('1793903678.771877205') },
+        { n: '05', what: 'Transfer to an unverified wallet rejected by the token', id: '1793903687.945', url: tx('1793903687.945066898') },
+        { n: '06', what: 'Ramesh pays his supplier in invoice units', id: '1793903701.784', url: tx('1793903701.784214104') },
+        { n: '07', what: 'Buyer repays; every holder burned and paid', id: '1793903883.008', url: tx('1793903883.008251650') }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

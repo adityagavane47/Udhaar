@@ -1,14 +1,153 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #f8fafc;
-  --color-foreground: #0f172a;
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-background: #F1E8D2;
+  --color-foreground: #1B2340;
+  --color-paper: #FBF6EA;
+  --color-cream: #F1E8D2;
+  --color-ink: #1B2340;
+  --color-accent: #B3261E;
+  --color-gold: #F2B544;
+  --color-stamp-green: #2F6B4F;
+  --color-stamp-blue: #1F5C99;
+  --color-stamp-amber: #8A4B08;
+  --color-ruled: #A9BEDB;
+  --color-border-tan: #C9B98F;
+  --font-sans: var(--font-sans), "IBM Plex Sans", system-ui, sans-serif;
+  --font-serif: var(--font-serif), "Instrument Serif", Georgia, serif;
+  --font-mono: var(--font-mono), "IBM Plex Mono", ui-monospace, monospace;
+  --font-hand: var(--font-hand), Kalam, cursive;
 }
 
-body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-sans);
+@layer base {
+  body {
+    margin: 0;
+    background: #F1E8D2;
+    color: #1B2340;
+    font-family: var(--font-sans);
+  }
+
+  a {
+    color: #1B2340;
+  }
+  a:hover {
+    color: #B3261E;
+  }
+}
+
+@keyframes writeIn {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes stampIn {
+  0% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.92);
+  }
+  80% {
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes drawDown {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@layer components {
+  .btn {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn:hover:not(:disabled) {
+    transform: translate(-3px, -3px);
+    box-shadow: 4px 4px 0 #B3261E;
+  }
+
+  .khata-sheet {
+    background-color: #FBF6EA;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 43px,
+      #A9BEDB 43px,
+      #A9BEDB 44px
+    );
+    border: 1px solid #C9B98F;
+    box-shadow: 10px 10px 0 #1B2340;
+  }
+
+  .khata-ruled {
+    background-color: #FBF6EA;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 47px,
+      rgba(169, 190, 219, 0.55) 47px,
+      rgba(169, 190, 219, 0.55) 48px
+    );
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: fadeUp linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 28%;
+  }
+  .draw {
+    transform-origin: top;
+    animation: drawDown linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 40%;
+  }
+  .write {
+    animation: writeIn linear both;
+    animation-timeline: view();
+    animation-range: entry 20% cover 45%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
 }

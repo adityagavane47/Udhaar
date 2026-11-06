@@ -6,10 +6,20 @@ import { Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Async, AsyncButton, Field, GradeBadge, HashscanLink, PageHeader } from "@/components/common";
+import {
+  Async,
+  AsyncButton,
+  Field,
+  GradeBadge,
+  HashscanLink,
+  MiniGraph,
+  PageHeader,
+  PortalGuard,
+  StampBadge,
+} from "@/components/common";
 import { useAsync } from "@/hooks/use-async";
 import { buyRiskReport, buyUnits, getListing, isReportUnlocked } from "@/lib/api";
-import { inr } from "@/lib/utils";
+import { daysUntil, demoMaturityText, inr, inrPrice, pct, termText } from "@/lib/utils";
 import type { RiskReport } from "@/lib/types";
 
 export default function InvoiceDetail() {
@@ -21,79 +31,258 @@ export default function InvoiceDetail() {
   const [units, setUnits] = useState("10");
 
   return (
-    <div className="space-y-8">
-      <Link href="/investor" className="text-sm text-indigo-600 hover:underline">← Back to marketplace</Link>
-      <Async state={listing}>
-        {(l) => (
-          <>
-            <PageHeader title={`${l.buyerName} · ${l.invoiceId}`} subtitle={`Token ${l.tokenId}`} />
-            <div className="grid gap-8 lg:grid-cols-2">
-              <Card>
-                <CardHeader><CardTitle>Invoice</CardTitle></CardHeader>
-                <CardContent>
-                  <dl className="grid grid-cols-2 gap-6 text-sm">
-                    <div><dt className="text-slate-500">Amount</dt><dd className="mt-1 text-xl font-semibold">{inr(l.amount)}</dd></div>
-                    <div><dt className="text-slate-500">Grade</dt><dd className="mt-1"><GradeBadge grade={l.grade} /></dd></div>
-                    <div><dt className="text-slate-500">Return</dt><dd className="mt-1 text-xl font-semibold text-emerald-600">{l.returnPct}%</dd></div>
-                    <div><dt className="text-slate-500">Days to maturity</dt><dd className="mt-1 text-xl font-semibold">{l.daysToMaturity}</dd></div>
-                    <div><dt className="text-slate-500">Unit price</dt><dd className="mt-1 font-medium">{inr(l.unitPrice)} <span className="text-slate-400">(face {inr(l.unitFaceValue)})</span></dd></div>
-                    <div><dt className="text-slate-500">Units available</dt><dd className="mt-1 font-medium">{l.availableUnits}</dd></div>
-                  </dl>
-                </CardContent>
-              </Card>
+    <PortalGuard>
+      <div className="space-y-8">
+        <Link
+          href="/investor"
+          className="font-mono text-xs uppercase tracking-[0.08em] text-[#B3261E] no-underline hover:text-[#1B2340] hover:underline"
+        >
+          ← Back to marketplace
+        </Link>
+        <Async state={listing}>
+          {(l) => (
+            <>
+              <PageHeader
+                folio={l.blocked ? "Folio · Blocked invoice" : `Folio · Invoice Bond ${l.tokenId}`}
+                title={`${l.buyerName} · ${l.invoiceId}`}
+                subtitle={l.blocked ? "Grade D · refused by the risk engine · no units for sale" : `Token ${l.tokenId} · ${l.availableUnits} units available`}
+              />
+              <div className="grid gap-8 lg:grid-cols-2">
+                <Card className="khata-ruled relative">
+                  <div
+                    aria-hidden="true"
+                    className="absolute top-0 bottom-0 left-3 w-0.5 bg-[#B3261E]"
+                  />
+                  <CardHeader className="pl-7">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <CardTitle>Invoice folio</CardTitle>
+                      <StampBadge label={l.blocked ? "BLOCKED" : "TOKENIZED"} tone="red" doubleBorder />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pl-7">
+                    <dl className="grid grid-cols-2 gap-6 text-sm">
+                      <div>
+                        <dt className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                          Amount
+                        </dt>
+                        <dd className="mt-1 font-mono text-2xl font-semibold text-[#1B2340]">
+                          {inr(l.amount)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                          Grade
+                        </dt>
+                        <dd className="mt-1">
+                          <GradeBadge grade={l.grade} />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                          Return
+                        </dt>
+                        <dd className="mt-1 font-mono text-2xl font-semibold text-[#2F6B4F]">
+                          {pct(l.returnPct)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                          Due in
+                        </dt>
+                        <dd className="mt-1 font-mono text-2xl font-semibold text-[#1B2340]">
+                          {daysUntil(l.dueDate)} days
+                        </dd>
+                        {demoMaturityText(l.maturityDate, l.dueDate) && (
+                          <dd className="mt-1 font-mono text-xs font-semibold text-[#B3261E]">
+                            {demoMaturityText(l.maturityDate, l.dueDate)}
+                          </dd>
+                        )}
+                      </div>
+                      <div>
+                        <dt className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                          Unit price
+                        </dt>
+                        <dd className="mt-1 font-mono font-semibold text-[#1B2340]">
+                          {inrPrice(l.unitPrice)}{" "}
+                          <span className="font-normal text-[#5A5E78]">
+                            (face {inr(l.unitFaceValue)})
+                          </span>
+                        </dd>
+                      </div>
+                      <div className="col-span-2">
+                        <dt className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                          Rate and term
+                        </dt>
+                        <dd className="mt-1 font-mono font-semibold text-[#1B2340]">
+                          {termText(l.annualRatePct, l.dueDate, l.grade)}
+                          {!l.blocked && l.discountPct != null && (
+                            <span className="font-normal text-[#5A5E78]"> · {pct(l.discountPct)} discount</span>
+                          )}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                          Units available
+                        </dt>
+                        <dd className="mt-1 font-mono font-semibold text-[#1B2340]">
+                          {l.availableUnits}
+                        </dd>
+                      </div>
+                    </dl>
+                  </CardContent>
+                </Card>
+
+                {l.blocked ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Not for sale</CardTitle>
+                      <CardDescription>
+                        The risk engine graded this invoice D, so it cannot be tokenized or bought.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <StampBadge label="BLOCKED · GRADE D" tone="red" doubleBorder />
+                    </CardContent>
+                  </Card>
+                ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Buy units</CardTitle>
+                    <CardDescription>
+                      Only KYC-approved wallets can hold this token.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <Field
+                      label="Units"
+                      hint={`Total ${inrPrice((Number(units) || 0) * l.unitPrice)} · pays out ${inr((Number(units) || 0) * l.unitFaceValue)} on the due date${demoMaturityText(l.maturityDate, l.dueDate) ? ` (${demoMaturityText(l.maturityDate, l.dueDate)})` : ""}`}
+                    >
+                      <Input
+                        type="number"
+                        min={1}
+                        max={l.availableUnits}
+                        value={units}
+                        onChange={(e) => setUnits(e.target.value)}
+                      />
+                    </Field>
+                    <AsyncButton
+                      action={() => buyUnits({ invoiceId: l.invoiceId, units: Number(units) })}
+                      pendingMessage="Paying uINR and transferring bond units on Hedera…"
+                      onDone={listing.reload}
+                      disabled={!Number(units)}
+                    >
+                      Buy units
+                    </AsyncButton>
+                  </CardContent>
+                </Card>
+                )}
+              </div>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Buy units</CardTitle>
-                  <CardDescription>Only KYC-approved wallets can hold this token.</CardDescription>
+                  <CardTitle>Risk report</CardTitle>
+                  <CardDescription>
+                    Explainable score, sold per call over x402.
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-5">
-                  <Field label="Units" hint={`Total ${inr((Number(units) || 0) * l.unitPrice)} · pays out ${inr((Number(units) || 0) * l.unitFaceValue)} in ${l.daysToMaturity} days`}>
-                    <Input type="number" min={1} max={l.availableUnits} value={units} onChange={(e) => setUnits(e.target.value)} />
-                  </Field>
-                  <AsyncButton action={() => buyUnits({ invoiceId: l.invoiceId, units: Number(units) })} pendingMessage="Paying uINR and transferring bond units on Hedera…" onDone={listing.reload} disabled={!Number(units)}>
-                    Buy units
-                  </AsyncButton>
+                <CardContent>
+                  {shown ? (
+                    <div className="space-y-6">
+                      <div className="flex flex-wrap items-center gap-6">
+                        <div>
+                          <p className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                            Score
+                          </p>
+                          <p className="font-mono text-4xl font-semibold text-[#1B2340]">
+                            {shown.riskScore}
+                            <span className="text-lg text-[#5A5E78]">/100</span>
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                            Confidence
+                          </p>
+                          <Badge
+                            variant={
+                              shown.confidence === "HIGH"
+                                ? "green"
+                                : shown.confidence === "MEDIUM"
+                                  ? "blue"
+                                  : "amber"
+                            }
+                          >
+                            {shown.confidence}
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                            Grade
+                          </p>
+                          <GradeBadge grade={shown.grade} />
+                        </div>
+                        <div>
+                          <p className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+                            Fraud flags
+                          </p>
+                          <p className="font-mono font-medium text-[#1B2340]">
+                            {shown.fraudFlags.length === 0 ? "None" : shown.fraudFlags.join(", ")}
+                          </p>
+                        </div>
+                        <HashscanLink href={shown.hashscanUrl} />
+                      </div>
+                      <div>
+                        <p className="mb-2 font-mono text-xs uppercase tracking-[0.06em] text-[#1B2340]">
+                          Price
+                        </p>
+                        <p className="font-mono text-sm text-[#1B2340]">
+                          {shown.grade === "D" || shown.annualRatePct === null
+                            ? "Not listed: grade D."
+                            : `${termText(shown.annualRatePct, l.dueDate, shown.grade)}${
+                                shown.suggestedDiscountPct != null ? ` · ${pct(shown.suggestedDiscountPct)} discount` : ""
+                              }`}
+                          {shown.appliedDiscountPct != null && ` · applied ${pct(shown.appliedDiscountPct)}`}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="mb-2 font-mono text-xs uppercase tracking-[0.06em] text-[#1B2340]">
+                          Why this score
+                        </p>
+                        <ul className="list-disc space-y-1 pl-5 text-sm text-[#1B2340]">
+                          {shown.reasons.map((r) => (
+                            <li key={r}>{r}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      {shown.graph && shown.graph.nodes.length > 0 && (
+                        <div>
+                          <p className="mb-2 font-mono text-xs uppercase tracking-[0.06em] text-[#1B2340]">
+                            Who is linked (people masked)
+                          </p>
+                          <MiniGraph graph={shown.graph} />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-start gap-4">
+                      <p className="flex items-center gap-2 font-mono text-sm text-[#5A5E78]">
+                        <Lock className="h-4 w-4" /> Score, confidence and reasons are locked.
+                      </p>
+                      <AsyncButton
+                        variant="outline"
+                        action={() => buyRiskReport(id)}
+                        pendingMessage="Settling 0.01 USDC over x402 on Hedera…"
+                        onDone={(r) => setReport(r as RiskReport)}
+                      >
+                        <Lock className="h-4 w-4" /> Get full risk report: 0.01 USDC
+                      </AsyncButton>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Risk report</CardTitle>
-                <CardDescription>Explainable score, sold per call over x402.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {shown ? (
-                  <div className="space-y-6">
-                    <div className="flex flex-wrap items-center gap-6">
-                      <div><p className="text-sm text-slate-500">Score</p><p className="text-4xl font-semibold">{shown.riskScore}<span className="text-lg text-slate-400">/100</span></p></div>
-                      <div><p className="text-sm text-slate-500">Confidence</p><Badge variant={shown.confidence === "HIGH" ? "green" : shown.confidence === "MEDIUM" ? "blue" : "amber"}>{shown.confidence}</Badge></div>
-                      <div><p className="text-sm text-slate-500">Grade</p><GradeBadge grade={shown.grade} /></div>
-                      <div><p className="text-sm text-slate-500">Fraud flags</p><p className="font-medium">{shown.fraudFlags.length === 0 ? "None" : shown.fraudFlags.join(", ")}</p></div>
-                      <HashscanLink href={shown.hashscanUrl} />
-                    </div>
-                    <div>
-                      <p className="mb-2 text-sm font-medium text-slate-700">Why this score</p>
-                      <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
-                        {shown.reasons.map((r) => <li key={r}>{r}</li>)}
-                      </ul>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-start gap-4">
-                    <p className="flex items-center gap-2 text-sm text-slate-500"><Lock className="h-4 w-4" /> Score, confidence and reasons are locked.</p>
-                    <AsyncButton variant="outline" action={() => buyRiskReport(id)} onDone={(r) => setReport(r as RiskReport)}>
-                      <Lock className="h-4 w-4" /> Get full risk report: 0.01 USDC
-                    </AsyncButton>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </Async>
-    </div>
+            </>
+          )}
+        </Async>
+      </div>
+    </PortalGuard>
   );
 }
-

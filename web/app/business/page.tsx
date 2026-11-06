@@ -1,77 +1,145 @@
 "use client";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
-import { Async, AsyncButton, Empty, ErrorNote, Field, GradeBadge, HashscanLink, PageHeader, Pending, StatCard, StatusTracker, SuccessNote } from "@/components/common";
+import {
+  Async,
+  AsyncButton,
+  Empty,
+  ErrorNote,
+  Field,
+  GradeBadge,
+  HashscanLink,
+  InvoiceStamp,
+  PageHeader,
+  Pending,
+  PortalGuard,
+  StampBadge,
+  StatCard,
+  StatusTracker,
+  SuccessNote,
+} from "@/components/common";
 import { useAsync } from "@/hooks/use-async";
 import {
-  getBusinessInvoices, getBusinessSummary, getCompanies, getSuppliers,
-  getTransferableInvoices, paySupplierWithUnits, uploadInvoice,
+  getBusinessInvoices,
+  getBusinessSummary,
+  getCompanies,
+  getSuppliers,
+  getTransferableInvoices,
+  paySupplierWithUnits,
+  uploadInvoice,
 } from "@/lib/api";
-import { errLink, errMsg, fmtDate, inr } from "@/lib/utils";
+import { RATE_BY_GRADE, errLink, errMsg, fmtDate, inr, pct, termText } from "@/lib/utils";
 import type { Invoice } from "@/lib/types";
 
 export default function BusinessPage() {
   const summary = useAsync(getBusinessSummary);
   const invoices = useAsync(getBusinessInvoices);
-  const refresh = () => { summary.reload(); invoices.reload(); };
+  const refresh = () => {
+    summary.reload();
+    invoices.reload();
+  };
 
   return (
-    <div className="space-y-10">
-      <PageHeader title="Business dashboard" subtitle="Ramesh Cement Traders · get cash today against unpaid invoices" />
+    <PortalGuard>
+      <div className="space-y-10">
+        <PageHeader
+          folio="Folio · Business (Ramesh · 0.0.11310318)"
+          title="Business khata"
+          subtitle="Ramesh Cement Traders · get cash today against unpaid invoices"
+        />
 
-      <Async state={summary}>
-        {(s) => (
-          <div className="grid gap-6 sm:grid-cols-3">
-            <StatCard label="Received" value={inr(s.received)} hint="Credited on sold units, incl. units sent to suppliers" />
-            <StatCard label="Pending" value={inr(s.pending)} hint="Invoices not yet funded" />
-            <StatCard label="Invoices" value={String(s.invoiceCount)} />
-          </div>
-        )}
-      </Async>
-
-      <div className="grid gap-8 lg:grid-cols-2">
-        <UploadForm onDone={refresh} invoices={invoices.data ?? []} />
-        <PaySupplierForm onDone={refresh} />
-      </div>
-
-      <section>
-        <h2 className="mb-4 text-xl font-semibold text-slate-900">Your invoices</h2>
-        <Async state={invoices}>
-          {(list) =>
-            list.length === 0 ? <Empty>No invoices yet.</Empty> : (
-              <div className="space-y-5">
-                {list.map((inv) => <InvoiceRow key={inv.id} inv={inv} />)}
-              </div>
-            )
-          }
+        <Async state={summary}>
+          {(s) => (
+            <div className="grid gap-6 sm:grid-cols-3">
+              <StatCard
+                label="Received"
+                value={inr(s.received)}
+                hint="Credited on sold units, incl. units sent to suppliers"
+              />
+              <StatCard
+                label="Pending"
+                value={inr(s.pending)}
+                hint="Invoices not yet funded"
+              />
+              <StatCard label="Invoices" value={String(s.invoiceCount)} />
+            </div>
+          )}
         </Async>
-      </section>
-    </div>
+
+        <div className="grid gap-8 lg:grid-cols-2">
+          <UploadForm onDone={refresh} invoices={invoices.data ?? []} />
+          <PaySupplierForm onDone={refresh} />
+        </div>
+
+        <section>
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-serif text-3xl font-normal text-[#1B2340]">Your invoices</h2>
+            <span className="font-mono text-xs uppercase tracking-[0.06em] text-[#5A5E78]">
+              Bahi-khata ledger entries
+            </span>
+          </div>
+          <Async state={invoices}>
+            {(list) =>
+              list.length === 0 ? (
+                <Empty>No invoices yet.</Empty>
+              ) : (
+                <div className="space-y-6">
+                  {list.map((inv) => (
+                    <InvoiceRow key={inv.id} inv={inv} />
+                  ))}
+                </div>
+              )
+            }
+          </Async>
+        </section>
+      </div>
+    </PortalGuard>
   );
 }
 
 function InvoiceRow({ inv }: { inv: Invoice }) {
   return (
-    <Card>
-      <CardContent className="space-y-6 p-6">
+    <Card className="khata-ruled relative overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="absolute top-0 bottom-0 left-3 w-0.5 bg-[#B3261E] sm:left-5"
+      />
+      <CardContent className="space-y-5 py-6 pr-6 pl-7 sm:pl-10">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="font-semibold text-slate-900">{inv.id} · {inv.buyerName}</p>
-            <p className="text-sm text-slate-500">{inr(inv.amount)} · due {fmtDate(inv.dueDate)}{inv.invoiceNumber ? ` · #${inv.invoiceNumber}` : ""}</p>
+            <p className="font-serif text-2xl text-[#1B2340]">
+              <span className="font-mono text-lg font-semibold">{inv.id}</span> · {inv.buyerName}
+            </p>
+            <p className="font-mono text-sm text-[#5A5E78]">
+              <strong className="font-semibold text-[#1B2340]">{inr(inv.amount)}</strong> · due{" "}
+              {fmtDate(inv.dueDate)}
+              {inv.invoiceNumber ? ` · #${inv.invoiceNumber}` : ""}
+              {inv.fingerprint ? ` · ${inv.fingerprint.slice(0, 18)}…` : ""}
+            </p>
+            {inv.grade && (
+              <p className="font-mono text-xs font-semibold text-[#1B2340]">
+                {termText(RATE_BY_GRADE[inv.grade], inv.dueDate, inv.grade)}
+                {inv.discountPct != null && (
+                  <span className="font-normal text-[#5A5E78]"> · {pct(inv.discountPct)} discount</span>
+                )}
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <InvoiceStamp status={inv.status} />
             {inv.grade && <GradeBadge grade={inv.grade} />}
-            {inv.tokenId && <Badge variant="indigo">Token {inv.tokenId}</Badge>}
+            {inv.tokenId && <StampBadge label={`Bond ${inv.tokenId}`} tone="navy" tilt={false} />}
             <HashscanLink href={inv.hashscanUrl} />
           </div>
         </div>
         <StatusTracker status={inv.status} />
         {inv.links && inv.links.length > 0 && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {inv.links.map((l) => <HashscanLink key={`${l.label}-${l.url}`} href={l.url} label={`HashScan: ${l.label}`} />)}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-[#C9B98F] pt-3">
+            {inv.links.map((l) => (
+              <HashscanLink key={`${l.label}-${l.url}`} href={l.url} label={`HashScan: ${l.label}`} />
+            ))}
           </div>
         )}
       </CardContent>
@@ -93,9 +161,18 @@ function UploadForm({ onDone, invoices }: { onDone: () => void; invoices: Invoic
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true); setError(null); setErrUrl(undefined); setOk(null);
+    setLoading(true);
+    setError(null);
+    setErrUrl(undefined);
+    setOk(null);
     try {
-      const { invoice, tx } = await uploadInvoice({ buyerId, amount: Number(amount), dueDate, pdfName: pdf || "invoice.pdf", invoiceNumber });
+      const { invoice, tx } = await uploadInvoice({
+        buyerId,
+        amount: Number(amount),
+        dueDate,
+        pdfName: pdf || "invoice.pdf",
+        invoiceNumber,
+      });
       setOk({ id: invoice.id, url: tx.hashscanUrl });
       onDone();
     } catch (err) {
@@ -109,37 +186,80 @@ function UploadForm({ onDone, invoices }: { onDone: () => void; invoices: Invoic
   function fillDuplicate() {
     const src = invoices.find((i) => i.status !== "buyer_rejected");
     if (!src) return;
-    setBuyerId(src.buyerId); setAmount(String(src.amount)); setDueDate(src.dueDate.slice(0, 10));
-    setInvoiceNumber(src.invoiceNumber ?? ""); setPdf(src.pdfName ?? "");
+    setBuyerId(src.buyerId);
+    setAmount(String(src.amount));
+    setDueDate(src.dueDate.slice(0, 10));
+    setInvoiceNumber(src.invoiceNumber ?? "");
+    setPdf(src.pdfName ?? "");
   }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Upload invoice</CardTitle>
-        <CardDescription>Its fingerprint is written to a public registry to stop double financing.</CardDescription>
+        <CardDescription>
+          Its fingerprint is written to a public registry to stop double financing.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="space-y-5">
           <Field label="Buyer">
             <Select required value={buyerId} onChange={(e) => setBuyerId(e.target.value)}>
               <option value="">Select buyer…</option>
-              {(buyers.data ?? []).filter((c) => c.type !== "supplier").map((c) => <option key={c.id} value={c.id}>{c.name} ({c.hederaAccount})</option>)}
+              {(buyers.data ?? [])
+                .filter((c) => c.type !== "supplier")
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.hederaAccount})
+                  </option>
+                ))}
             </Select>
           </Field>
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Amount (₹)"><Input required type="number" min={1000} step={1000} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="500000" /></Field>
-            <Field label="Due date"><Input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></Field>
+            <Field label="Amount (₹)">
+              <Input
+                required
+                type="number"
+                min={1000}
+                step={1000}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="500000"
+              />
+            </Field>
+            <Field label="Due date">
+              <Input
+                required
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </Field>
           </div>
-          <Field label="Invoice number" hint="Identifies this invoice, so two real invoices with the same details are not mistaken for duplicates.">
-            <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="BB-2026-0042" />
+          <Field
+            label="Invoice number"
+            hint="Identifies this invoice, so two real invoices with the same details are not mistaken for duplicates."
+          >
+            <Input
+              value={invoiceNumber}
+              onChange={(e) => setInvoiceNumber(e.target.value)}
+              placeholder="BB-2026-0042"
+            />
           </Field>
           <Field label="Invoice PDF">
-            <Input type="file" accept="application/pdf" onChange={(e) => setPdf(e.target.files?.[0]?.name ?? "")} />
+            <Input
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => setPdf(e.target.files?.[0]?.name ?? "")}
+            />
           </Field>
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" loading={loading}>Upload invoice</Button>
-            <Button type="button" variant="ghost" size="sm" onClick={fillDuplicate}>Fill duplicate example</Button>
+            <Button type="submit" loading={loading}>
+              Upload invoice
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={fillDuplicate}>
+              Fill duplicate example
+            </Button>
           </div>
           <Pending active={loading} message="Recording the invoice fingerprint on Hedera…" />
           <ErrorNote message={error} href={errUrl} />
@@ -165,34 +285,77 @@ function PaySupplierForm({ onDone }: { onDone: () => void }) {
     <Card>
       <CardHeader>
         <CardTitle>Pay a supplier with invoice units</CardTitle>
-        <CardDescription>Send part of your invoice token. They are repaid by the buyer at maturity.</CardDescription>
+        <CardDescription>
+          Send part of your invoice token. They are repaid by the buyer at maturity.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
-          <Field label="Invoice token" hint={selected ? `You hold ${selected.retainedUnits} units of ${inr(face)}` : undefined}>
+          <Field
+            label="Invoice token"
+            hint={selected ? `You hold ${selected.retainedUnits} units of ${inr(face)}` : undefined}
+          >
             <Select value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)}>
               <option value="">Select invoice…</option>
-              {(tokens.data ?? []).map((i) => <option key={i.id} value={i.id}>{i.id} · {i.buyerName}</option>)}
+              {(tokens.data ?? []).map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.id} · {i.buyerName}
+                </option>
+              ))}
             </Select>
           </Field>
           <Field label="Supplier">
             <Select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
               <option value="">Select supplier…</option>
-              {(suppliers.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}{c.kycVerified ? "" : " (not verified)"}</option>)}
+              {(suppliers.data ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.hederaAccount}){c.kycVerified ? "" : " (not verified)"}
+                </option>
+              ))}
             </Select>
           </Field>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Amount (₹)">
-              <Input type="number" min={0} value={amount} onChange={(e) => { setAmount(e.target.value); setUnits(e.target.value ? String(Math.ceil(Number(e.target.value) / face)) : ""); }} placeholder="100000" />
+              <Input
+                type="number"
+                min={0}
+                value={amount}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setUnits(
+                    e.target.value ? String(Math.ceil(Number(e.target.value) / face)) : "",
+                  );
+                }}
+                placeholder="100000"
+              />
             </Field>
             <Field label="Units">
-              <Input type="number" min={1} value={units} onChange={(e) => { setUnits(e.target.value); setAmount(e.target.value ? String(Number(e.target.value) * face) : ""); }} placeholder="100" />
+              <Input
+                type="number"
+                min={1}
+                value={units}
+                onChange={(e) => {
+                  setUnits(e.target.value);
+                  setAmount(e.target.value ? String(Number(e.target.value) * face) : "");
+                }}
+                placeholder="100"
+              />
             </Field>
           </div>
           <AsyncButton
-            action={() => paySupplierWithUnits({ invoiceId, supplierId, amount: Number(amount), units: Number(units) })}
+            action={() =>
+              paySupplierWithUnits({
+                invoiceId,
+                supplierId,
+                amount: Number(amount),
+                units: Number(units),
+              })
+            }
             pendingMessage="Transferring bond units on Hedera…"
-            onDone={() => { tokens.reload(); onDone(); }}
+            onDone={() => {
+              tokens.reload();
+              onDone();
+            }}
             disabled={!invoiceId || !supplierId || !units}
           >
             Pay with units
@@ -202,4 +365,3 @@ function PaySupplierForm({ onDone }: { onDone: () => void }) {
     </Card>
   );
 }
-

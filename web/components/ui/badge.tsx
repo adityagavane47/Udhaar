@@ -2,23 +2,27 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-const badgeVariants = cva("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold", {
-  variants: {
-    variant: {
-      default: "border-slate-200 bg-slate-100 text-slate-700",
-      green: "border-emerald-200 bg-emerald-100 text-emerald-800",
-      blue: "border-blue-200 bg-blue-100 text-blue-800",
-      amber: "border-amber-200 bg-amber-100 text-amber-800",
-      red: "border-red-200 bg-red-100 text-red-800",
-      indigo: "border-indigo-200 bg-indigo-100 text-indigo-800",
+const badgeVariants = cva(
+  "inline-flex items-center border-2 px-2.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.06em]",
+  {
+    variants: {
+      variant: {
+        default: "border-[#1B2340] bg-[#FBF6EA]/90 text-[#1B2340]",
+        green: "border-[#2F6B4F] bg-[#FBF6EA]/90 text-[#2F6B4F]",
+        blue: "border-[#1F5C99] bg-[#FBF6EA]/90 text-[#1F5C99]",
+        amber: "border-[#8A4B08] bg-[#FBF6EA]/90 text-[#8A4B08]",
+        red: "border-[#B3261E] bg-[#FBF6EA]/90 text-[#B3261E]",
+        indigo: "border-[#1B2340] bg-[#FBF6EA]/90 text-[#1B2340]",
+      },
     },
+    defaultVariants: { variant: "default" },
   },
-  defaultVariants: { variant: "default" },
-});
+);
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement>, VariantProps<typeof badgeVariants> {}
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof badgeVariants> {}
 
 export const Badge = ({ className, variant, ...p }: BadgeProps) => (
   <span className={cn(badgeVariants({ variant }), className)} {...p} />
 );
-

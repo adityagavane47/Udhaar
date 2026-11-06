@@ -2,6 +2,22 @@
 
 export type Role = "business" | "buyer" | "investor" | "admin";
 
+export interface Persona {
+  id: Role;
+  role: string;
+  name: string;
+  desc: string;
+  locked: boolean;
+  href: string;
+}
+
+export const PERSONAS: Persona[] = [
+  { id: "business", role: "Business", name: "Ramesh", desc: "Cement supplier. Upload invoices, get funded, pay your own suppliers in tokens.", locked: false, href: "/business" },
+  { id: "buyer", role: "Buyer", name: "BigBuild", desc: "Construction company. Confirm what you owe, repay once on the due date.", locked: false, href: "/buyer" },
+  { id: "investor", role: "Investor", name: "Priya", desc: "Buy invoice tokens at a discount and collect face value at maturity.", locked: false, href: "/investor" },
+  { id: "admin", role: "Admin", name: "Operator", desc: "Approve KYC, issue tokens, pause or freeze when something looks wrong.", locked: true, href: "/admin" },
+];
+
 export type InvoiceStatus =
   | "submitted"
   | "buyer_confirmed"
@@ -71,7 +87,8 @@ export interface Invoice {
   totalUnits?: number;
   unitFaceValue?: number;
   retainedUnits?: number; // units still held by the supplier
-  discountPct?: number;
+  discountPct?: number | null; // up to 4 decimals; null when unpriced (grade D)
+  seeded?: boolean; // simulated invoice such as DEMO-RING
   grade?: Grade;
   riskScore?: number;
   fingerprint?: string; // hash written to the HCS registry
@@ -105,10 +122,35 @@ export interface RiskReport {
   creditRisk: "LOW" | "MEDIUM" | "HIGH";
   fraudFlags: string[];
   anomaly: boolean;
-  suggestedDiscountPct: number;
+  annualRatePct?: number | null; // 12, 16 or 20; null for grade D
+  daysToDue?: number;
+  suggestedDiscountPct: number | null;
+  appliedDiscountPct?: number;
   reasons: string[];
-  paymentTx: string;
-  hashscanUrl: string;
+  graph?: RiskGraph;
+  paymentTx?: string; // missing until x402 is added
+  hashscanUrl?: string;
+}
+
+export interface RiskGraphNode {
+  id: string;
+  label: string; // people appear only as "Director A"
+  type: "company" | "person" | "address";
+  role?: "supplier" | "buyer";
+  inDataset?: boolean;
+  flagged: boolean;
+}
+
+export interface RiskGraphLink {
+  source: string;
+  target: string;
+  type: "invoice" | "billed" | "director_of" | "registered_at";
+  flagged: boolean;
+}
+
+export interface RiskGraph {
+  nodes: RiskGraphNode[];
+  links: RiskGraphLink[];
 }
 
 export interface KycRequest {
@@ -132,6 +174,7 @@ export type TransactionType =
   | "kyc_submit"
   | "kyc_approve"
   | "kyc_reject"
+  | "risk_blocked"
   | "token_create"
   | "token_pause"
   | "token_unpause"
@@ -163,11 +206,16 @@ export interface Listing {
   amount: number;
   returnPct: number;
   daysToMaturity: number;
+  dueDate: string;
+  maturityDate?: string; // bond maturity; earlier than dueDate only in demos
+  annualRatePct?: number | null;
+  discountPct?: number | null;
   grade?: Grade;
   availableUnits: number;
   unitPrice: number;
   unitFaceValue: number;
-  tokenId: string;
+  tokenId?: string; // absent on blocked cards
+  blocked?: boolean; // grade D: shown as BLOCKED, never buyable
 }
 
 export interface PortfolioItem {
@@ -191,6 +239,7 @@ export interface TokenInfo {
   totalUnits: number;
   unitFaceValue: number;
   maturityDate: string;
+  dueDate?: string;
   paused: boolean;
   holders: Holder[];
 }

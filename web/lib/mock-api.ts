@@ -1,6 +1,7 @@
 // Mock implementations. Only lib/api.ts may import this file, and only when
 // NEXT_PUBLIC_USE_MOCK=true (or for routes the backend doesn't have yet).
-import { DuplicateInvoiceError } from "./errors";
+import { ApiError, DuplicateInvoiceError } from "./errors";
+import { RATE_BY_GRADE } from "./utils";
 import {
   ACCOUNTS, PAID_REPORT_FEE_USDC, companies, holdersByToken, invoices, investorKyc,
   kycRequests, pausedTokens, riskReports, transactions, unlockedReports,
@@ -36,7 +37,7 @@ const setStatus = (inv: Invoice, status: Invoice["status"], url: string) => {
   inv.hashscanUrl = url;
 };
 const daysTo = (iso: string) => Math.max(0, Math.round((new Date(iso).getTime() - Date.now()) / 86_400_000));
-const unitPrice = (inv: Invoice) => Math.round((inv.unitFaceValue ?? 1000) * (1 - (inv.discountPct ?? 0) / 100));
+const unitPrice = (inv: Invoice) => Math.round((inv.unitFaceValue ?? 1000) * (1 - (inv.discountPct ?? 0) / 100) * 100) / 100;
 const holdersOf = (inv: Invoice): Holder[] => (inv.tokenId ? (holdersByToken[inv.tokenId] ??= []) : []);
 const available = (inv: Invoice) => (inv.totalUnits ?? 0) - (inv.retainedUnits ?? 0) - holdersOf(inv).reduce((s, x) => s + x.units, 0);
 const clone = <T,>(v: T): T => structuredClone(v);
@@ -131,11 +132,12 @@ export async function confirmInvoice(id: string): Promise<TxResult> {
   setStatus(inv, "buyer_confirmed", tx.hashscanUrl);
   // The risk engine runs right after confirmation in the real flow.
   const rep = riskReports[id];
+  const days = Math.max(1, daysTo(inv.dueDate));
   if (rep) {
     inv.grade = rep.grade; inv.riskScore = rep.riskScore; inv.discountPct = rep.suggestedDiscountPct;
     inv.status = "risk_checked";
   } else {
-    inv.grade = "B"; inv.riskScore = 70; inv.discountPct = 6; inv.status = "risk_checked";
+    inv.grade = "B"; inv.riskScore = 70; inv.discountPct = Number(((RATE_BY_GRADE.B! * days) / 365).toFixed(4)); inv.status = "risk_checked";
   }
   return tx;
 }
@@ -175,16 +177,17 @@ export async function submitKyc(input: { fullName: string; walletAddress: string
 
 export async function getListings(): Promise<Listing[]> {
   await delay(400);
-  return clone(
-    invoices
-      .filter((i) => (i.status === "tokenized" || i.status === "funded") && i.tokenId && available(i) > 0 && i.grade !== "D")
-      .map((i): Listing => ({
-        invoiceId: i.id, buyerName: i.buyerName, amount: i.amount,
-        returnPct: Number((((i.unitFaceValue ?? 1000) / unitPrice(i) - 1) * 100).toFixed(1)),
-        daysToMaturity: daysTo(i.dueDate), grade: (i.grade ?? "C") as Grade, availableUnits: available(i),
-        unitPrice: unitPrice(i), unitFaceValue: i.unitFaceValue ?? 1000, tokenId: i.tokenId!,
-      })),
-  );
+  const toListing = (i: Invoice, blocked: boolean): Listing => ({
+    invoiceId: i.id, buyerName: i.buyerName, amount: i.amount,
+    returnPct: blocked ? 0 : Number((((i.unitFaceValue ?? 1000) / unitPrice(i) - 1) * 100).toFixed(2)),
+    daysToMaturity: daysTo(i.dueDate), dueDate: i.dueDate, maturityDate: i.maturityDate ?? i.dueDate,
+    annualRatePct: i.grade ? RATE_BY_GRADE[i.grade] : undefined, discountPct: i.discountPct,
+    grade: i.grade, availableUnits: blocked ? 0 : available(i),
+    unitPrice: blocked ? (i.unitFaceValue ?? 1000) : unitPrice(i), unitFaceValue: i.unitFaceValue ?? 1000, tokenId: i.tokenId, blocked,
+  });
+  const live = invoices.filter((i) => (i.status === "tokenized" || i.status === "funded") && i.tokenId && available(i) > 0 && i.grade && i.grade !== "D");
+  const demo = invoices.filter((i) => i.seeded && i.grade === "D" && !i.tokenId);
+  return clone([...live.map((i) => toListing(i, false)), ...demo.map((i) => toListing(i, true))]);
 }
 export async function getListing(invoiceId: string): Promise<Listing> {
   const l = (await getListings()).find((x) => x.invoiceId === invoiceId);
@@ -196,17 +199,41 @@ export async function isReportUnlocked(invoiceId: string): Promise<RiskReport | 
   await delay(150);
   return unlockedReports.has(invoiceId) ? buildReport(invoiceId, "already paid") : null;
 }
+function getOrDefaultReport(invoiceId: string): Omit<RiskReport, "paymentTx" | "hashscanUrl"> | undefined {
+  if (riskReports[invoiceId]) return riskReports[invoiceId];
+  if (invoiceId === "INV-0043" || invoiceId === "INV-0046") return undefined;
+  const days = Math.max(1, daysTo(find(invoiceId).dueDate));
+  return {
+    invoiceId,
+    riskScore: 85,
+    grade: "A",
+    confidence: "HIGH",
+    creditRisk: "LOW",
+    fraudFlags: [],
+    anomaly: false,
+    annualRatePct: RATE_BY_GRADE.A,
+    daysToDue: days,
+    suggestedDiscountPct: Number((((RATE_BY_GRADE.A ?? 12) * days) / 365).toFixed(4)),
+    reasons: [
+      "Buyer confirmed the invoice on Hedera Consensus Service",
+      "Company active since 2003 with 99% GST filing compliance",
+      "Invoice amount is in line with the buyer's usual orders",
+      "No duplicate fingerprint or circular trading flags detected",
+    ],
+  };
+}
 function buildReport(invoiceId: string, tx: string): RiskReport {
-  const r = riskReports[invoiceId];
+  const r = getOrDefaultReport(invoiceId);
   if (!r) throw new Error("Risk service unavailable: no report returned, nothing was charged.");
   return { ...r, paymentTx: tx, hashscanUrl: `${HASHSCAN}/transaction/${tx}` };
 }
 export async function buyRiskReport(invoiceId: string): Promise<RiskReport> {
   await delay(1200);
-  if (!riskReports[invoiceId]) throw new Error("Risk service unavailable: no report returned, nothing was charged.");
+  const r = getOrDefaultReport(invoiceId);
+  if (!r) throw new Error("Risk service unavailable: no report returned, nothing was charged.");
   const tx = record("risk_report", `Paid ${PAID_REPORT_FEE_USDC} USDC for risk report on ${invoiceId}`, "Investor", invoiceId);
   unlockedReports.add(invoiceId);
-  return { ...riskReports[invoiceId], paymentTx: tx.txId, hashscanUrl: tx.hashscanUrl };
+  return { ...r, paymentTx: tx.txId, hashscanUrl: tx.hashscanUrl };
 }
 
 export async function buyUnits(input: { invoiceId: string; units: number }): Promise<TxResult> {
@@ -266,6 +293,11 @@ export async function createToken(invoiceId: string, opts?: { maturityMinutes?: 
   void opts;
   await delay(1400);
   const inv = find(invoiceId);
+  if (inv.grade === "D") {
+    const rep = riskReports[invoiceId];
+    record("risk_blocked", `Tokenization of ${inv.id} refused: grade D`, "Admin", inv.id);
+    throw new ApiError("RISK_BLOCKED", `Tokenization blocked: grade D, refused by the risk engine (RISK_BLOCKED). Reasons: ${(rep?.reasons ?? []).join("; ")}.`, 409);
+  }
   if (inv.status !== "risk_checked") throw new Error("Only risk-checked invoices can be tokenized");
   const tokenId = `0.0.${7001100 + invoices.indexOf(inv) + seq}`;
   inv.tokenId = tokenId;
@@ -283,7 +315,7 @@ export async function getTokens(): Promise<TokenInfo[]> {
   return clone(
     invoices.filter((i) => i.tokenId).map((i): TokenInfo => ({
       tokenId: i.tokenId!, invoiceId: i.id, buyerName: i.buyerName, totalUnits: i.totalUnits ?? 0,
-      unitFaceValue: i.unitFaceValue ?? 1000, maturityDate: i.dueDate, paused: !!pausedTokens[i.tokenId!],
+      unitFaceValue: i.unitFaceValue ?? 1000, maturityDate: i.maturityDate ?? i.dueDate, dueDate: i.dueDate, paused: !!pausedTokens[i.tokenId!],
       holders: holdersOf(i),
     })),
   );
@@ -304,3 +336,10 @@ export async function getAuditLog(): Promise<Transaction[]> {
   await delay(300);
   return clone(transactions);
 }
+
+export async function loginDemoAdmin(passcode: string): Promise<{ ok: boolean }> {
+  await delay(300);
+  if (!passcode.trim()) throw new Error("Enter the demo passcode.");
+  return { ok: true };
+}
+

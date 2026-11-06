@@ -2,11 +2,13 @@
 // (lib/mock-api.ts + lib/mock.ts) only when NEXT_PUBLIC_USE_MOCK=true.
 import { ACCOUNTS, companies as mockCompanies } from "./mock";
 import * as mock from "./mock-api";
+import { readAdminToken, setAdminToken } from "./auth";
 import { ApiError, DuplicateInvoiceError } from "./errors";
 import type {
-  Company, Holder, Invoice, KycRequest, Listing, PortfolioItem, RepaymentHolder,
-  Transaction, TokenInfo, TxResult,
+  Company, Grade, Holder, Invoice, KycRequest, Listing, PortfolioItem, RepaymentHolder,
+  RiskReport, Transaction, TokenInfo, TxResult,
 } from "./types";
+import { RATE_BY_GRADE } from "./utils";
 
 export { ApiError, DuplicateInvoiceError };
 
@@ -20,10 +22,14 @@ interface ErrorBody { error?: { code?: string; message?: string; originalId?: st
 /** No client-side timeout: tokenize takes about a minute and repay about 15 s per holder. */
 async function http<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
   let res: Response;
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const adminToken = readAdminToken();
+  if (adminToken) headers["Authorization"] = `Bearer ${adminToken}`;
   try {
     res = await fetch(`${API_URL}${path}`, {
       method,
-      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+      headers: Object.keys(headers).length ? headers : undefined,
       body: body === undefined ? undefined : JSON.stringify(body),
       cache: "no-store",
     });
@@ -37,6 +43,10 @@ async function http<T>(method: "GET" | "POST", path: string, body?: unknown): Pr
     const e = (json as ErrorBody | null)?.error;
     if (e?.code === "DUPLICATE_INVOICE") {
       throw new DuplicateInvoiceError(e.originalId, e.hashscanUrl ?? "", e.message ? `Duplicate invoice: already financed (${e.message})` : "Duplicate invoice: already financed.");
+    }
+    if (e?.code === "RISK_BLOCKED") {
+      const reasons = Array.isArray(e.reasons) ? ` Reasons: ${(e.reasons as string[]).join("; ")}.` : "";
+      throw new ApiError(e.code, `Tokenization blocked: grade D, refused by the risk engine (RISK_BLOCKED). ${e.message ?? ""}${reasons}`.trim(), res.status, e);
     }
     const msg = e?.code === "SUPPLIER_NOT_VERIFIED" || e?.code === "NOT_ALLOWLISTED"
       ? `Transfer blocked: recipient not verified (${e.message})`
@@ -70,22 +80,44 @@ const repaidToHolder = (h: RepaymentHolder): Holder => ({
   accountId: h.accountId, name: h.name, units: h.units, amountPaid: 0, frozen: false, repaid: true, hashscanUrl: h.paymentHashscanUrl,
 });
 
-const unitPriceOf = (i: Invoice) => i.unitPrice ?? Math.round((i.unitFaceValue ?? 1000) * (1 - (i.discountPct ?? 0) / 100));
+const unitPriceOf = (i: Invoice) => i.unitPrice ?? Math.round((i.unitFaceValue ?? 1000) * (1 - (i.discountPct ?? 0) / 100) * 100) / 100;
 const maturityOf = (i: Invoice) => i.maturityDate ?? i.dueDate;
 const isLive = (i: Invoice) => (i.status === "tokenized" || i.status === "funded") && !!i.tokenId;
+const isBlockedDemo = (i: Invoice) => i.grade === "D" && !i.tokenId;
+
+/** Grade from GET /risk/:id/summary, shared for a minute. undefined if the risk engine can't score it. */
+const gradeCache = new Map<string, { at: number; p: Promise<Grade | undefined> }>();
+function gradeOf(i: Invoice): Promise<Grade | undefined> {
+  const hit = gradeCache.get(i.id);
+  if (hit && Date.now() - hit.at < 60_000) return hit.p;
+  const p = http<{ grade: Grade }>("GET", `/risk/${encodeURIComponent(i.id)}/summary`)
+    .then((r) => r.grade)
+    .catch(() => i.grade);
+  gradeCache.set(i.id, { at: Date.now(), p });
+  return p;
+}
+const withGrade = async (i: Invoice): Promise<Invoice> => (i.grade ? i : { ...i, grade: await gradeOf(i) });
 
 function toListing(i: Invoice): Listing {
   const face = i.unitFaceValue ?? 1000;
-  const price = unitPriceOf(i);
+  const blocked = isBlockedDemo(i);
+  const price = blocked ? face : unitPriceOf(i);
   return {
     invoiceId: i.id, buyerName: i.buyerName, amount: i.amount,
-    returnPct: Number(((face / price - 1) * 100).toFixed(1)),
+    returnPct: blocked ? 0 : Number(((face / price - 1) * 100).toFixed(2)),
     daysToMaturity: Math.max(0, Math.round((new Date(maturityOf(i)).getTime() - Date.now()) / 86_400_000)),
-    grade: i.grade, // the backend has no risk engine yet, so this stays undefined
-    availableUnits: i.availableUnits ?? i.retainedUnits ?? 0,
-    unitPrice: price, unitFaceValue: face, tokenId: i.tokenId!,
+    dueDate: i.dueDate,
+    maturityDate: maturityOf(i),
+    annualRatePct: i.grade ? RATE_BY_GRADE[i.grade] : undefined,
+    discountPct: i.discountPct,
+    grade: i.grade,
+    availableUnits: blocked ? 0 : i.availableUnits ?? i.retainedUnits ?? 0,
+    unitPrice: price, unitFaceValue: face, tokenId: i.tokenId, blocked,
   };
 }
+
+/** The full report is free until x402 is added, so one fetch is kept to show again later. */
+const reports = new Map<string, RiskReport>();
 
 /** One idempotency key per (action, invoice, units) until it succeeds, so a retry never double-charges. */
 const keys = new Map<string, string>();
@@ -106,9 +138,17 @@ const unsupported = (what: string) => async (): Promise<never> => {
 const real: typeof mock = {
   // Not in the backend yet: these stay on mock data.
   getCompanies: mock.getCompanies,
-  buyRiskReport: mock.buyRiskReport,
-  isReportUnlocked: mock.isReportUnlocked,
   rejectInvoice: unsupported("Rejecting an invoice"),
+
+  /** GET /risk/:id/report. No paywall yet, so no payment is made. */
+  async buyRiskReport(invoiceId) {
+    const r = await http<RiskReport>("GET", `/risk/${encodeURIComponent(invoiceId)}/report`);
+    reports.set(invoiceId, r);
+    return r;
+  },
+  async isReportUnlocked(invoiceId) {
+    return reports.get(invoiceId) ?? null;
+  },
 
   async getSuppliers() {
     const [{ requests }, base] = await Promise.all([
@@ -135,7 +175,8 @@ const real: typeof mock = {
 
   /* Business */
   async getBusinessInvoices() {
-    return (await listInvoices()).filter((i) => i.supplierId === ACCOUNTS.business.accountId);
+    const mine = (await listInvoices()).filter((i) => i.supplierId === ACCOUNTS.business.accountId);
+    return Promise.all(mine.map(withGrade));
   },
   async getBusinessSummary() {
     const mine = (await listInvoices()).filter((i) => i.supplierId === ACCOUNTS.business.accountId);
@@ -194,12 +235,21 @@ const real: typeof mock = {
     return (await post<{ request: KycRequest }>("/kyc", input)).request;
   },
   async getListings() {
-    return (await listInvoices()).filter((i) => isLive(i) && (i.availableUnits ?? i.retainedUnits ?? 0) > 0 && new Date(maturityOf(i)).getTime() > Date.now()).map(toListing);
+    const all = await listInvoices();
+    const live = all.filter((i) => isLive(i) && (i.availableUnits ?? i.retainedUnits ?? 0) > 0 && new Date(maturityOf(i)).getTime() > Date.now());
+    // Only graded invoices are listed. The grade comes from the free risk summary.
+    const graded = (await Promise.all(live.map(withGrade))).filter((i) => i.grade);
+    const out = graded.map(toListing);
+    const demo = all.find(isBlockedDemo);
+    if (demo) out.push(toListing(demo));
+    return out;
   },
   async getListing(invoiceId) {
     const { invoice } = await http<{ invoice: Invoice }>("GET", `/invoices/${encodeURIComponent(invoiceId)}`);
-    if (!isLive(invoice) || (invoice.availableUnits ?? invoice.retainedUnits ?? 0) <= 0) throw new Error("Listing not found or sold out");
-    return toListing(invoice);
+    if (isBlockedDemo(invoice)) return toListing(invoice);
+    const graded = await withGrade(invoice);
+    if (!isLive(graded) || !graded.grade || (graded.availableUnits ?? graded.retainedUnits ?? 0) <= 0) throw new Error("Listing not found or sold out");
+    return toListing(graded);
   },
   async buyUnits(input) {
     return withKey(`buy:${input.invoiceId}:${input.units}`, async (idempotencyKey) =>
@@ -229,11 +279,11 @@ const real: typeof mock = {
     return (await http<{ requests: KycRequest[] }>("GET", "/kyc")).requests;
   },
   async reviewKyc(id, approve) {
-    if (!approve) throw new Error("Rejecting a KYC request isn't supported by the backend yet.");
-    return txOf(await post<TxResponse>(`/kyc/${encodeURIComponent(id)}/approve`));
+    return txOf(await post<TxResponse>(`/kyc/${encodeURIComponent(id)}/${approve ? "approve" : "reject"}`));
   },
   async getAwaitingTokenization() {
-    return (await listInvoices()).filter((i) => i.status === "buyer_confirmed" || i.status === "risk_checked");
+    const queue = (await listInvoices()).filter((i) => i.status === "buyer_confirmed" || i.status === "risk_checked");
+    return Promise.all(queue.map(withGrade));
   },
   async createToken(invoiceId, opts) {
     const r = await post<TxResponse>(`/invoices/${encodeURIComponent(invoiceId)}/tokenize`, opts?.maturityMinutes ? { maturityMinutes: opts.maturityMinutes } : {});
@@ -250,11 +300,11 @@ const real: typeof mock = {
         const h = await getHolders(i.id);
         return {
           tokenId: i.tokenId!, symbol: i.symbol, invoiceId: i.id, buyerName: i.buyerName, totalUnits: i.totalUnits ?? 0,
-          unitFaceValue: i.unitFaceValue ?? 1000, maturityDate: maturityOf(i), paused: live?.paused ?? false,
+          unitFaceValue: i.unitFaceValue ?? 1000, maturityDate: maturityOf(i), dueDate: i.dueDate, paused: live?.paused ?? false,
           holders: h.repaidHolders.map(repaidToHolder), repaid: true, hashscanUrl: i.hashscanUrl,
         };
       }
-      return live ?? null;
+      return live ? { ...live, dueDate: i.dueDate } : null;
     }));
     return out.filter((t): t is TokenInfo => t !== null);
   },
@@ -267,6 +317,19 @@ const real: typeof mock = {
   async getAuditLog(): Promise<Transaction[]> {
     return (await http<{ entries: Transaction[] }>("GET", "/audit")).entries;
   },
+  async loginDemoAdmin(passcode: string): Promise<{ ok: boolean }> {
+    try {
+      const r = await http<{ ok?: boolean; token?: string; status?: string }>("POST", "/auth/demo-admin", { passcode });
+      if (r && r.ok === false) throw new ApiError("AUTH_FAILED", "Invalid passcode.", 401);
+      if (r?.token) setAdminToken(r.token);
+      return { ok: true };
+    } catch (e) {
+      if (e instanceof ApiError && (e.code === "ROUTE_NOT_FOUND" || e.status === 404)) {
+        throw new ApiError("ADMIN_LOGIN_UNAVAILABLE", "Admin login not available yet.", 404);
+      }
+      throw e;
+    }
+  },
 };
 
 const impl: typeof mock = USE_MOCK ? mock : real;
@@ -276,6 +339,6 @@ export const {
   getTransferableInvoices, paySupplierWithUnits, getBuyerToConfirm, getBuyerUpcoming, confirmInvoice,
   rejectInvoice, payInvoice, getMyKyc, submitKyc, getListings, getListing, isReportUnlocked,
   buyRiskReport, buyUnits, getPortfolio, getKycRequests, reviewKyc, getAwaitingTokenization,
-  createToken, getTokens, setTokenPaused, setHolderFrozen, getAuditLog,
+  createToken, getTokens, setTokenPaused, setHolderFrozen, getAuditLog, loginDemoAdmin,
 } = impl;
 

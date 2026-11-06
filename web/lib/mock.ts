@@ -43,22 +43,24 @@ const mk = (id: string, supplierId: string, buyerId: string, amount: number, iss
 };
 
 export const invoices: Invoice[] = [
-  mk("INV-0042", "0.0.11310318", "0.0.11310319", 500000, -10, 80, "funded", { tokenId: "0.0.7001001", totalUnits: 500, unitFaceValue: 1000, retainedUnits: 100, discountPct: 4, grade: "A", riskScore: 85 }),
+  mk("INV-0042", "0.0.11310318", "0.0.11310319", 500000, -10, 80, "funded", { tokenId: "0.0.7001001", totalUnits: 500, unitFaceValue: 1000, retainedUnits: 100, discountPct: 2.6301, grade: "A", riskScore: 85 }),
   mk("INV-0043", "0.0.11310318", "0.0.11310319", 250000, -1, 90, "submitted"),
-  mk("INV-0044", "0.0.11310318", "0.0.11400101", 300000, -5, 75, "risk_checked", { grade: "B", riskScore: 72, discountPct: 6 }),
-  mk("INV-0045", "0.0.11310318", "0.0.11400102", 120000, -4, 60, "tokenized", { tokenId: "0.0.7001002", totalUnits: 120, unitFaceValue: 1000, retainedUnits: 0, discountPct: 8, grade: "C", riskScore: 58 }),
-  mk("INV-0047", "0.0.11310318", "0.0.11400101", 200000, -6, 70, "tokenized", { tokenId: "0.0.7001003", totalUnits: 200, unitFaceValue: 1000, retainedUnits: 0, discountPct: 6, grade: "B", riskScore: 70 }),
+  mk("INV-0044", "0.0.11310318", "0.0.11400101", 300000, -5, 75, "risk_checked", { grade: "B", riskScore: 72, discountPct: 3.2877 }),
+  mk("INV-0045", "0.0.11310318", "0.0.11400102", 120000, -4, 60, "tokenized", { tokenId: "0.0.7001002", totalUnits: 120, unitFaceValue: 1000, retainedUnits: 0, discountPct: 3.2877, grade: "C", riskScore: 58 }),
+  mk("INV-0047", "0.0.11310318", "0.0.11400101", 200000, -6, 70, "tokenized", { tokenId: "0.0.7001003", totalUnits: 200, unitFaceValue: 1000, retainedUnits: 0, discountPct: 3.0685, grade: "B", riskScore: 70 }),
   mk("INV-0046", "0.0.11310322", "0.0.11310319", 80000, -2, 85, "submitted"),
-  mk("INV-0040", "0.0.11310318", "0.0.11310319", 150000, -100, -10, "repaid", { tokenId: "0.0.7000900", totalUnits: 150, unitFaceValue: 1000, discountPct: 4, grade: "A", riskScore: 88 }),
+  mk("INV-0040", "0.0.11310318", "0.0.11310319", 150000, -100, -10, "repaid", { tokenId: "0.0.7000900", totalUnits: 150, unitFaceValue: 1000, discountPct: 2.9589, grade: "A", riskScore: 88 }),
+  // Simulated fraud case: shown as a blocked card, tokenizing it is refused.
+  mk("DEMO-RING", "0.0.11327247", "0.0.11400102", 400000, -3, 60, "risk_checked", { grade: "D", seeded: true }),
 ];
 
 const h = (accountId: string, name: string, units: number, amountPaid: number): Holder => ({ accountId, name, units, amountPaid, frozen: false });
 
 export const holdersByToken: Record<string, Holder[]> = {
   "0.0.7001001": [
-    h("0.0.11310320", "Priya Sharma", 100, 96000),
-    h("0.0.11320001", "Arjun Mehta", 100, 96000),
-    h("0.0.11320002", "Meera Iyer", 50, 48000),
+    h("0.0.11310320", "Priya Sharma", 100, 97370),
+    h("0.0.11320001", "Arjun Mehta", 100, 97370),
+    h("0.0.11320002", "Meera Iyer", 50, 48685),
   ],
   "0.0.7001002": [],
   "0.0.7001003": [],
@@ -82,9 +84,10 @@ export const unlockedReports = new Set<string>();
 export const investorKyc: { current: KycRequest | null } = { current: null };
 
 export const riskReports: Record<string, Omit<RiskReport, "paymentTx" | "hashscanUrl">> = {
-  "INV-0042": { invoiceId: "INV-0042", riskScore: 85, grade: "A", confidence: "HIGH", creditRisk: "LOW", fraudFlags: [], anomaly: false, suggestedDiscountPct: 4, reasons: ["Buyer paid 90% of past invoices on time", "Company active since 2003 with 99% GST filing", "Invoice amount is in line with the buyer's usual orders", "Other suppliers are paid on time by this buyer"] },
-  "INV-0044": { invoiceId: "INV-0044", riskScore: 72, grade: "B", confidence: "MEDIUM", creditRisk: "MEDIUM", fraudFlags: [], anomaly: false, suggestedDiscountPct: 6, reasons: ["Buyer paid 75% of past invoices on time", "Average payment delay of 9 days", "GST filing is slightly irregular (88%)"] },
-  "INV-0045": { invoiceId: "INV-0045", riskScore: 58, grade: "C", confidence: "LOW", creditRisk: "MEDIUM", fraudFlags: [], anomaly: false, suggestedDiscountPct: 8, reasons: ["Buyer was founded last year and has no invoice history", "Payment history set to a neutral score", "No fraud patterns found in the network"] },
-  "INV-0047": { invoiceId: "INV-0047", riskScore: 70, grade: "B", confidence: "MEDIUM", creditRisk: "MEDIUM", fraudFlags: [], anomaly: false, suggestedDiscountPct: 6, reasons: ["Buyer paid 78% of past invoices on time", "Invoice amount is within the buyer's usual range", "Due date is 70 days away, a normal term"] },
+  "INV-0042": { invoiceId: "INV-0042", riskScore: 85, grade: "A", confidence: "HIGH", creditRisk: "LOW", fraudFlags: [], anomaly: false, annualRatePct: 12, daysToDue: 80, suggestedDiscountPct: 2.6301, reasons: ["Buyer paid 90% of past invoices on time", "Company active since 2003 with 99% GST filing", "Invoice amount is in line with the buyer's usual orders", "Other suppliers are paid on time by this buyer"] },
+  "INV-0044": { invoiceId: "INV-0044", riskScore: 72, grade: "B", confidence: "MEDIUM", creditRisk: "MEDIUM", fraudFlags: [], anomaly: false, annualRatePct: 16, daysToDue: 75, suggestedDiscountPct: 3.2877, reasons: ["Buyer paid 75% of past invoices on time", "Average payment delay of 9 days", "GST filing is slightly irregular (88%)"] },
+  "INV-0045": { invoiceId: "INV-0045", riskScore: 58, grade: "C", confidence: "LOW", creditRisk: "MEDIUM", fraudFlags: [], anomaly: false, annualRatePct: 20, daysToDue: 60, suggestedDiscountPct: 3.2877, reasons: ["Buyer was founded last year and has no invoice history", "Payment history set to a neutral score", "No fraud patterns found in the network"] },
+  "INV-0047": { invoiceId: "INV-0047", riskScore: 70, grade: "B", confidence: "MEDIUM", creditRisk: "MEDIUM", fraudFlags: [], anomaly: false, annualRatePct: 16, daysToDue: 70, suggestedDiscountPct: 3.0685, reasons: ["Buyer paid 78% of past invoices on time", "Invoice amount is within the buyer's usual range", "Due date is 70 days away, a normal term"] },
+  "DEMO-RING": { invoiceId: "DEMO-RING", riskScore: 31, grade: "D", confidence: "MEDIUM", creditRisk: "MEDIUM", fraudFlags: ["CIRCULAR_INVOICING", "SHARED_DIRECTOR"], anomaly: false, annualRatePct: null, daysToDue: 60, suggestedDiscountPct: null, reasons: ["Invoices loop between supplier and buyer through a shared director", "Billing loop detected: the same money moves in a circle", "Score capped at 49 because of the fraud flags"], graph: { nodes: [{ id: "s", label: "Kumar Steel Works", type: "company", role: "supplier", flagged: true }, { id: "b", label: "Nova Retail", type: "company", role: "buyer", flagged: true }, { id: "p", label: "Director A", type: "person", flagged: true }], links: [{ source: "s", target: "b", type: "invoice", flagged: true }, { source: "p", target: "s", type: "director_of", flagged: true }, { source: "p", target: "b", type: "director_of", flagged: true }] } }
 };
 
