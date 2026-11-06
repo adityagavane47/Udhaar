@@ -390,6 +390,7 @@ function toListing(i: Invoice): Listing {
     dueDate: i.dueDate,
     maturityDate: maturityOf(i),
     ...(i.demoMaturity ? { demoMaturity: true } : {}),
+    ...(i.schedule ? { schedule: i.schedule } : {}),
     annualRatePct: i.grade ? RATE_BY_GRADE[i.grade] : undefined,
     discountPct: i.discountPct,
     grade: i.grade,
@@ -682,6 +683,7 @@ const real: typeof mock = {
             expectedPayout: units * face,
             dueDate: maturityOf(i),
             ...(i.demoMaturity ? { demoMaturity: true } : {}),
+            ...(i.schedule ? { schedule: i.schedule } : {}),
             grade: i.grade,
             repaid: i.status === "repaid",
           });
@@ -774,6 +776,7 @@ const real: typeof mock = {
               maturityDate: maturityOf(i),
               dueDate: i.dueDate,
               ...(i.demoMaturity ? { demoMaturity: true } : {}),
+              ...(i.schedule ? { schedule: i.schedule } : {}),
               paused: live?.paused ?? false,
               holders: h.repaidHolders.map(repaidToHolder),
               repaid: true,

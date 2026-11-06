@@ -174,6 +174,7 @@ Set these in `.env`, then restart the server.
 | `DEMO_ADMIN_PASSCODE` | None | Required for admin login |
 | `DEMO_ADMIN_TOKEN_MINUTES` | `30` | How long an admin token lasts |
 | `DEMO_SHORT_MATURITY_MINUTES` | off | Demo only. A number from 3 to 1440 lets an admin tokenize with a maturity that many minutes away. Shown to the web app by `GET /health` |
+| `SCHEDULE_WATCHER` | on | Set to `off` to stop the server creating and following repayment schedules. `SCHEDULE_CHECK_SECONDS` (default `30`) sets how often it checks |
 | `NAV_SCHEDULER` | on | Set to `off` to stop the server publishing NAV once a day. `POST /nav/publish` still works |
 | `DEMO_INVESTOR_TOKEN_MINUTES` | `30` | How long an investor session lasts |
 | `FACILITATOR_URL` | `https://x402.org/facilitator` | The x402 facilitator. `https://api.testnet.blocky402.com` also works |
@@ -231,6 +232,7 @@ interface Invoice {
   tokenization?: object;
   overdue?: boolean;         // Set by the NAV feed once the due date is missed
   demoMaturity?: boolean;    // The bond matures well before the due date, for a demo. Absent otherwise
+  schedule?: RepaymentSchedule; // The Hedera scheduled transaction that repays at maturity. See "Scheduled repayment"
 }
 ```
 
@@ -525,6 +527,31 @@ The business transfers units to a supplier. An unverified supplier's transfer is
 | 422 | `TRANSFER_REJECTED` | The token rejected it for another reason. Adds `reason` |
 | 422 | `SUPPLIER_NOT_FOUND`, `SAME_PARTY` | Bad supplier account |
 
+### Scheduled repayment
+
+Not a route: the server does this by itself. When an invoice is tokenized (and later, from a check every 30 seconds, for bonds that mature further out), it creates a Hedera `ScheduleCreateTransaction` that wraps a uINR transfer of the full invoice amount from the buyer to REPAYMENT, with the bond symbol as the memo, the same as `POST /invoices/:id/repay`. The schedule expires at the bond's maturity with wait-for-expiry on, is signed by the buyer, and has the buyer as its admin. The result is saved on the invoice as `schedule`, which every invoice view carries.
+
+```ts
+interface RepaymentSchedule {
+  status: "scheduled" | "executed" | "failed";
+  scheduleId: string;          // "0.0.123456"
+  hashscanUrl: string;         // The schedule
+  createTxId: string;
+  createHashscanUrl: string;   // The ScheduleCreate transaction
+  expiresAtUnix: number;       // The bond's maturity
+  amountBaseUnits: number;
+  memo: string;
+  executedTxId?: string;       // The scheduled transfer, once it ran
+  executedHashscanUrl?: string;
+  failureReason?: string;      // Set when status is "failed"
+}
+```
+
+- **Only within the network's limit:** a schedule can expire at most 62 days ahead (a longer one fails with `SCHEDULE_EXPIRATION_TIME_TOO_FAR_IN_FUTURE`). A bond maturing later gets its schedule from the periodic check once it is within 62 days less an hour. A bond maturing in under 20 seconds gets none.
+- **After it runs:** the check records `status: "executed"` with the transfer's link, then runs the normal repayment. It finds the buyer's payment on the mirror node and goes on to burn and pay, as `POST /invoices/:id/repay` does.
+- **If it fails** (the transfer ended with an error such as `INSUFFICIENT_TOKEN_BALANCE`, the schedule was deleted, or it never ran within 2 minutes of its expiry), `status` is `"failed"` and `failureReason` says why. The invoice stays `tokenized` or `funded`, and `POST /invoices/:id/repay` works as before.
+- **No double payment:** while a due schedule is not yet recorded, `POST /invoices/:id/repay` returns `409 SCHEDULED_REPAYMENT_PENDING` rather than paying a second time. After a successful run it finds the payment already on the chain and does not send another.
+
 ### POST /invoices/:id/repay
 
 The buyer pays REPAYMENT with the bond symbol as the memo. The server detects that through the mirror node and saves a holder snapshot. For each holder, it burns their units and then pays units × face value in uINR. No request body.
@@ -550,6 +577,7 @@ Calling it again is always safe. It resumes unfinished work, and a finished repa
 | Status | Code | Buyer charged? | Meaning |
 | --- | --- | --- | --- |
 | 409 | `NOT_MATURED` | No | Too early. Adds `maturityDate` |
+| 409 | `SCHEDULED_REPAYMENT_PENDING` | Yes | A due Hedera schedule has not been recorded yet. Retry in a minute. Adds `hashscanUrl` of the schedule |
 | 409 | `NOT_TOKENIZED` | No | No bond yet |
 | 409 | `BOND_PAUSED` | No | Unpause first |
 | 409 | `HOLDER_FROZEN` | No | Unfreeze first |

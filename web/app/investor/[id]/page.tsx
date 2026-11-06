@@ -10,6 +10,7 @@ import {
   Async,
   AsyncButton,
   DemoMaturityTag,
+  ScheduledRepayment,
   Field,
   GradeBadge,
   HashscanLink,
@@ -137,6 +138,7 @@ export default function InvoiceDetail() {
                         {(l.demoMaturity || demoMaturityText(l.maturityDate, l.dueDate)) && (
                           <dd className="mt-1 flex flex-wrap items-center gap-2 font-mono text-xs font-semibold text-[#B3261E]">
                             <DemoMaturityTag show={l.demoMaturity} />
+                            <ScheduledRepayment schedule={l.schedule} />
                             {demoMaturityText(l.maturityDate, l.dueDate)}
                           </dd>
                         )}

@@ -39,7 +39,7 @@ One invoice, end to end (the **INV-0042** story below is an illustration; the li
 5. **Investors buy.** Priya is KYC-approved first: the operator's KYC card shows a **wallet check** read from the mirror node (a warning if the account is under 7 days old or its latest 100 transfers touch a blocklisted account; the blocklist is mock data), and approving with warnings asks for confirmation. Then Priya pays **₹970.41 per unit** in uINR (a test rupee stablecoin), so Ramesh receives **₹97,041 today**. A 1% fee goes on top to an investor protection pool.
 6. **Pay your supplier.** Ramesh sends 20 units to Suresh, his sand supplier, as payment for sand. The token rejects any recipient who isn't KYC-verified.
 7. **Controls.** If something looks wrong, the operator **pauses** the token or **freezes** units on one holder.
-8. **Repayment.** On the due date BigBuild pays ₹1,00,000 to a REPAYMENT account. The backend sees it on the mirror node, then for every holder **burns their units first and pays them second**: ₹1,000 per unit, fee-free. Priya turns ₹970.41 per unit into ₹1,000.
+8. **Repayment.** At maturity BigBuild pays ₹1,00,000 to a REPAYMENT account, by itself through a [Hedera scheduled transaction](#scheduled-repayment) or with the manual Pay button. The backend sees it on the mirror node, then for every holder **burns their units first and pays them second**: ₹1,000 per unit, fee-free. Priya turns ₹970.41 per unit into ₹1,000.
 
 ### How the price is set
 
@@ -60,6 +60,15 @@ unit price = face value × (1 − discount % / 100)
 For INV-0042: 12% × 90 / 365 = 2.9589%, so ₹1,000 × (1 − 0.029589) = **₹970.41**. A shorter invoice gets a smaller discount.
 
 > **Older invoices:** INV-0001 to INV-0005 were tokenized before time-based pricing and used a **flat 4%** (₹960 per unit). They keep that price.
+
+### Scheduled repayment
+
+Once a bond exists, the server creates a Hedera `ScheduleCreateTransaction`, signed by the buyer's key. It wraps a uINR transfer of the full repayment from the buyer to REPAYMENT, with the same memo as the manual route. Its expiry is the bond's maturity and wait-for-expiry is on, so the network runs the transfer at maturity with no one pressing anything. The schedule ID is saved on the invoice and every portal shows "Repayment scheduled on Hedera" with its HashScan link, then the outcome.
+
+- **The 62-day limit:** the network refuses an expiry more than 62 days away (checked on testnet: 61.5 days worked, 63 failed with `SCHEDULE_EXPIRATION_TIME_TOO_FAR_IN_FUTURE`). A bond maturing later is scheduled by a check that runs every 30 seconds, once its maturity is within 62 days (less an hour).
+- **After it runs:** the same check finds the payment on the mirror node and runs the existing repayment, burn first and pay second.
+- **If it fails** (for example the buyer lacks the uINR), the invoice shows "Scheduled repayment failed" and the manual repay route works as before. Manual repay also waits for a schedule that is due, so a buyer is never charged twice.
+- **Turn the check off** on a test server with `SCHEDULE_WATCHER=off`.
 
 ## Trust: is the business real, is the invoice real, will the money come back?
 
@@ -163,6 +172,7 @@ sequenceDiagram
 | **Asset Tokenization Studio (ATS) bonds**, v8 factory `0.0.9213391` | One bond per invoice. Operations used: `deployBond` (factory), `addToControlList` (allowlist), `issue`, `transfer`, `pause` / `unpause`, `freezePartialTokens` / `unfreezePartialTokens`, `fullRedeemAtMaturity` (burn at repayment) |
 | **HTS: uINR** `0.0.11327250` | Test rupee stablecoin, 2 decimals. Fee schedule: **1% to POOL, paid by the sender on top**, plus a zero-charge second row that makes **REPAYMENT an exempt fee collector**, so repayments and payouts carry no fee. No admin key |
 | **HCS topics** | `registryTopicId` `0.0.11327836` (invoice fingerprints, duplicate guard), `confirmationTopicId` `0.0.11327838` (signed buyer confirmations), `agentAuditTopicId` `0.0.11332556` (every agent payment and decision; only the investor's key can write, no admin key) |
+| **Scheduled Transactions** | One `ScheduleCreateTransaction` per bond: the buyer's uINR repayment to REPAYMENT, expiring at maturity with wait-for-expiry on, so it executes with no button pressed. See [Scheduled repayment](#scheduled-repayment) |
 | **HCS: Udhaar NAV feed** | A daily NAV per token for every tokenized invoice, published to its own topic (admin key only), plus on demand with `POST /nav/publish`. NAV = face value × (1 − annual rate × days remaining / 365), from the same pricing code as the issue price. An overdue invoice gets no price. `GET /nav/:invoiceId` is free. Topic `navTopicId` `0.0.11337348` ([HashScan](https://hashscan.io/testnet/topic/0.0.11337348)), saved in `backend/deployments/hcs.json`. Bonds tokenized before grades were saved (INV-0002 to 0005) have no rate to work from and are skipped |
 | **Mirror node** | Checks a KYC applicant's wallet (account age, and its latest 100 transfers against a mock blocklist, before admin approval), detects buyer repayments, reads on-chain repayment history for the Trust Score, verifies x402 settlements, reads topic messages |
 | **x402 with the facilitator** | Pay-per-call risk reports in uINR, settled through `https://x402.org/facilitator`, which pays the HBAR fee. Packages `@x402/core` and `@x402/hedera` |
@@ -293,6 +303,15 @@ The facilitator is public and needs no API key. To use another, set `FACILITATOR
 | Investor: burn 20 units → paid 20,000 uINR | [burn](https://hashscan.io/testnet/transaction/1793902290.785405104) · [payment](https://hashscan.io/testnet/transaction/1793902295.985719104) |
 | Supplier: burn 10 units → paid 10,000 uINR | [burn](https://hashscan.io/testnet/transaction/1793902319.925784770) · [payment](https://hashscan.io/testnet/transaction/1793902325.105524104) |
 
+**Scheduled repayment (demo-maturity ₹10,000 invoice, run on an isolated copy of the store, no button pressed):**
+
+| Step | Proof |
+|---|---|
+| Schedule `0.0.11347101` created, signed by the buyer | [schedule](https://hashscan.io/testnet/schedule/0.0.11347101) · [create](https://hashscan.io/testnet/transaction/1794008212.374173160) |
+| Scheduled execution at maturity: buyer pays REPAYMENT 10,000 uINR | [1794008541.008431804](https://hashscan.io/testnet/transaction/1794008541.008431804) |
+| Business: burn 4 units → paid 4,000 uINR | [burn](https://hashscan.io/testnet/transaction/1794008567.888273418) · [payment](https://hashscan.io/testnet/transaction/1794008575.831080711) |
+| Investor: burn 6 units → paid 6,000 uINR | [burn](https://hashscan.io/testnet/transaction/1794008580.241404776) · [payment](https://hashscan.io/testnet/transaction/1794008585.634191104) |
+
 **uINR fee behaviour:** investor → business 1,000 uINR, with 10 uINR to POOL paid on top ([tx](https://hashscan.io/testnet/transaction/1793898088.735173764)); transfers into and out of REPAYMENT pay no fee.
 
 ## Track checklist
@@ -306,7 +325,7 @@ The facilitator is public and needs no API key. To use another, set `FACILITATOR
 | Issuance, configuration, lifecycle operation | Issue, allowlist and roles, then redemption at maturity, freeze and pause |
 | Compliance controls | KYC allowlist, a KYC wallet check (account age and transfers against a mock blocklist, read from the mirror node), transfer restrictions, freeze, pause, GSTIN and e-invoice checks |
 | Custom fees and distributions | 1% pool fee on uINR; repayment paid to every holder |
-| Scheduled Transactions | Not built. See [Limitations](#limitations-and-next-steps) |
+| Scheduled Transactions | ✅ When a bond is issued, a `ScheduleCreateTransaction` wraps the buyer's uINR repayment to REPAYMENT, set to expire at maturity and wait for that expiry, so it runs on its own. A bond maturing beyond the network's 62-day limit is scheduled by a periodic check once it is within it. The existing repayment then burns and pays as usual. If the schedule fails, manual repay stays open ([details](#scheduled-repayment)) |
 | Contribution back to ATS | ✅ Opened [hashgraph/asset-tokenization-studio#1412](https://github.com/hashgraph/asset-tokenization-studio/pull/1412), a developer guide for server-side (headless) signing that answers open issue #1397; the guide is also at [`docs/ats-server-side-signing.md`](docs/ats-server-side-signing.md) |
 | Contracts verified on HashScan (where applicable) | No custom Solidity was written. Every bond is deployed by the official ATS v8 factory [`0.0.9213391`](https://hashscan.io/testnet/contract/0.0.9213391) |
 | Oracle pricing / NAV feed | A daily NAV per token on the HCS topic [`0.0.11337348`](https://hashscan.io/testnet/topic/0.0.11337348) (`GET /nav/:invoiceId`, `POST /nav/publish`; see the Oracle / NAV feed table below) |
@@ -320,6 +339,7 @@ The facilitator is public and needs no API key. To use another, set `FACILITATOR
 | Agent pays with no human approving | `POST /agent/run`, [one agent run](#one-agent-run) |
 | Settled transaction ID in the README | [Settled payments](#settled-payments) |
 | Setup, architecture, payment flow | This README |
+| Extras beyond the requirements | A daily NAV feed on HCS, and the buyer's repayment run by a Hedera [scheduled transaction](#scheduled-repayment) so the whole lifecycle can finish with no human action |
 | Video of 5 minutes or less | [Watch on YouTube](https://www.youtube.com/watch?v=MzwFGgrLNO4) |
 
 **Oracle / NAV feed**
@@ -415,7 +435,7 @@ docs/      PRD, overview, API reference, data notes, AI usage, prompts, ATS PR n
 
 - **Custodial demo personas:** the backend holds all role keys so judges can click through without a wallet. Next: investors and businesses sign from their own wallets (HashPack is connected read-only today).
 - **Mocks:** the GST registry, IRP e-invoicing, credit bureau scores, MSME-1 dues, MSME Samadhaan complaints, the company data behind the Apex and Nova buyers, and the wallet-check blocklist are mocks. Next: a GST Suvidha Provider API, the real IRP, a credit bureau and the MSME portals.
-- **Scheduled Transactions for auto-repayment:** repayment is triggered by the backend when it sees the buyer's payment. A Hedera Scheduled Transaction can only wait about 62 days, which is shorter than a 90-day invoice, so it needs a re-scheduling design.
+- **A scheduled repayment is a payment, not a guarantee:** the schedule runs only if the buyer holds enough uINR at maturity. If not, the invoice shows "Scheduled repayment failed" and the manual repay route stays open.
 - **Account Aggregator:** read a business's bank data with consent, to check cash flow and confirm payments.
 - **Regulation:** retail tokenized securities aren't permitted in mainland India today. The realistic path is a technology layer for a licensed NBFC-factor or TReDS platform, tested in an RBI or IFSCA (GIFT City) sandbox.
 - **Risk data:** the risk dataset is simulated and the scorecard is hand-tuned, so no weight has been checked against real defaults. See [`docs/DATA.md`](docs/DATA.md#limits).

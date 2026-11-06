@@ -117,6 +117,8 @@ export interface Invoice {
   /** INR-equivalent paid for units, per account. Used for Holder.amountPaid. */
   amountPaidBy: Record<string, number>;
   repayment?: Repayment;
+  /** The Hedera scheduled transaction that repays this invoice at maturity. Manual repay stays available. */
+  schedule?: RepaymentSchedule;
   /** Set by the NAV feed once the due date has been missed. A repaid invoice keeps it as history. */
   overdue?: boolean;
   /** Set by demo:reset. Hidden from every list, but still found by ID, so history and duplicate checks keep working. */
@@ -172,7 +174,9 @@ export type AuditType =
   | "units_transfer"
   | "transfer_rejected"
   | "units_burn"
-  | "holder_payout";
+  | "holder_payout"
+  | "repayment_scheduled"
+  | "scheduled_repayment";
 
 export interface AuditEntry {
   id: string;
@@ -282,4 +286,27 @@ export interface State {
     /** The last message published for each invoice. */
     latest: Record<string, NavPublication>;
   };
+}
+
+/**
+ * A ScheduleCreateTransaction wrapping the buyer's uINR repayment, set to run at the bond's maturity.
+ * "scheduled": waiting. "executed": the network ran it. "failed": it did not run (for example not
+ * enough uINR) or was deleted, and the manual repay route is the way forward.
+ */
+export interface RepaymentSchedule {
+  status: "scheduled" | "executed" | "failed";
+  scheduleId: string;
+  createTxId: string;
+  createHashscanUrl: string;
+  /** HashScan page of the schedule itself. */
+  hashscanUrl: string;
+  /** The schedule's expiry, which is the bond's maturity. Unix seconds. */
+  expiresAtUnix: number;
+  amountBaseUnits: number;
+  memo: string;
+  createdAt: string;
+  executedTxId?: string;
+  executedHashscanUrl?: string;
+  executedAt?: string;
+  failureReason?: string;
 }

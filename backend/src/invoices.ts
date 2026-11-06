@@ -9,6 +9,7 @@ import { discountedUnitPrice } from "./risk/scorecard.js";
 import { assessForTokenizing, isSeededInvoiceId } from "./risk/service.js";
 import { checkNewInvoice } from "./trust/service.js";
 import { audit, save, state } from "./store.js";
+import { ensureRepaymentSchedule } from "./schedule.js";
 import type { Invoice, Link, Purchase } from "./types.js";
 import { sendUinrOnce, uinrBalance } from "./uinr.js";
 
@@ -271,6 +272,13 @@ export async function tokenizeInvoice(invoiceId: string, input: TokenizeInput) {
   save();
   const deploy = state.ledger[`${plan.symbol}:deploy`];
   audit({ type: "token_create", description: `Bond ${bond.contractId} (${plan.symbol}) created for ${invoice.id}: ${plan.units} units of ₹${plan.unitFaceValue}`, actor: "admin", hashscanUrl: hashscan.contract(bond.contractId), ...(deploy ? { txId: deploy.transactionId } : {}), invoiceId: invoice.id });
+
+  // The repayment is scheduled on Hedera now that the maturity is known. If that fails, the watcher tries again and manual repay still works.
+  try {
+    await ensureRepaymentSchedule(invoice);
+  } catch (error) {
+    console.error(`Could not schedule the repayment of ${invoice.id}: ${error instanceof Error ? error.message : "unknown error"}`);
+  }
 
   return { invoice: invoiceView(invoice), links, tx: { hashscanUrl: hashscan.contract(bond.contractId), txId: deploy?.transactionId ?? "" }, replayed: false };
 }

@@ -5,6 +5,7 @@ import {
   Async,
   AsyncButton,
   DemoMaturityTag,
+  ScheduledRepayment,
   Empty,
   HashscanLink,
   InvoiceStamp,
@@ -167,6 +168,7 @@ export default function BuyerPage() {
                             · due {fmtDate(i.dueDate)}
                             {i.tokenId ? ` · bond ${i.tokenId}` : ""}{" "}
                             <DemoMaturityTag show={i.demoMaturity} />
+                            <ScheduledRepayment schedule={i.schedule} className="mt-1 flex" />
                             {demoMaturityText(i.maturityDate, i.dueDate) && (
                               <span className="font-semibold text-[#B3261E]">
                                 {" "}

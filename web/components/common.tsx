@@ -14,7 +14,7 @@ import {
   useAuthRole,
 } from "@/lib/auth";
 import { cn, errLink, errMsg } from "@/lib/utils";
-import type { Grade, InvoiceStatus, RiskGraph } from "@/lib/types";
+import type { Grade, InvoiceStatus, RepaymentSchedule, RiskGraph } from "@/lib/types";
 
 export function HashscanLink({ href, label, className }: { href?: string; label?: string; className?: string }) {
   if (!href) return null;
@@ -75,6 +75,21 @@ export function StampBadge({
 export function DemoMaturityTag({ show, className }: { show?: boolean; className?: string }) {
   if (!show) return null;
   return <StampBadge label="Demo maturity" tone="red" tilt={false} className={cn("px-2 py-0 text-[11px]", className)} />;
+}
+
+/** The Hedera schedule that repays the invoice at maturity, and what became of it. Shown in every portal. */
+export function ScheduledRepayment({ schedule, className }: { schedule?: RepaymentSchedule; className?: string }) {
+  if (!schedule) return null;
+  const failed = schedule.status === "failed";
+  const label = schedule.status === "scheduled" ? "Repayment scheduled on Hedera" : schedule.status === "executed" ? "Scheduled repayment ran on Hedera" : "Scheduled repayment failed";
+  return (
+    <span className={cn("inline-flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs font-semibold", failed ? "text-[#B3261E]" : "text-[#1B2340]", className)}>
+      <span>{label}</span>
+      <HashscanLink href={schedule.hashscanUrl} label={`Schedule ${schedule.scheduleId}`} />
+      {schedule.executedHashscanUrl && <HashscanLink href={schedule.executedHashscanUrl} label="Execution" />}
+      {failed && <span className="font-sans font-normal">{schedule.failureReason ? `${schedule.failureReason}. ` : ""}Manual repay is still available.</span>}
+    </span>
+  );
 }
 
 const statusStampMap: Record<InvoiceStatus, { label: string; tone: StampTone; double?: boolean }> = {

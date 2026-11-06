@@ -25,7 +25,7 @@ One invoice goes from upload to automatic repayment in eight steps; the demo fol
 5. **Investors buy.** KYC-verified investors buy units at a discount (₹970.41 each for a Grade A invoice due in 90 days). Ramesh receives about ₹4,85,000 today.
 6. **Agents pay for research.** Before buying, an investor's auto-invest agent pays ₹1.00 in uINR over x402 for each full risk report, with no human approving.
 7. **Buyer pays.** On the due date BigBuild pays the full ₹5,00,000.
-8. **Automatic repayment.** The backend detects the payment on the mirror node, burns each holder's units and pays them ₹1,000 per unit, fee-free. (A Scheduled Transaction for this is a next step, not built.) An investor who paid ₹97,041 for 100 units gets ₹1,00,000.
+8. **Automatic repayment.** The backend detects the payment on the mirror node, burns each holder's units and pays them ₹1,000 per unit, fee-free. (A Hedera Scheduled Transaction made at issue time can pay the buyer's side at maturity with no button pressed; manual repay stays as the fallback.) An investor who paid ₹97,041 for 100 units gets ₹1,00,000.
 
 If fraud is found at any point, the admin freezes the token and nobody can move it.
 
@@ -132,7 +132,7 @@ The Tokenize track is the primary target; the x402 track is a second shot if Hed
 | Compliance controls | KYC allowlist, transfer restrictions, freeze, pause |
 | Custom fees and distributions | Repayment distributed to every investor; 1% of each funding goes to an investor protection pool |
 | Oracle pricing or NAV | Not built (stretch). Pricing is annual rate × days to the due date / 365 |
-| Scheduled Transactions | Not built: repayment is triggered by the backend (a Scheduled Transaction lasts about 62 days at most, less than a 90-day invoice) |
+| Scheduled Transactions | Built: the buyer's repayment is a `ScheduleCreateTransaction` that expires at maturity (62-day network limit; later bonds are scheduled by a periodic check). The backend then burns and pays. Manual repay remains if the schedule fails |
 | Contributions back | A genuinely useful pull request to the ATS repo (docs fix, example or bug report) |
 
 **x402 track — qualification**
@@ -239,7 +239,7 @@ The biggest risk is the Asset Tokenization Studio taking hours to set up, so it 
 | --- | --- |
 | ATS setup slow or broken | Ask the Hedera booth on day 1; use the ATS web app to issue instead of the SDK |
 | No test stablecoin | Resolved: uINR is created with the Hedera SDK |
-| Scheduled redemption not supported as planned | Used: the backend triggers redemption when it sees the buyer's payment |
+| Scheduled redemption not supported as planned | The scheduled transaction pays the buyer's side only. Burn and payout still run from the backend when it sees that payment, so redemption itself is not scheduled |
 | Neo4j or 3D graph runs late | Ship 2D graph; the fraud check still works |
 | Live demo fails in judging | Play the recorded video; show HashScan history |
 | Running out of time | Stop at the end of any checkpoint; everything shipped still qualifies |

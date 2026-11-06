@@ -4,6 +4,7 @@ import { burnedUnits, holderPositions, read, redeemAtMaturity, simulateRedeem, t
 import { getParty, getSigner, knownAccountName, ROLES, type Party } from "./hedera/client.js";
 import { getAccount, poll, waitForMirrorToReach } from "./hedera/mirror.js";
 import { audit, save, state } from "./store.js";
+import { EXECUTION_GRACE_SECONDS, settleSchedule } from "./schedule.js";
 import type { BondRef, Invoice, Link, Repayment, RepaymentHolder } from "./types.js";
 import { canReceiveUinr, findTransfersInto, movedAmount, sendUinrOnce } from "./uinr.js";
 
@@ -84,6 +85,14 @@ export async function repayInvoice(invoice: Invoice): Promise<{ repayment: Repay
     throw new ApiError(409, "NOT_MATURED", `${tokenization.symbol} matures at ${new Date(tokenization.maturityDateUnix * 1000).toISOString()}`, { maturityDate: new Date(tokenization.maturityDateUnix * 1000).toISOString(), hashscanUrl: hashscan.contract(bond.contractId) });
   }
 
+  // A schedule that has not run yet may still pay by itself: wait for it rather than paying twice.
+  if (invoice.schedule?.status === "scheduled") {
+    await settleSchedule(invoice);
+    if (invoice.schedule.status === "scheduled") {
+      throw new ApiError(409, "SCHEDULED_REPAYMENT_PENDING", `The scheduled repayment (${invoice.schedule.scheduleId}) is due and has not been recorded yet. Retry in a minute; if it did not run, manual repay opens after about ${EXECUTION_GRACE_SECONDS} seconds.`, { hashscanUrl: invoice.schedule.hashscanUrl });
+    }
+  }
+
   const buyer = await getSigner(invoice.buyerId);
   const repaymentAccount = await getParty("REPAYMENT");
   const symbol = bond.symbol;
@@ -104,9 +113,12 @@ export async function repayInvoice(invoice: Invoice): Promise<{ repayment: Repay
     invoice.repayment = repayment;
     save();
 
-    const payment = await sendUinrOnce({ key: `${symbol}:repayment`, from: buyer, toId: repaymentAccount.id, amountBaseUnits: amountBase, memo: symbol });
-    if (!payment.replayed) {
-      audit({ type: "buyer_payment", description: `${invoice.buyerName} paid ${invoice.amount} uINR to REPAYMENT for ${invoice.id}`, actor: buyer.name, hashscanUrl: payment.hashscanUrl ?? "", txId: payment.transactionId, invoiceId: invoice.id });
+    // When the Hedera schedule already ran, the buyer's payment is on the chain: it is found below, not sent again.
+    if (invoice.schedule?.status !== "executed") {
+      const payment = await sendUinrOnce({ key: `${symbol}:repayment`, from: buyer, toId: repaymentAccount.id, amountBaseUnits: amountBase, memo: symbol });
+      if (!payment.replayed) {
+        audit({ type: "buyer_payment", description: `${invoice.buyerName} paid ${invoice.amount} uINR to REPAYMENT for ${invoice.id}`, actor: buyer.name, hashscanUrl: payment.hashscanUrl ?? "", txId: payment.transactionId, invoiceId: invoice.id });
+      }
     }
 
     const detected = await poll("the repayment on the mirror node", async () => {

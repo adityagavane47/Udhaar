@@ -7,6 +7,7 @@ import {
   Async,
   AsyncButton,
   DemoMaturityTag,
+  ScheduledRepayment,
   Empty,
   ErrorNote,
   Field,
@@ -134,6 +135,7 @@ function InvoiceRow({ inv }: { inv: Invoice }) {
             {inv.grade && <GradeBadge grade={inv.grade} />}
             {inv.tokenId && <StampBadge label={`Bond ${inv.tokenId}`} tone="navy" tilt={false} />}
             <DemoMaturityTag show={inv.demoMaturity} />
+            <ScheduledRepayment schedule={inv.schedule} />
             <HashscanLink href={inv.hashscanUrl} />
           </div>
         </div>

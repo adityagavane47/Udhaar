@@ -111,7 +111,7 @@ P0 items qualify the Tokenize track and must ship; P1 items add bonus points and
 | F15 | Full risk report behind x402, ₹1.00 in uINR per call, settled on Hedera | P1 |
 | F16 | Auto-invest agent: rules, budget, pays for reports and buys with no human approval, shows a receipt | P1 |
 | F17 | Admin network graph with fraud patterns highlighted; investor 2D mini-graph with masked names. The report returns graph data with masked names; the 3D view is not confirmed built | P1 |
-| F18 | Repayment triggered by a Scheduled Transaction on the due date. **Not built:** the backend triggers repayment when it sees the buyer's payment, because a scheduled transaction lasts about 62 days at most | P1 |
+| F18 | The buyer's repayment is a Hedera Scheduled Transaction that runs at maturity. **Built:** the network limit is about 62 days, so later bonds are scheduled by a periodic check. The backend then burns and pays when it sees the payment; manual repay stays as the fallback | P1 |
 | F19 | KYC wallet check: account age and the latest 100 transfers against a mock blocklist, shown on the admin KYC card (built; approval with warnings asks for confirmation) | P1 |
 | F20 | Audit log of all actions | P1 |
 | F21 | Price feed (fair value per token) over x402 | P2 |
@@ -204,7 +204,7 @@ The plan rests on three assumptions about Hedera tooling that must be checked in
 **Assumptions**
 
 - ATS can issue a bond-style token with a maturity date, KYC allowlist and freeze, and redeem it at maturity. (Confirmed on testnet.)
-- A Scheduled Transaction can trigger repayment on the due date. Outcome: not used. The backend triggers repayment when it sees the buyer's payment.
+- A Scheduled Transaction can trigger repayment on the due date. Outcome: used for the buyer's payment at maturity. The backend still burns and pays when it sees that payment.
 - uINR is held by the investor and accepted by the x402 facilitator. Both were tested on testnet on 6 Nov 2026.
 - Rupee amounts are display-only; settlement uses a stablecoin at a fixed demo rate stated in the README.
 - Project code is written during the event; only accounts, research and these documents are prepared beforehand.

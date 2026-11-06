@@ -112,6 +112,7 @@ export interface Invoice {
   symbol?: string; // bond symbol
   maturityDate?: string; // ISO; can be earlier than dueDate in demos
   demoMaturity?: boolean; // the bond matures well before the due date: demo only
+  schedule?: RepaymentSchedule; // the Hedera scheduled transaction that repays at maturity
   unitPrice?: number; // discounted price per unit
   availableUnits?: number; // units still for sale
   registered?: boolean;
@@ -266,6 +267,7 @@ export interface Listing {
   dueDate: string;
   maturityDate?: string; // bond maturity; earlier than dueDate only in demos
   demoMaturity?: boolean;
+  schedule?: RepaymentSchedule;
   annualRatePct?: number | null;
   discountPct?: number | null;
   grade?: Grade;
@@ -285,6 +287,7 @@ export interface PortfolioItem {
   expectedPayout: number;
   dueDate: string;
   demoMaturity?: boolean;
+  schedule?: RepaymentSchedule;
   grade?: Grade;
   repaid: boolean;
 }
@@ -301,6 +304,7 @@ export interface TokenInfo {
   maturityDate: string;
   dueDate?: string;
   demoMaturity?: boolean;
+  schedule?: RepaymentSchedule;
   paused: boolean;
   holders: Holder[];
 }
@@ -546,4 +550,15 @@ export interface NavInfo {
 /** From GET /health. `shortMaturityMinutes` is null unless the server has DEMO_SHORT_MATURITY_MINUTES set. */
 export interface DemoConfig {
   shortMaturityMinutes: number | null;
+}
+
+/** The Hedera scheduled transaction that repays an invoice at maturity. Manual repay stays available. */
+export interface RepaymentSchedule {
+  status: "scheduled" | "executed" | "failed";
+  scheduleId: string;
+  hashscanUrl: string; // the schedule
+  createHashscanUrl: string;
+  expiresAtUnix: number;
+  executedHashscanUrl?: string;
+  failureReason?: string;
 }

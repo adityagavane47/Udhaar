@@ -7,6 +7,7 @@ import {
   Async,
   AsyncButton,
   DemoMaturityTag,
+  ScheduledRepayment,
   Empty,
   GradeBadge,
   HashscanLink,
@@ -372,6 +373,7 @@ function TokenCard({ t, onDone }: { t: TokenInfo; onDone: () => void }) {
           <CardDescription className="font-mono text-xs">
             Token {t.tokenId} · {t.totalUnits} units of {inr(t.unitFaceValue)}
             <DemoMaturityTag show={t.demoMaturity} className="ml-2" />
+            <ScheduledRepayment schedule={t.schedule} className="ml-2" />
             {demoMaturityText(t.maturityDate, t.dueDate ?? t.maturityDate) && (
               <span className="font-semibold text-[#B3261E]">
                 {" "}

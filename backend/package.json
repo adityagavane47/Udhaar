@@ -26,6 +26,7 @@
     "test:demo-maturity": "tsx scripts/test-demo-maturity.ts",
     "test:demo-reset": "tsx scripts/test-demo-reset.ts",
     "test:buyers": "tsx scripts/test-buyers.ts",
+    "test:schedule": "tsx scripts/test-schedule.ts",
     "test:wallet-check": "tsx scripts/test-wallet-check.ts",
     "demo:reset": "tsx scripts/demo-reset.ts",
     "demo:restore": "tsx scripts/demo-restore.ts",

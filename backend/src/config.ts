@@ -88,6 +88,7 @@ export const hashscan = {
   contract: (id: string) => `${config.hashscanUrl}/contract/${id}`,
   token: (id: string) => `${config.hashscanUrl}/token/${id}`,
   topic: (id: string) => `${config.hashscanUrl}/topic/${id}`,
+  schedule: (id: string) => `${config.hashscanUrl}/schedule/${id}`,
 };
 
 /** Test-only: exits at a named point to prove a crash there is safe. Does nothing unless the variable is set. */

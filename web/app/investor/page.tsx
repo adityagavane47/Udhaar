@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import {
   Async,
   DemoMaturityTag,
+  ScheduledRepayment,
   Empty,
   ErrorNote,
   Field,
@@ -109,6 +110,7 @@ export default function InvestorPage() {
                               {(l.demoMaturity || demoMaturityText(l.maturityDate, l.dueDate)) && (
                                 <p className="flex flex-wrap items-center gap-2 font-mono text-xs font-semibold text-[#B3261E]">
                                   <DemoMaturityTag show={l.demoMaturity} />
+                                  <ScheduledRepayment schedule={l.schedule} />
                                   {demoMaturityText(l.maturityDate, l.dueDate)}
                                 </p>
                               )}
@@ -185,6 +187,7 @@ export default function InvestorPage() {
                             <td className="px-4 py-4">
                               {fmtDate(p.dueDate)}
                               <DemoMaturityTag show={p.demoMaturity} className="mt-1 block w-fit" />
+                              <ScheduledRepayment schedule={p.schedule} className="mt-1 flex" />
                             </td>
                             <td className="px-4 py-4">
                               <StampBadge
