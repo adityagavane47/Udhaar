@@ -1,6 +1,6 @@
 // Mock implementations. Only lib/api.ts may import this file, and only when
 // NEXT_PUBLIC_USE_MOCK=true (or for routes the backend doesn't have yet).
-import { setAdminSession, setStoredRole } from "./auth";
+import { currentBuyerAccountId, setAdminSession, setStoredRole } from "./auth";
 import { ApiError, DuplicateInvoiceError } from "./errors";
 import { RATE_BY_GRADE } from "./utils";
 import {
@@ -65,8 +65,8 @@ interface TrustSeed { pay: number; profile: number; obl: number; net: number; re
 const TRUST_SEEDS: Record<string, TrustSeed> = {
   "0.0.11310319": { pay: 34, profile: 23, obl: 18, net: 13, reps: [[150000, 0], [220000, 0], [90000, 2], [310000, 0], [180000, 0]], msme: 0, complaints: 0 },
   "0.0.11310318": { pay: 22, profile: 19, obl: 17, net: 11, reps: [], msme: 0, complaints: 0 },
-  "0.0.11400101": { pay: 26, profile: 18, obl: 12, net: 9, reps: [[200000, 0], [120000, 0]], msme: 600000, complaints: 1 },
-  "0.0.11400102": { pay: 10, profile: 6, obl: 4, net: 5, reps: [], msme: 3200000, complaints: 4 },
+  "0.0.11339577": { pay: 26, profile: 18, obl: 12, net: 9, reps: [[200000, 0], [120000, 0]], msme: 600000, complaints: 1 },
+  "0.0.11339578": { pay: 10, profile: 6, obl: 4, net: 5, reps: [], msme: 3200000, complaints: 4 },
 };
 const DEFAULT_SEED: TrustSeed = { pay: 24, profile: 16, obl: 14, net: 10, reps: [], msme: 0, complaints: 0 };
 const seedOf = (id: string) => TRUST_SEEDS[id] ?? DEFAULT_SEED;
@@ -268,11 +268,11 @@ export async function paySupplierWithUnits(input: { invoiceId: string; supplierI
 /* ───────── Buyer ───────── */
 export async function getBuyerToConfirm(): Promise<Invoice[]> {
   await delay(300);
-  return clone(invoices.filter((i) => i.buyerId === ACCOUNTS.buyer.companyId && i.status === "submitted"));
+  return clone(invoices.filter((i) => i.buyerId === currentBuyerAccountId() && i.status === "submitted"));
 }
 export async function getBuyerUpcoming(): Promise<Invoice[]> {
   await delay(300);
-  return clone(invoices.filter((i) => i.buyerId === ACCOUNTS.buyer.companyId && ["buyer_confirmed", "risk_checked", "tokenized", "funded"].includes(i.status)));
+  return clone(invoices.filter((i) => i.buyerId === currentBuyerAccountId() && ["buyer_confirmed", "risk_checked", "tokenized", "funded"].includes(i.status)));
 }
 
 export async function confirmInvoice(id: string): Promise<TxResult> {

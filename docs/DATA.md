@@ -7,19 +7,19 @@
 - **Regenerate:** `cd backend && npm run generate-data`
 - **Test:** `cd backend && npm run test:risk` (spends no HBAR)
 
-The seed is fixed (`20261101`), and so is the reference date (`2026-11-01`). Regenerating gives byte-identical files, and the test checks this.
+The seed is fixed (`20261101`), and so is the reference date (`2026-11-01`). Regenerating gives byte-identical files, and the test checks this. Two buyer companies, Apex and Nova, are added on top of the generated data by `npm run add-buyer-companies` (see [Real accounts](#real-accounts)), so the files hold 52 companies, not the 50 that are generated. If you regenerate, run `generate-data`, then `generate-trust-data`, then `add-buyer-companies`.
 
 ## What's in it
 
 | File | Rows | Fields |
 | --- | --- | --- |
-| `companies.json` | 50 | `id` (GSTIN format), `name`, `type`, `foundedYear`, `size`, `gstFilingRate`, `city`, `address`, `phone` |
+| `companies.json` | 52 | `id` (GSTIN format), `name`, `type`, `foundedYear`, `size`, `gstFilingRate`, `city`, `address`, `phone` |
 | `directors.json` | 80 | `id`, `name`, `companyIds` |
 | `invoices.json` | 500 | `id`, `supplierId`, `buyerId`, `amount`, `issueDate`, `dueDate`, `paidDate`, `status`, `discountRatePctPa` |
-| `account-links.json` | 2 | Real account role → company ID |
+| `account-links.json` | 4 | Real account role → company ID |
 | `manifest.json` | 1 | Seed, reference date, counts, measured calibration, and which IDs belong to which story |
-| `gst-registry.json` | 50 | **Trust layer, mock.** By GSTIN: `legalName`, `tradeName`, `status`, `registrationDate`, 6 months of `filings`. See [Trust data](#trust-data-mock) |
-| `external-profiles.json` | 50 | **Trust layer, mock.** By company ID: `gstin`, `udyam`, `bureauScore`, `creditRating`, `msme1DuesOver45DaysInr`, `samadhaanComplaints`, `gstFilingRegularity`, plus the trust test stories |
+| `gst-registry.json` | 52 | **Trust layer, mock.** By GSTIN: `legalName`, `tradeName`, `status`, `registrationDate`, 6 months of `filings`. See [Trust data](#trust-data-mock) |
+| `external-profiles.json` | 52 | **Trust layer, mock.** By company ID: `gstin`, `udyam`, `bureauScore`, `creditRating`, `msme1DuesOver45DaysInr`, `samadhaanComplaints`, `gstFilingRegularity`, plus the trust test stories |
 
 `status` is `paid`, `overdue` (unpaid past its due date on the reference date) or `open` (unpaid and not yet due).
 
@@ -98,16 +98,20 @@ Of the 500, 72 grade A, 43 B, 118 C and 267 D. Most of the Ds are old background
 
 ## Real accounts
 
-`account-links.json` maps the two real demo accounts to dataset companies by role, so no account ID is hardcoded. Their profiles match the frontend's.
+`account-links.json` maps the real demo accounts to dataset companies by role, so no account ID is hardcoded. Their profiles match the frontend's.
 
 | Account | Company | Profile |
 | --- | --- | --- |
 | `BUYER_ID` | BigBuild Ltd | The reliable buyer story |
 | `BUSINESS_ID` | Ramesh Cement Traders | Founded 2011, files 97% of GST returns, 14 past invoices at about ₹5 lakh, all paid on time |
+| `APEX_ID` | Apex Infra Pvt Ltd | A good buyer, **mock**: founded 2010, all 6 GST returns on time, bureau score 780, rating A, no MSME-1 dues, no Samadhaan complaints. Trust Score about 807 |
+| `NOVA_ID` | Nova Retail | A risky buyer, **mock**: founded 2025, 3 of 6 GST returns on time, bureau score 610, MSME-1 dues of ₹14,50,000, 4 Samadhaan complaints. Trust Score about 584 |
+
+Apex and Nova are real testnet accounts with their own keys (`APEX_KEY`, `NOVA_KEY`), made by `npm run create-buyer-accounts`. Their company data is fictional, like the rest of the dataset, and is added by `npm run add-buyer-companies`, which leaves every existing company, invoice and grade alone. It adds no invoice history, so their network factor is neutral until they repay on Udhaar.
 
 **Any other account** isn't in the dataset, so it's scored as a new company with low confidence.
 
-If `BUYER_ID` or `BUSINESS_ID` isn't set, the engine returns an error, because otherwise BigBuild would quietly score as a new company.
+If `BUYER_ID`, `BUSINESS_ID`, `APEX_ID` or `NOVA_ID` isn't set, the engine returns an error, because otherwise BigBuild would quietly score as a new company.
 
 ## The fraud case in the live demo
 

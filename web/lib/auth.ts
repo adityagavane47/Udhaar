@@ -1,6 +1,6 @@
 "use client";
 import { useSyncExternalStore } from "react";
-import { PERSONAS, type InvestorSession, type Persona, type Role } from "./types";
+import { ALL_PERSONAS, type InvestorSession, type Persona, type Role } from "./types";
 
 const STORAGE_KEY = "udhaar.role";
 const ADMIN_SESSION_KEY = "udhaar.adminSession";
@@ -16,7 +16,7 @@ export interface AdminSession {
 let memoryAdminSession: AdminSession | null = null;
 let memoryInvestorSession: InvestorSession | null = null;
 
-const VALID_ROLES = new Set<string>(PERSONAS.map((p) => p.id));
+const VALID_ROLES = new Set<string>(ALL_PERSONAS.map((p) => p.id));
 
 function parseAdminSession(raw: string | null): AdminSession | null {
   if (!raw) return null;
@@ -115,6 +115,12 @@ export function readStoredRole(): Role | null {
   return v && VALID_ROLES.has(v) ? (v as Role) : null;
 }
 
+/** The buyer account whose invoices the buyer portal shows: the signed-in buyer persona, or BigBuild. */
+export function currentBuyerAccountId(): string {
+  const role = readStoredRole();
+  return ALL_PERSONAS.find((p) => p.id === role && p.accountId)?.accountId ?? ALL_PERSONAS[1]!.accountId!;
+}
+
 export function setStoredRole(role: Role): void {
   if (typeof window === "undefined") return;
   // A stored admin token must never carry over to Business, Buyer, or Investor.
@@ -178,7 +184,7 @@ export function useAuthRole(): {
   // An "admin" role in storage without a live token is not an authenticated persona.
   const effectiveRole =
     !rawRole || (rawRole === "admin" && !adminValid) ? null : (rawRole as Role);
-  const persona = effectiveRole ? (PERSONAS.find((p) => p.id === effectiveRole) ?? null) : null;
+  const persona = effectiveRole ? (ALL_PERSONAS.find((p) => p.id === effectiveRole) ?? null) : null;
   return {
     role: effectiveRole,
     persona,

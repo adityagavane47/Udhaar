@@ -17,12 +17,14 @@ Built solo at **ETHGlobal Mumbai 2026** for the Hedera tracks *Tokenize Anything
 - **Video (5 min or less):** TODO
 - **Live app:** TODO
 
-Four personas, each a real testnet account. Pick one on the login page:
+Six personas, each a real testnet account (three of them buyers). Pick one on the login page, or switch in the header:
 
 | Persona | Role | What they do |
 |---|---|---|
 | **Ramesh** | Business (cement supplier) | Uploads an invoice, sees its status, receives funding, pays his own supplier with invoice units |
 | **BigBuild** | Buyer (construction company) | Confirms the invoice on-chain, then repays once on the due date |
+| **Apex Infra** | Buyer, a good payer (mock profile: bureau 780, no dues or complaints) | Same as BigBuild, with its own account and key. Its portal shows only its own invoices |
+| **Nova Retail** | Buyer, a risky payer (mock profile: bureau 610, over ₹10 lakh of MSME-1 dues, 4 complaints) | Same, so an invoice owed by Nova shows a low buyer score and warnings in the trust check |
 | **Priya** | Investor | Completes KYC, reads a paid risk report, buys units, or sets rules for the auto-invest agent |
 | **Operator** | Admin (passcode) | Approves KYC, issues the bond token, pauses or freezes it, sees the audit log |
 
@@ -338,6 +340,9 @@ Create `.env` in the repo root (never commit it; it is in `.gitignore`). Variabl
 ADMIN_ID=        ADMIN_KEY=
 BUSINESS_ID=     BUSINESS_KEY=
 BUYER_ID=        BUYER_KEY=
+# The two extra buyers. Made for you, and written to .env, by: cd backend && npm run create-buyer-accounts
+APEX_ID=         APEX_KEY=
+NOVA_ID=         NOVA_KEY=
 INVESTOR_ID=     INVESTOR_KEY=
 RISK_AGENT_ID=   RISK_AGENT_KEY=
 POOL_ID=         POOL_KEY=

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ErrorNote, PageHeader, StampBadge } from "@/components/common";
 import { loginDemoAdmin, loginDemoInvestor } from "@/lib/api";
 import { clearAdminSession, setStoredRole } from "@/lib/auth";
-import { PERSONAS, type Persona, type Role } from "@/lib/types";
+import { ALL_PERSONAS, type Persona, type Role } from "@/lib/types";
 import { cn, errMsg } from "@/lib/utils";
 
 const WalletPanel = dynamic(
@@ -167,8 +167,8 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 border-2 border-[#1B2340] shadow-[6px_6px_0_#1B2340] sm:grid-cols-2 lg:grid-cols-4">
-            {PERSONAS.map((p, i) => {
+          <div className="grid grid-cols-1 border-2 border-[#1B2340] shadow-[6px_6px_0_#1B2340] sm:grid-cols-2 lg:grid-cols-3">
+            {ALL_PERSONAS.map((p, i) => {
               const isOperatorHighlight = p.locked && showAdminPrompt;
               return (
                 <div

@@ -293,7 +293,8 @@ try {
     const first = buyerCompany.json.repayments[0] as Json;
     check("company route: real on-chain repayments are read from the mirror node, with HashScan links", buyerCompany.json.repayments.length >= 1 && first.hashscanUrl.includes("hashscan.io") && first.onTime === true, JSON.stringify(first));
     check("company route: a company with real history is not 'New on Udhaar'", buyerCompany.json.newOnUdhaar === false && buyerCompany.json.breakdown.paymentHistory.source === "hedera");
-    check("company route: 1 on-time repayment keeps the ₹1,00,000 cap", buyerCompany.json.limit.perInvoiceInr === 100_000 && buyerCompany.json.limit.onTimeRepayments === buyerCompany.json.repayments.filter((item: Json) => item.onTime).length);
+    const onTimeCount = buyerCompany.json.repayments.filter((item: Json) => item.onTime).length;
+    check("company route: the ₹1,00,000 cap holds until 3 on-time repayments, then lifts", buyerCompany.json.limit.onTimeRepayments === onTimeCount && buyerCompany.json.limit.perInvoiceInr === (onTimeCount >= 3 ? null : 100_000));
   } else {
     console.log("NOTE no real repaid invoice in the store, so the on-chain history checks were skipped");
   }
@@ -333,7 +334,8 @@ try {
   check("POST /invoices with a tampered amount: 422 EINVOICE_MISMATCH", tampered.status === 422 && tampered.json.error.code === "EINVOICE_MISMATCH" && tampered.json.error.mismatches.some((item: Json) => item.field === "amount"), JSON.stringify(tampered.json));
   const forgedSig = await request("POST", "/invoices", { supplierId: SUPPLIER, buyerId: BUYER, invoiceNumber: "RCT/2026/0042", issueDate: "2026-11-06", amount: 50_000, dueDate: "2027-02-04", signedQr: `${(minted.json.signedQr as string).slice(0, -4)}AAAA` });
   check("POST /invoices with a broken signature: 422 EINVOICE_SIGNATURE_INVALID", forgedSig.status === 422 && forgedSig.json.error.code === "EINVOICE_SIGNATURE_INVALID", JSON.stringify(forgedSig.json));
-  const tooBig = await request("POST", "/invoices", { supplierId: SUPPLIER, buyerId: BUYER, amount: 500_000, dueDate: "2027-02-04" });
+  // Nova has no repayments on Udhaar, so the cap always applies to it, whatever BigBuild and Ramesh have earned by now.
+  const tooBig = await request("POST", "/invoices", { supplierId: SUPPLIER, buyerId: process.env.NOVA_ID ?? BUYER, amount: 500_000, dueDate: "2027-02-04" });
   check("POST /invoices above the new-company limit: 422 TRUST_LIMIT_EXCEEDED", tooBig.status === 422 && tooBig.json.error.code === "TRUST_LIMIT_EXCEEDED", JSON.stringify(tooBig.json));
   check("nothing was created by the refusals", (await get("/invoices")).json.invoices.length === before);
   check("mock IRP refuses an invalid GSTIN", (await request("POST", "/mock-irp/e-invoice", { sellerGstin: "27ABCDE1234F1Z5", buyerGstin: "27ABCDE1234F1Z5", invoiceNumber: "X", amount: 1 })).json.error?.code === "INVALID_GSTIN");

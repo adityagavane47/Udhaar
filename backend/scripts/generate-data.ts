@@ -9,7 +9,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { faker } from "@faker-js/faker/locale/en_IN";
 
-const OUTPUT = fileURLToPath(new URL("../data/risk/", import.meta.url));
+// RISK_OUTPUT_DIR lets a test regenerate into a temporary folder without touching the committed data.
+const OUTPUT = process.env.RISK_OUTPUT_DIR ? `${process.env.RISK_OUTPUT_DIR.replace(/[\/]$/, "")}/` : fileURLToPath(new URL("../data/risk/", import.meta.url));
 const SEED = 20261101;
 const REFERENCE_DATE = "2026-11-01";
 const REF_MS = Date.parse(`${REFERENCE_DATE}T00:00:00Z`);

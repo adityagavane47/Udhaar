@@ -1300,6 +1300,26 @@ Matches the frontend's `TokenInfo`, with `symbol` and `hashscanUrl` added.
 
 ## Other reads
 
+### GET /buyers
+
+Free. The buyers the server can sign for: BigBuild, Apex Infra and Nova Retail, each listed only if its account ID **and** key are configured. The business upload form fills its buyer dropdown from this. Company details come from the mock dataset. No key is ever returned.
+
+```ts
+{
+  buyers: {
+    accountId: string; name: string;
+    companyId: string | null; foundedYear: number | null; size: string | null;
+    city: string | null; address: string | null; phone: string | null; gstFilingRate: number | null;
+    hashscanUrl: string;
+  }[];
+  externalDataSource: "mock";
+  hashscanUrl: string;
+  links: Link[];
+}
+```
+
+Each buyer confirms and repays with its own key: the server signs `POST /invoices/:id/confirm` and `/repay` with the key of the invoice's `buyerId`, and `confirmation.signedBy` shows which account signed.
+
 ### GET /balances
 
 HBAR, uINR and bond units for every server account and KYC wallet. `bonds` covers live bonds only.

@@ -18,6 +18,8 @@ export const ROLES = {
   ADMIN: "admin",
   BUSINESS: "business",
   BUYER: "buyer",
+  APEX: "Apex Infra Pvt Ltd",
+  NOVA: "Nova Retail",
   INVESTOR: "investor",
   RISK_AGENT: "risk agent",
   POOL: "POOL",

@@ -4,6 +4,7 @@ import { ACCOUNTS, companies as mockCompanies } from "./mock";
 import * as mock from "./mock-api";
 import {
   clearAdminSession,
+  currentBuyerAccountId,
   isInvestorSessionFresh,
   readAdminToken,
   readInvestorSession,
@@ -440,7 +441,22 @@ const unsupported = (what: string) => async (): Promise<never> => {
 
 const real: typeof mock = {
   // Not in the backend yet: these stay on mock data.
-  getCompanies: mock.getCompanies,
+  /** Only buyers the server holds a key for, because it signs their confirmations and repayments. */
+  async getCompanies() {
+    const { buyers } = await http<{ buyers: { accountId: string; name: string; foundedYear: number | null; gstFilingRate: number | null; city: string | null; address: string | null; phone: string | null }[] }>("GET", "/buyers");
+    return buyers.map((b): Company => ({
+      id: b.accountId,
+      name: b.name,
+      type: "buyer",
+      foundedYear: b.foundedYear ?? 0,
+      gstFilingRate: b.gstFilingRate ?? 0,
+      city: b.city ?? "",
+      address: b.address ?? "",
+      phone: b.phone ?? "",
+      hederaAccount: b.accountId,
+      kycVerified: true,
+    }));
+  },
   rejectInvoice: unsupported("Rejecting an invoice"),
 
   /** POST /risk/:id/buy-report with investor token and no body. */
@@ -569,13 +585,13 @@ const real: typeof mock = {
   /* Buyer */
   async getBuyerToConfirm() {
     return (await listInvoices()).filter(
-      (i) => i.buyerId === ACCOUNTS.buyer.accountId && i.status === "submitted",
+      (i) => i.buyerId === currentBuyerAccountId() && i.status === "submitted",
     );
   },
   async getBuyerUpcoming() {
     return (await listInvoices()).filter(
       (i) =>
-        i.buyerId === ACCOUNTS.buyer.accountId &&
+        i.buyerId === currentBuyerAccountId() &&
         ["buyer_confirmed", "risk_checked", "tokenized", "funded"].includes(i.status),
     );
   },

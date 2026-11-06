@@ -109,7 +109,7 @@ function checkDataset() {
   const manifest = readSeed("manifest");
   const { stories } = manifest;
 
-  check("about 50 companies", companies.length === 50, String(companies.length));
+  check("about 52 companies", companies.length === 52, String(companies.length));
   check("about 80 directors", directors.length === 80, String(directors.length));
   check("about 500 invoices", invoices.length === 500, String(invoices.length));
   check("every ID has GSTIN format", companies.every((company) => /^\d{2}[A-Z]{5}\d{4}[A-Z]1Z[0-9A-Z]$/.test(company.id)));
@@ -163,12 +163,24 @@ function checkDataset() {
 }
 
 async function checkReproducible() {
-  const hashAll = () => ["companies", "directors", "invoices", "account-links", "manifest"].map((name) => createHash("sha256").update(readFileSync(`${SEED_DIR}${name}.json`)).digest("hex")).join();
-  const before = hashAll();
+  // Regenerates into a temporary folder, so the committed data (and the buyer companies added on top of it) is never overwritten.
+  const out = mkdtempSync(join(tmpdir(), "udhaar-regen-"));
   await new Promise<void>((resolve, reject) => {
-    spawn(process.execPath, ["--import", "tsx", "scripts/generate-data.ts"], { cwd: BACKEND, stdio: "ignore" }).once("exit", (status) => (status === 0 ? resolve() : reject(new Error(`generator exited ${status}`))));
+    spawn(process.execPath, ["--import", "tsx", "scripts/generate-data.ts"], { cwd: BACKEND, stdio: "ignore", env: { ...process.env, RISK_OUTPUT_DIR: out } }).once("exit", (status) => (status === 0 ? resolve() : reject(new Error(`generator exited ${status}`))));
   });
-  check("regenerating gives byte-identical files", before === hashAll());
+  const read = (dir: string, name: string) => JSON.parse(readFileSync(`${dir}${dir.endsWith("/") ? "" : "/"}${name}.json`, "utf8"));
+  const same = (name: string) => JSON.stringify(read(SEED_DIR, name)) === JSON.stringify(read(out, name));
+  // add-buyer-companies puts 2 companies, 2 account links and a company count on top of the generated data.
+  const generatedCompanies = read(out, "companies") as unknown[];
+  const keptCompanies = (read(SEED_DIR, "companies") as unknown[]).slice(0, generatedCompanies.length);
+  const links = read(SEED_DIR, "account-links") as Record<string, string>;
+  const generatedLinks = read(out, "account-links") as Record<string, string>;
+  const manifest = read(SEED_DIR, "manifest");
+  const generatedManifest = read(out, "manifest");
+  check("regenerating gives byte-identical directors and invoices", same("directors") && same("invoices"));
+  check("regenerating gives the same first 50 companies", JSON.stringify(keptCompanies) === JSON.stringify(generatedCompanies));
+  check("regenerating gives the same account links, which the buyer companies only add to", Object.entries(generatedLinks).every(([role, id]) => links[role] === id));
+  check("regenerating gives the same manifest apart from the company count", JSON.stringify({ ...manifest, counts: { ...manifest.counts, companies: 0 } }) === JSON.stringify({ ...generatedManifest, counts: { ...generatedManifest.counts, companies: 0 } }));
 }
 
 // ---- 2. Scores for every story and every real invoice.
@@ -474,6 +486,10 @@ try {
   // A temporary store: the real invoices, plus test invoices for pricing.
   if (!existsSync(REAL_STORE)) throw new Error("backend/data/store.json is missing, so the real invoices can't be tested");
   copyFileSync(REAL_STORE, STORE_PATH);
+  // demo:reset archives the real invoices to hide them from lists. This test needs them listed, so the copy un-archives them.
+  const copied = JSON.parse(readFileSync(STORE_PATH, "utf8")) as { invoices: Record<string, { archived?: boolean }> };
+  for (const invoice of Object.values(copied.invoices)) delete invoice.archived;
+  writeFileSync(STORE_PATH, JSON.stringify(copied));
   const store = JSON.parse(readFileSync(STORE_PATH, "utf8")) as Json;
   const realIds = Object.keys(store.invoices);
   const legacyIds = realIds.filter((id) => store.invoices[id].tokenId && !store.invoices[id].gradedAt);

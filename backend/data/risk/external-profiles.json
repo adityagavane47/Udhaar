@@ -412,6 +412,23 @@
       "msme1DuesOver45DaysInr": 0,
       "samadhaanComplaints": 1,
       "gstFilingRegularity": 1
+    },
+    "27APXIC1042N1ZA": {
+      "gstin": "27APXCA0000N1ZP",
+      "udyam": null,
+      "bureauScore": 780,
+      "creditRating": "A",
+      "msme1DuesOver45DaysInr": 0,
+      "samadhaanComplaints": 0,
+      "gstFilingRegularity": 1
+    },
+    "27NVRRT9917K1ZA": {
+      "gstin": "27NVRCN0000K1ZZ",
+      "udyam": "UDYAM-MH-99-0004417",
+      "bureauScore": 610,
+      "msme1DuesOver45DaysInr": 1450000,
+      "samadhaanComplaints": 4,
+      "gstFilingRegularity": 0.5
     }
   },
   "stories": {

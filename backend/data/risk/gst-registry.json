@@ -2500,6 +2500,105 @@
           "filedOn": "2026-10-15"
         }
       ]
+    },
+    "27APXCA0000N1ZP": {
+      "legalName": "APEX INFRA PVT LTD",
+      "tradeName": "Apex Infra Pvt Ltd",
+      "status": "Active",
+      "registrationDate": "2010-03-15",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-18"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-17"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-16"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-08-20",
+          "filedOn": "2026-08-15"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-09-14"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-13"
+        }
+      ]
+    },
+    "27NVRCN0000K1ZZ": {
+      "legalName": "NOVA RETAIL",
+      "tradeName": "Nova Retail",
+      "status": "Active",
+      "registrationDate": "2025-02-10",
+      "filings": [
+        {
+          "period": "2026-04",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-05-20",
+          "filedOn": "2026-05-18"
+        },
+        {
+          "period": "2026-05",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-06-20",
+          "filedOn": "2026-06-30"
+        },
+        {
+          "period": "2026-06",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-07-20",
+          "filedOn": "2026-07-16"
+        },
+        {
+          "period": "2026-07",
+          "return": "GSTR-3B",
+          "status": "not_filed",
+          "dueDate": "2026-08-20"
+        },
+        {
+          "period": "2026-08",
+          "return": "GSTR-3B",
+          "status": "filed_late",
+          "dueDate": "2026-09-20",
+          "filedOn": "2026-10-03"
+        },
+        {
+          "period": "2026-09",
+          "return": "GSTR-3B",
+          "status": "filed_on_time",
+          "dueDate": "2026-10-20",
+          "filedOn": "2026-10-13"
+        }
+      ]
     }
   }
 }

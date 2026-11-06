@@ -1,6 +1,6 @@
 // Udhaar type definitions. Every data shape used by the UI lives here.
 
-export type Role = "business" | "buyer" | "investor" | "admin";
+export type Role = "business" | "buyer" | "apex" | "nova" | "investor" | "admin";
 
 export interface Persona {
   id: Role;
@@ -9,6 +9,10 @@ export interface Persona {
   desc: string;
   locked: boolean;
   href: string;
+  /** Shorter name for the header role switcher. */
+  switchLabel?: string;
+  /** Buyer personas only: the Hedera account whose invoices this persona sees. The server signs for it with its own key. */
+  accountId?: string;
 }
 
 export const PERSONAS: Persona[] = [
@@ -16,6 +20,16 @@ export const PERSONAS: Persona[] = [
   { id: "buyer", role: "Buyer", name: "BigBuild", desc: "Construction company. Confirm what you owe, repay once on the due date.", locked: false, href: "/buyer" },
   { id: "investor", role: "Investor", name: "Priya", desc: "Buy invoice tokens at a discount and collect face value at maturity.", locked: false, href: "/investor" },
   { id: "admin", role: "Admin", name: "Operator", desc: "Approve KYC, issue tokens, pause or freeze when something looks wrong.", locked: true, href: "/admin" },
+];
+
+/** Everything the login page and the header role switcher offer: the four above, plus two more buyer companies. */
+export const ALL_PERSONAS: Persona[] = [
+  PERSONAS[0]!,
+  { ...PERSONAS[1]!, switchLabel: "BigBuild", accountId: "0.0.11310319" },
+  { id: "apex", role: "Buyer", name: "Apex Infra", desc: "Infrastructure company with a long, clean payment record. Confirm what you owe and repay on the due date.", locked: false, href: "/buyer", switchLabel: "Apex", accountId: "0.0.11339577" },
+  { id: "nova", role: "Buyer", name: "Nova Retail", desc: "New retailer with late filings and complaints on record. Confirm what you owe and repay on the due date.", locked: false, href: "/buyer", switchLabel: "Nova", accountId: "0.0.11339578" },
+  PERSONAS[2]!,
+  PERSONAS[3]!,
 ];
 
 export type InvoiceStatus =

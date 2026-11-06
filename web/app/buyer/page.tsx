@@ -13,6 +13,7 @@ import {
   StampBadge,
 } from "@/components/common";
 import { useAsync } from "@/hooks/use-async";
+import { useAuthRole } from "@/lib/auth";
 import {
   confirmInvoice,
   getBuyerToConfirm,
@@ -33,8 +34,17 @@ function useTick(ms = 10_000) {
 
 export default function BuyerPage() {
   useTick();
+  const { persona } = useAuthRole();
   const toConfirm = useAsync(getBuyerToConfirm);
   const upcoming = useAsync(getBuyerUpcoming);
+  // The header can switch buyers without leaving this page, so each switch loads that buyer's own invoices.
+  const buyerId = persona?.accountId;
+  const { reload: reloadToConfirm } = toConfirm;
+  const { reload: reloadUpcoming } = upcoming;
+  useEffect(() => {
+    reloadToConfirm();
+    reloadUpcoming();
+  }, [buyerId, reloadToConfirm, reloadUpcoming]);
   // Refresh after a pause so the HashScan link stays visible for a moment.
   const refresh = () => {
     setTimeout(() => {
@@ -47,9 +57,9 @@ export default function BuyerPage() {
     <PortalGuard>
       <div className="space-y-10">
         <PageHeader
-          folio="Folio · Buyer (BigBuild · 0.0.11310319)"
+          folio={`Folio · Buyer (${persona?.name ?? "BigBuild"} · ${persona?.accountId ?? "0.0.11310319"})`}
           title="Buyer khata"
-          subtitle="BigBuild Ltd · confirm what you owe and pay on the due date"
+          subtitle={`${persona?.name ?? "BigBuild"} · confirm what you owe and pay on the due date`}
         />
 
         <Card className="khata-ruled relative">

@@ -10,7 +10,7 @@ import {
   setStoredRole,
   useAuthRole,
 } from "@/lib/auth";
-import { PERSONAS, type Role } from "@/lib/types";
+import { ALL_PERSONAS, type Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const isPortalPath = (p: string) =>
@@ -91,8 +91,9 @@ export function Header() {
               aria-label="Role switcher"
               className="flex flex-wrap border border-[#1B2340] bg-[#FBF6EA]"
             >
-              {PERSONAS.map((r) => {
-                const active = path.startsWith(r.href);
+              {ALL_PERSONAS.map((r) => {
+                // Three buyers share /buyer, so the signed-in persona decides which one is active.
+                const active = persona ? persona.id === r.id : path.startsWith(r.href);
                 return (
                   <button
                     key={r.id}
@@ -105,7 +106,7 @@ export function Header() {
                         : "text-[#1B2340] hover:bg-[#F1E8D2] hover:text-[#B3261E]",
                     )}
                   >
-                    {r.role}
+                    {r.switchLabel ?? r.role}
                   </button>
                 );
               })}

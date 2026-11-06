@@ -14,6 +14,7 @@ import { approveKyc, liveInvoices, rejectKyc, submitKyc } from "./kyc.js";
 import { limits } from "./limits.js";
 import { navForReport, navView, publishNav } from "./nav.js";
 import { repayInvoice } from "./repayment.js";
+import { loadDataset } from "./risk/dataset.js";
 import { isSeededInvoiceId, marketplaceDemoInvoice, riskReport, riskSummary, seededInvoiceView } from "./risk/service.js";
 import { serialized, state } from "./store.js";
 import { freezeHolder, listTokens, pauseToken, unfreezeHolder, unpauseToken } from "./tokens.js";
@@ -24,6 +25,9 @@ import { companyTrust, gstinOf, invoiceTrust } from "./trust/service.js";
 import { uinrBalance } from "./uinr.js";
 import { assertQuoteAllowed, payForReport, QuoteRefused, ReportCallError } from "./x402/client.js";
 import { chargeForReport, reportPayTo, serviceManifest, settlementOf } from "./x402/paywall.js";
+
+/** Roles whose accounts can confirm and repay invoices as a buyer. The server signs with the role's own key. */
+const BUYER_ROLES = ["BUYER", "APEX", "NOVA"] as const;
 
 const accountId = z.string().regex(/^0\.0\.\d+$/, "must look like 0.0.12345");
 const isoDate = z.string().refine((value) => !Number.isNaN(Date.parse(value)), "must be a valid date");
@@ -386,6 +390,29 @@ export function createApp() {
   app.get("/tokens", async (_req, res) => {
     const tokens = await listTokens();
     res.json({ tokens, hashscanUrl: tokens[0]?.hashscanUrl ?? hashscan.token(config.uinrTokenId), links: tokens.map((token) => ({ label: token.symbol, url: token.hashscanUrl })) });
+  });
+
+  // Buyers this server can sign for: only an account with both its ID and its key configured is listed.
+  app.get("/buyers", (_req, res) => {
+    const dataset = loadDataset();
+    const buyers = BUYER_ROLES.flatMap((role) => {
+      const accountId = process.env[`${role}_ID`]?.trim();
+      if (!accountId || !process.env[`${role}_KEY`]?.trim()) return [];
+      const company = dataset.companies.get(dataset.accountLinks.get(accountId) ?? "");
+      return [{
+        accountId,
+        name: company?.name ?? accountName(accountId),
+        companyId: company?.id ?? null,
+        foundedYear: company?.foundedYear ?? null,
+        size: company?.size ?? null,
+        city: company?.city ?? null,
+        address: company?.address ?? null,
+        phone: company?.phone ?? null,
+        gstFilingRate: company?.gstFilingRate ?? null,
+        hashscanUrl: hashscan.account(accountId),
+      }];
+    });
+    res.json({ buyers, externalDataSource: "mock", hashscanUrl: buyers[0]?.hashscanUrl ?? hashscan.token(config.uinrTokenId), links: buyers.map((buyer) => ({ label: buyer.name, url: buyer.hashscanUrl })) });
   });
 
   // Balances and audit

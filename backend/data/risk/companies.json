@@ -548,5 +548,27 @@
     "city": "Surat",
     "address": "453, Eekalabya Lights, Surat",
     "phone": "+91 73 555 0172"
+  },
+  {
+    "id": "27APXIC1042N1ZA",
+    "name": "Apex Infra Pvt Ltd",
+    "type": "buyer",
+    "foundedYear": 2010,
+    "size": "large",
+    "gstFilingRate": 1,
+    "city": "Nagpur",
+    "address": "88 Civil Lines, Nagpur",
+    "phone": "+91 71 555 0101"
+  },
+  {
+    "id": "27NVRRT9917K1ZA",
+    "name": "Nova Retail",
+    "type": "buyer",
+    "foundedYear": 2025,
+    "size": "small",
+    "gstFilingRate": 0.5,
+    "city": "Nashik",
+    "address": "5 College Road, Nashik",
+    "phone": "+91 25 555 0199"
   }
 ]
