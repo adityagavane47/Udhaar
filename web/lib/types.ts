@@ -233,6 +233,7 @@ export interface Listing {
   unitPrice: number;
   unitFaceValue: number;
   tokenId?: string; // absent on blocked cards
+  buyerTrustScore?: number; // 300–900; absent if the trust service can't answer
   blocked?: boolean; // grade D: shown as BLOCKED, never buyable
 }
 
@@ -354,4 +355,117 @@ export interface BondTokenMeta {
 export interface TokenCatalog {
   uinrTokenId: string | null;
   bonds: BondTokenMeta[];
+}
+
+/* ───────── Trust (GET /trust/*, POST /mock-irp/e-invoice) ───────── */
+
+export type TrustFactorSource = "hedera" | "mock-external";
+
+export interface TrustFactor {
+  points: number;
+  max: number;
+  reason: string; // one plain-English sentence
+  source: TrustFactorSource;
+}
+
+export interface TrustLimit {
+  perInvoiceInr: number | null; // 100000 until 3 on-time repayments, then null (no cap)
+  onTimeRepayments: number;
+  required: number;
+  reason: string;
+}
+
+export interface TrustScore {
+  score: number; // 300–900
+  points: number; // out of 100, before mapping
+  newOnUdhaar: boolean;
+  label: "New on Udhaar" | null;
+  breakdown: {
+    paymentHistory: TrustFactor;
+    companyProfile: TrustFactor;
+    externalObligations: TrustFactor;
+    network: TrustFactor;
+  };
+  limit: TrustLimit;
+}
+
+/** One past repayment on Hedera (named apart from the invoice `Repayment` above). */
+export interface TrustRepayment {
+  invoiceId: string;
+  role: "buyer" | "supplier";
+  amount: number;
+  dueDate: string;
+  paidAt: string;
+  onTime: boolean;
+  daysLate: number;
+  transactionId: string;
+  hashscanUrl: string;
+}
+
+export interface PartyTrust extends TrustScore {
+  name: string;
+  companyId: string;
+  inDataset: boolean;
+  repayments: TrustRepayment[];
+}
+
+export type ChecklistStatus = "pass" | "warn" | "fail" | "not_provided";
+
+export interface ChecklistItem {
+  id: string;
+  label: string;
+  status: ChecklistStatus;
+  detail: string;
+  proofUrl?: string;
+  source: "mock" | "hedera" | "udhaar";
+}
+
+export interface InvoiceTrust {
+  invoiceId: string;
+  seeded: boolean;
+  externalDataSource: "mock";
+  seller: PartyTrust;
+  buyer: PartyTrust;
+  checklist: ChecklistItem[];
+  summary: { pass: number; warn: number; fail: number; notProvided: number };
+  overall: "pass" | "warn" | "fail";
+  hashscanUrl: string;
+  links?: Link[];
+}
+
+export interface CompanyTrust extends TrustScore {
+  companyId: string;
+  name: string;
+  inDataset: boolean;
+  accounts: string[];
+  externalDataSource: "mock";
+  externalProfile: {
+    source: "mock";
+    gstin: string;
+    udyam: string | null;
+    bureauScore: number;
+    creditRating?: string;
+    msme1DuesOver45DaysInr: number;
+    samadhaanComplaints: number;
+    gstFilingRegularity: number;
+  };
+  repayments: TrustRepayment[];
+  hashscanUrl: string;
+  links?: Link[];
+}
+
+export interface MockEInvoiceRequest {
+  buyerId: string; // account or company ID; the server looks up GSTINs
+  invoiceNumber: string;
+  amount: number;
+  date?: string;
+}
+
+export interface MockEInvoice {
+  source: "mock";
+  irn: string;
+  signedQr: string;
+  claims: Record<string, unknown>;
+  hashscanUrl?: string;
+  links?: Link[];
 }

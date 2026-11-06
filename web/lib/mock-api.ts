@@ -11,6 +11,8 @@ import type {
   AgentPurchaseItem, AgentReportItem, AgentRules, AgentRun, AgentSkipItem,
   Company, Grade, Holder, InvestorSession, Invoice, KycRequest, Listing, PortfolioItem,
   ReportSettlement, RiskReport, TokenCatalog, Transaction, TransactionType, TokenInfo, TxResult,
+  ChecklistItem, CompanyTrust, InvoiceTrust, MockEInvoice, MockEInvoiceRequest, PartyTrust,
+  TrustFactor, TrustRepayment,
 } from "./types";
 
 const delay = (ms = 600) => new Promise((r) => setTimeout(r, ms));
@@ -54,6 +56,128 @@ export async function getInvoice(id: string): Promise<Invoice> {
   return clone(find(id));
 }
 
+/* ───────── Trust (all mock) ───────── */
+const mockSignedInvoices = new Set<string>();
+const inrShort = (n: number) => "₹" + n.toLocaleString("en-IN");
+
+/** Per-company mock profile: points per factor, repayments on Hedera as [amount, daysLate], and outside facts. */
+interface TrustSeed { pay: number; profile: number; obl: number; net: number; reps: [number, number][]; msme: number; complaints: number }
+const TRUST_SEEDS: Record<string, TrustSeed> = {
+  "0.0.11310319": { pay: 34, profile: 23, obl: 18, net: 13, reps: [[150000, 0], [220000, 0], [90000, 2], [310000, 0], [180000, 0]], msme: 0, complaints: 0 },
+  "0.0.11310318": { pay: 22, profile: 19, obl: 17, net: 11, reps: [], msme: 0, complaints: 0 },
+  "0.0.11400101": { pay: 26, profile: 18, obl: 12, net: 9, reps: [[200000, 0], [120000, 0]], msme: 600000, complaints: 1 },
+  "0.0.11400102": { pay: 10, profile: 6, obl: 4, net: 5, reps: [], msme: 3200000, complaints: 4 },
+};
+const DEFAULT_SEED: TrustSeed = { pay: 24, profile: 16, obl: 14, net: 10, reps: [], msme: 0, complaints: 0 };
+const seedOf = (id: string) => TRUST_SEEDS[id] ?? DEFAULT_SEED;
+
+function trustRepayments(id: string): TrustRepayment[] {
+  return seedOf(id).reps.map(([amount, daysLate], i) => {
+    const due = new Date(Date.now() - (150 - i * 25) * 86_400_000);
+    const paid = new Date(due.getTime() + daysLate * 86_400_000 - 3_600_000);
+    const secs = Math.floor(paid.getTime() / 1000);
+    return {
+      invoiceId: `INV-00${10 + i}`, role: i % 2 ? "supplier" : "buyer", amount, dueDate: due.toISOString(), paidAt: paid.toISOString(),
+      onTime: daysLate === 0, daysLate, transactionId: `0.0.${11300000 + i}@${secs}.000000001`,
+      hashscanUrl: `${HASHSCAN}/transaction/0.0.${11300000 + i}-${secs}-000000001`,
+    };
+  });
+}
+const onTimeCount = (id: string) => trustRepayments(id).filter((r) => r.onTime).length;
+
+function scoreOf(id: string) {
+  const sd = seedOf(id);
+  const reps = trustRepayments(id);
+  const onTime = onTimeCount(id);
+  const hasHistory = reps.length > 0;
+  const f = (points: number, max: number, reason: string, source: TrustFactor["source"]): TrustFactor => ({ points, max, reason, source });
+  const points = sd.pay + sd.profile + sd.obl + sd.net;
+  return {
+    score: 300 + 6 * points, points, newOnUdhaar: !hasHistory, label: hasHistory ? null : ("New on Udhaar" as const),
+    breakdown: {
+      paymentHistory: hasHistory
+        ? f(sd.pay, 40, `${onTime} of ${reps.length} repayments confirmed on Hedera were on time.`, "hedera")
+        : f(sd.pay, 40, "No repayments on Udhaar yet, so this comes from the mock bureau score.", "mock-external"),
+      companyProfile: f(sd.profile, 25, "Company age, GST filing rate and size, from the mock registry.", "mock-external"),
+      externalObligations: f(sd.obl, 20, sd.msme || sd.complaints ? `Mock MSME-1 dues of ${inrShort(sd.msme)} and ${sd.complaints} Samadhaan complaint(s) lower this.` : "No overdue MSME-1 dues or Samadhaan complaints in the mock data.", "mock-external"),
+      network: f(sd.net, 15, "How promptly the company pays its other suppliers, from mock data.", "mock-external"),
+    },
+    limit: {
+      perInvoiceInr: onTime >= 3 ? null : 100000, onTimeRepayments: onTime, required: 3,
+      reason: onTime >= 3 ? "3 or more on-time repayments: no per-invoice cap." : `Capped at ₹1,00,000 per invoice until 3 on-time repayments (${onTime} so far).`,
+    },
+  };
+}
+
+const partyTrust = (id: string, name: string): PartyTrust => ({
+  ...scoreOf(id), name, companyId: id, inDataset: true, repayments: trustRepayments(id),
+});
+
+export async function getInvoiceTrust(invoiceId: string): Promise<InvoiceTrust> {
+  await delay(400);
+  const inv = find(invoiceId);
+  const seller = partyTrust(inv.supplierId, inv.supplierName);
+  const buyer = partyTrust(inv.buyerId, inv.buyerName);
+  const bs = seedOf(inv.buyerId);
+  const signed = mockSignedInvoices.has(inv.id);
+  const confirmed = !["submitted", "buyer_rejected"].includes(inv.status);
+  const item = (id: string, label: string, status: ChecklistItem["status"], detail: string, source: ChecklistItem["source"], proofUrl?: string): ChecklistItem =>
+    ({ id, label, status, detail, source, ...(proofUrl ? { proofUrl } : {}) });
+  const checklist: ChecklistItem[] = [
+    item("gstinValid", "GSTIN valid", "pass", "Both GSTINs have a valid format, state code and checksum.", "mock"),
+    item("gstActive", "GST registration active", "pass", "Both companies are Active in the mock registry.", "mock"),
+    item("nameMatches", "Name matches registry", "pass", `${inv.supplierName} and ${inv.buyerName} match their registry names.`, "mock"),
+    item("gstFiling", "GST filing", bs.complaints > 2 ? "warn" : "pass", bs.complaints > 2 ? "Buyer filed 4 of the last 6 returns on time." : "5 of the last 6 returns were filed on time.", "mock"),
+    item("udyam", "Udyam registration", "pass", "Seller's Udyam number has a valid format (format only, not looked up).", "mock"),
+    signed
+      ? item("eInvoice", "E-invoice signature", "pass", "Signed by the mock IRP and it still matches every field of this invoice.", "mock")
+      : item("eInvoice", "E-invoice signature", "not_provided", "No signed e-invoice QR was sent with this invoice.", "mock"),
+    inv.seeded
+      ? item("buyerConfirmed", "Buyer confirmed on Hedera", "not_provided", "Simulated invoice: no chain record.", "hedera")
+      : confirmed
+        ? item("buyerConfirmed", "Buyer confirmed on Hedera", "pass", `Buyer's signed message is on the HCS confirmations topic (sequence #${1200 + inv.id.length * 7}).`, "hedera", inv.hashscanUrl)
+        : item("buyerConfirmed", "Buyer confirmed on Hedera", "warn", "The buyer has not confirmed this invoice yet.", "hedera"),
+    inv.seeded
+      ? item("notFinancedBefore", "Not financed before", "not_provided", "Simulated invoice: no chain record.", "hedera")
+      : item("notFinancedBefore", "Not financed before", "pass", "The fingerprint is in the HCS registry once, as this invoice.", "hedera", inv.hashscanUrl),
+    item("amountNormal", "Amount looks normal", inv.amount > 350000 ? "warn" : "pass", inv.amount > 350000 ? "About 2.4 times this seller's median (simulated) invoice." : "In line with this seller's median (simulated) invoice.", "udhaar"),
+    inv.id === "DEMO-RING"
+      ? item("noFraudRing", "No fraud ring", "fail", "Billing loop found: buyer and seller share a director and an address.", "udhaar")
+      : item("noFraudRing", "No fraud ring", "pass", "No billing loops, shared directors or shared address.", "udhaar"),
+    item("buyerMsme1Dues", "Buyer's MSME-1 dues", bs.msme > 1000000 ? "fail" : bs.msme > 0 ? "warn" : "pass", bs.msme ? `Buyer owes ${inrShort(bs.msme)} to small suppliers for over 45 days (mock).` : "No dues over 45 days (mock).", "mock"),
+    item("buyerSamadhaanComplaints", "Buyer's Samadhaan complaints", bs.complaints >= 3 ? "fail" : bs.complaints ? "warn" : "pass", bs.complaints ? `${bs.complaints} delayed-payment complaint(s) against the buyer (mock).` : "No delayed-payment complaints (mock).", "mock"),
+  ];
+  const count = (st: ChecklistItem["status"]) => checklist.filter((c) => c.status === st).length;
+  const summary = { pass: count("pass"), warn: count("warn"), fail: count("fail"), notProvided: count("not_provided") };
+  return clone({
+    invoiceId, seeded: Boolean(inv.seeded), externalDataSource: "mock", seller, buyer, checklist, summary,
+    overall: summary.fail ? "fail" : summary.warn ? "warn" : "pass", hashscanUrl: inv.hashscanUrl ?? `${HASHSCAN}/topic/0.0.7000001`,
+  });
+}
+
+export async function getCompanyTrust(id: string): Promise<CompanyTrust> {
+  await delay(350);
+  const c = companies.find((x) => x.id === id || x.hederaAccount === id);
+  if (!c) throw new ApiError("COMPANY_NOT_FOUND", `No company matches ${id}.`, 404);
+  const sd = seedOf(c.id);
+  return clone({
+    ...scoreOf(c.id), companyId: c.id, name: c.name, inDataset: true, accounts: [c.hederaAccount], externalDataSource: "mock",
+    externalProfile: {
+      source: "mock", gstin: `27MOCK${c.id.slice(-4)}A1Z5`, udyam: c.type === "buyer" ? null : `UDYAM-MH-26-${c.id.slice(-7)}`,
+      bureauScore: 560 + sd.pay * 7, msme1DuesOver45DaysInr: sd.msme, samadhaanComplaints: sd.complaints, gstFilingRegularity: c.gstFilingRate,
+    },
+    repayments: trustRepayments(c.id), hashscanUrl: `${HASHSCAN}/account/${c.hederaAccount}`,
+  });
+}
+
+export async function getMockEInvoice(input: MockEInvoiceRequest): Promise<MockEInvoice> {
+  await delay(600);
+  if (!companies.some((c) => c.id === input.buyerId)) throw new ApiError("GSTIN_REQUIRED", "Choose a buyer first.", 422);
+  const irn = Array.from(input.invoiceNumber).reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7).toString(16).padStart(8, "0").repeat(8);
+  const claims = { Irn: irn, DocNo: input.invoiceNumber, DocTyp: "INV", TotInvVal: input.amount, BuyerId: input.buyerId, iss: "MOCK-IRP", mock: true };
+  return { source: "mock", irn, signedQr: `mock-irp.${btoa(JSON.stringify(claims))}.mock-signature`, claims };
+}
+
 /* ───────── Business ───────── */
 export async function getBusinessInvoices(): Promise<Invoice[]> {
   await delay(300);
@@ -70,8 +194,30 @@ export async function getBusinessSummary() {
   return { received, pending, invoiceCount: mine.length };
 }
 
-export async function uploadInvoice(input: { buyerId: string; amount: number; dueDate: string; pdfName: string; invoiceNumber?: string }): Promise<{ invoice: Invoice; tx: TxResult }> {
+export async function uploadInvoice(input: { buyerId: string; amount: number; dueDate: string; pdfName: string; invoiceNumber?: string; signedQr?: string }): Promise<{ invoice: Invoice; tx: TxResult }> {
   await delay(900);
+  for (const [party, id] of [["supplier", ACCOUNTS.business.companyId], ["buyer", input.buyerId]] as const) {
+    if (onTimeCount(id) < 3 && input.amount > 100000) {
+      throw new ApiError("TRUST_LIMIT_EXCEEDED", `New businesses can tokenize up to ₹1,00,000 per invoice until 3 on-time repayments (${party === "buyer" ? "the buyer is new" : "your business is new"}). Nothing was written.`, 422, { party, limit: 100000 });
+    }
+  }
+  if (input.signedQr) {
+    if (!input.invoiceNumber) throw new ApiError("EINVOICE_NEEDS_INVOICE_NUMBER", "invoiceNumber is required when a signed e-invoice QR is sent.", 422);
+    let claims: Record<string, unknown>;
+    try {
+      const [head, body, sig] = input.signedQr.split(".");
+      if (head !== "mock-irp" || sig !== "mock-signature") throw new Error("bad");
+      claims = JSON.parse(atob(body)) as Record<string, unknown>;
+    } catch {
+      throw new ApiError("EINVOICE_SIGNATURE_INVALID", "The e-invoice signature is not valid: it was changed or not signed by the mock IRP. Get a new e-invoice. Nothing was written.", 422, { source: "mock" });
+    }
+    const mismatches = [
+      ["invoice number", claims.DocNo, input.invoiceNumber],
+      ["amount", claims.TotInvVal, input.amount],
+      ["buyer", claims.BuyerId, input.buyerId],
+    ].filter(([, a, b]) => a !== b).map(([field, expected, found]) => ({ field, expected, found }));
+    if (mismatches.length) throw new ApiError("EINVOICE_MISMATCH", `The signed e-invoice doesn't match this invoice: ${mismatches.map((m) => `${m.field} (e-invoice says ${String(m.expected)}, form says ${String(m.found)})`).join("; ")}. Get a new e-invoice after changing the form. Nothing was written.`, 422, { source: "mock", mismatches });
+  }
   const fingerprint = `sha256:${input.buyerId}-${input.amount}-${input.dueDate}`;
   const existing = invoices.find(
     (i) => i.supplierId === ACCOUNTS.business.companyId && i.buyerId === input.buyerId && i.amount === input.amount && i.dueDate.slice(0, 10) === input.dueDate && i.status !== "buyer_rejected",
@@ -86,7 +232,9 @@ export async function uploadInvoice(input: { buyerId: string; amount: number; du
     id, supplierId: supplier.id, supplierName: supplier.name, buyerId: buyer.id, buyerName: buyer.name,
     amount: input.amount, issueDate: new Date().toISOString(), dueDate: new Date(input.dueDate).toISOString(),
     status: "submitted", pdfName: input.pdfName, fingerprint, hashscanUrl: tx.hashscanUrl,
+    invoiceNumber: input.invoiceNumber || undefined,
   };
+  if (input.signedQr) mockSignedInvoices.add(id);
   invoices.unshift(invoice);
   return { invoice: clone(invoice), tx };
 }
@@ -184,7 +332,7 @@ export async function getListings(): Promise<Listing[]> {
     returnPct: blocked ? 0 : Number((((i.unitFaceValue ?? 1000) / unitPrice(i) - 1) * 100).toFixed(2)),
     daysToMaturity: daysTo(i.dueDate), dueDate: i.dueDate, maturityDate: i.maturityDate ?? i.dueDate,
     annualRatePct: i.grade ? RATE_BY_GRADE[i.grade] : undefined, discountPct: i.discountPct,
-    grade: i.grade, availableUnits: blocked ? 0 : available(i),
+    grade: i.grade, buyerTrustScore: scoreOf(i.buyerId).score, availableUnits: blocked ? 0 : available(i),
     unitPrice: blocked ? (i.unitFaceValue ?? 1000) : unitPrice(i), unitFaceValue: i.unitFaceValue ?? 1000, tokenId: i.tokenId, blocked,
   });
   const live = invoices.filter((i) => (i.status === "tokenized" || i.status === "funded") && i.tokenId && available(i) > 0 && i.grade && i.grade !== "D");

@@ -17,7 +17,8 @@ const isPortalPath = (p: string) =>
   p.startsWith("/business") ||
   p.startsWith("/buyer") ||
   p.startsWith("/investor") ||
-  p.startsWith("/admin");
+  p.startsWith("/admin") ||
+  p.startsWith("/trust");
 
 const SECTION_LINKS = [
   ["chain", "Who waits"],

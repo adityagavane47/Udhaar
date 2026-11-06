@@ -362,6 +362,10 @@ async function checkSessions() {
 // ---- 4. Limits and the daily cap.
 async function checkLimits() {
   const rules = { reportBudget: 5, investmentBudget: 1000, minGrade: "B", maxUnitsPerInvoice: 5 };
+  // The test's own copy of the store may carry runs from the real one; start this check with none.
+  const own = JSON.parse(readFileSync(STORE_PATH, "utf8")) as Json;
+  own.agentRuns = [];
+  writeFileSync(STORE_PATH, JSON.stringify(own));
   await withServer({ AGENT_DAILY_RUN_CAP: "0" }, async () => {
     const token = (await request("POST", "/auth/demo-investor")).json.token as string;
     const first = await request("POST", "/agent/run", { body: rules, token });

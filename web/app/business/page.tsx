@@ -25,6 +25,7 @@ import {
   getBusinessInvoices,
   getBusinessSummary,
   getCompanies,
+  getMockEInvoice,
   getSuppliers,
   getTransferableInvoices,
   paySupplierWithUnits,
@@ -164,6 +165,28 @@ function UploadForm({ onDone, invoices }: { onDone: () => void; invoices: Invoic
   const [error, setError] = useState<string | null>(null);
   const [errUrl, setErrUrl] = useState<string | undefined>();
   const [ok, setOk] = useState<{ id: string; url: string } | null>(null);
+  // The signed QR from the mock IRP, with the fields it was signed for.
+  const [einv, setEinv] = useState<{ signedQr: string; buyerId: string; amount: number; invoiceNumber: string } | null>(null);
+  const [einvLoading, setEinvLoading] = useState(false);
+  const [einvError, setEinvError] = useState<string | null>(null);
+  const einvStale =
+    einv !== null &&
+    (einv.buyerId !== buyerId || einv.amount !== Number(amount) || einv.invoiceNumber !== invoiceNumber);
+  const einvReady = Boolean(buyerId) && Number(amount) > 0 && invoiceNumber.trim().length > 0;
+
+  async function getEinvoice() {
+    setEinvLoading(true);
+    setEinvError(null);
+    try {
+      const r = await getMockEInvoice({ buyerId, invoiceNumber, amount: Number(amount) });
+      setEinv({ signedQr: r.signedQr, buyerId, amount: Number(amount), invoiceNumber });
+    } catch (err) {
+      setEinv(null);
+      setEinvError(errMsg(err));
+    } finally {
+      setEinvLoading(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -178,8 +201,10 @@ function UploadForm({ onDone, invoices }: { onDone: () => void; invoices: Invoic
         dueDate,
         pdfName: pdf || "invoice.pdf",
         invoiceNumber,
+        signedQr: einv?.signedQr,
       });
       setOk({ id: invoice.id, url: tx.hashscanUrl });
+      setEinv(null);
       onDone();
     } catch (err) {
       setError(errMsg(err));
@@ -252,6 +277,38 @@ function UploadForm({ onDone, invoices }: { onDone: () => void; invoices: Invoic
               placeholder="BB-2026-0042"
             />
           </Field>
+          <div className="space-y-2 border border-dashed border-[#C9B98F] bg-[#F1E8D2]/40 p-4">
+            <p className="font-mono text-xs uppercase tracking-[0.06em] text-[#1B2340]">
+              E-invoice <span className="normal-case text-[#5A5E78]">(optional)</span>
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                loading={einvLoading}
+                disabled={!einvReady}
+                onClick={getEinvoice}
+              >
+                {einv ? "Get a new e-invoice from IRP (mock)" : "Get e-invoice from IRP (mock)"}
+              </Button>
+              {einv && !einvStale && (
+                <StampBadge label="Signed by mock IRP ✓" tone="green" tilt={false} />
+              )}
+            </div>
+            {!einvReady && (
+              <p className="font-mono text-xs text-[#5A5E78]">
+                Fill in the buyer, amount and invoice number first. The e-invoice is signed for those.
+              </p>
+            )}
+            {einvStale && (
+              <p role="status" className="font-mono text-xs text-[#8A4B08]">
+                The buyer, amount or invoice number changed after signing. Get a new e-invoice, or
+                the server will refuse this one.
+              </p>
+            )}
+            <ErrorNote message={einvError} />
+          </div>
           <Field label="Invoice PDF">
             <Input
               type="file"

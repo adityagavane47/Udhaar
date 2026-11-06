@@ -18,6 +18,7 @@ import {
   PortalGuard,
   StampBadge,
 } from "@/components/common";
+import { TrustPanel } from "@/components/trust";
 import { useAsync } from "@/hooks/use-async";
 import { buyRiskReport, buyUnits, getListing, isReportUnlocked } from "@/lib/api";
 import { daysUntil, demoMaturityText, inr, inrPrice, pct, termText } from "@/lib/utils";
@@ -181,6 +182,8 @@ export default function InvoiceDetail() {
                 </Card>
                 )}
               </div>
+
+              <TrustPanel invoiceId={l.invoiceId} />
 
               <Card>
                 <CardHeader>

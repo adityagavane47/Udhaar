@@ -84,6 +84,13 @@ export default function InvestorPage() {
                           <p className="font-mono text-3xl font-semibold tracking-tight text-[#1B2340]">
                             {inr(l.amount)}
                           </p>
+                          {l.buyerTrustScore != null && (
+                            <p className="font-mono text-xs text-[#5A5E78]">
+                              Buyer trust score{" "}
+                              <b className="text-sm text-[#1B2340]">{l.buyerTrustScore}</b>
+                              <span className="text-[#6B6F86]"> / 900</span>
+                            </p>
+                          )}
                           {l.blocked ? (
                             <p className="font-mono text-xs text-[#B3261E]">
                               Not listed · grade D · fraud flags found. No units for sale.

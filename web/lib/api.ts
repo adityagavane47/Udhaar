@@ -18,12 +18,15 @@ import type {
   AgentRun,
   BondTokenMeta,
   Company,
+  CompanyTrust,
   Grade,
   Holder,
   InvestorSession,
   Invoice,
+  InvoiceTrust,
   KycRequest,
   Listing,
+  MockEInvoice,
   PortfolioItem,
   RepaymentHolder,
   RiskReport,
@@ -96,6 +99,21 @@ function formatErrorMessage(status: number, e: ErrorObject | undefined): string 
     return `${e?.message ?? `Daily agent cap reached${capPart}.`}${
       e?.message && e?.cap != null && !String(e.message).includes(String(e.cap)) ? capPart : ""
     }${resetPart}`;
+  }
+  if (code === "TRUST_LIMIT_EXCEEDED") {
+    const who = e?.party === "buyer" ? " (the buyer is new)" : e?.party === "supplier" ? " (your business is new)" : "";
+    return `New businesses can tokenize up to ₹1,00,000 per invoice until 3 on-time repayments${who}. Nothing was written.`;
+  }
+  if (code === "EINVOICE_MISMATCH") {
+    const list = Array.isArray(e?.mismatches)
+      ? (e.mismatches as { field: string; expected: unknown; found: unknown }[])
+          .map((m) => `${m.field} (e-invoice says ${String(m.expected)}, form says ${String(m.found)})`)
+          .join("; ")
+      : "";
+    return `The signed e-invoice doesn't match this invoice${list ? `: ${list}` : ""}. Get a new e-invoice after changing the form. Nothing was written.`;
+  }
+  if (code === "EINVOICE_SIGNATURE_INVALID") {
+    return "The e-invoice signature is not valid: it was changed or not signed by the mock IRP. Get a new e-invoice. Nothing was written.";
   }
   if (code === "AGENT_RUN_IN_PROGRESS") {
     return e?.message ?? "An auto-invest agent run is already in progress. Wait for it to finish.";
@@ -339,6 +357,17 @@ function gradeOf(i: Invoice): Promise<Grade | undefined> {
   gradeCache.set(i.id, { at: Date.now(), p });
   return p;
 }
+/** Buyer trust score from GET /trust/:id, shared for a minute. undefined if the trust service can't answer. */
+const buyerScoreCache = new Map<string, { at: number; p: Promise<number | undefined> }>();
+function buyerScoreOf(invoiceId: string): Promise<number | undefined> {
+  const hit = buyerScoreCache.get(invoiceId);
+  if (hit && Date.now() - hit.at < 60_000) return hit.p;
+  const p = http<InvoiceTrust>("GET", `/trust/${encodeURIComponent(invoiceId)}`)
+    .then((r) => r.buyer.score)
+    .catch(() => undefined);
+  buyerScoreCache.set(invoiceId, { at: Date.now(), p });
+  return p;
+}
 const withGrade = async (i: Invoice): Promise<Invoice> =>
   i.grade ? i : { ...i, grade: await gradeOf(i) };
 
@@ -508,6 +537,7 @@ const real: typeof mock = {
       dueDate: input.dueDate,
       invoiceNumber: input.invoiceNumber || undefined,
       pdfName: input.pdfName,
+      signedQr: input.signedQr || undefined,
     });
     return { invoice: r.invoice, tx: txOf(r) };
   },
@@ -577,7 +607,7 @@ const real: typeof mock = {
     const out = graded.map(toListing);
     const demo = all.find(isBlockedDemo);
     if (demo) out.push(toListing(demo));
-    return out;
+    return Promise.all(out.map(async (l) => ({ ...l, buyerTrustScore: await buyerScoreOf(l.invoiceId) })));
   },
   async getListing(invoiceId) {
     const { invoice } = await http<{ invoice: Invoice }>(
@@ -638,6 +668,23 @@ const real: typeof mock = {
         }),
     );
     return out.sort((a, b) => a.invoiceId.localeCompare(b.invoiceId));
+  },
+
+  /* Trust */
+  async getInvoiceTrust(invoiceId) {
+    return http<InvoiceTrust>("GET", `/trust/${encodeURIComponent(invoiceId)}`);
+  },
+  async getCompanyTrust(id) {
+    return http<CompanyTrust>("GET", `/trust/company/${encodeURIComponent(id)}`);
+  },
+  async getMockEInvoice(input): Promise<MockEInvoice> {
+    return http<MockEInvoice>("POST", "/mock-irp/e-invoice", {
+      supplierId: ACCOUNTS.business.accountId,
+      buyerId: input.buyerId,
+      invoiceNumber: input.invoiceNumber,
+      amount: input.amount,
+      date: input.date,
+    });
   },
 
   /* Auto-invest agent */
@@ -846,6 +893,9 @@ export const {
   getPortfolio,
   runAgent,
   getAgentRuns,
+  getInvoiceTrust,
+  getCompanyTrust,
+  getMockEInvoice,
   getKycRequests,
   reviewKyc,
   getAwaitingTokenization,
