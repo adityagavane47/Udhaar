@@ -2,11 +2,23 @@
 
 **Get paid for an invoice today, not in 90 days. Then pay your own suppliers with the same invoice.**
 
-- **Problem:** Indian MSMEs wait about 90 days for large buyers to pay, and need cash now for wages and stock. Bank loans are slow and need collateral.
+- **Problem:** Indian MSMEs often wait 60 to 90 days for large buyers to pay (the MSMED Act says 45), yet need cash now for wages and stock. Banks rarely lend to them without collateral.
 - **Solution:** a buyer-confirmed invoice becomes an **ATS bond token** (Hedera's Asset Tokenization Studio). KYC-approved investors fund it today at a discount, and are repaid automatically when the buyer pays.
 - **Wow:** the supplier can **pay his own suppliers with the token**, which reaches the small firms that today's invoice-discounting platforms skip.
 
 Built solo at **ETHGlobal Mumbai 2026** for the Hedera tracks *Tokenize Anything with Hedera Studios* and *AI Agents That Pay: x402 on Hedera*.
+
+### For judges: the 60-second tour
+
+| You want to | Go to |
+|---|---|
+| Try it yourself | [udhaar-teal.vercel.app](https://udhaar-teal.vercel.app) (pick a persona on the login page) |
+| See it in 4 minutes | [Demo video](https://www.youtube.com/watch?v=MzwFGgrLNO4) |
+| Check every track requirement | [Track checklist](#track-checklist) |
+| See real transactions on HashScan | [Proof on Hedera testnet](#proof-on-hedera-testnet) |
+| See a repayment that ran by itself | [Scheduled repayment](#scheduled-repayment) |
+| Know what is real and what is mocked | [Real vs mock](#what-is-real-and-what-is-a-mock) |
+| See our contribution back to ATS | [hashgraph/asset-tokenization-studio#1412](https://github.com/hashgraph/asset-tokenization-studio/pull/1412) |
 
 > ⚠️ **Testnet demo with simulated data.** Companies, people, KYC, GST and bureau data, and invoices are fictional. All Hedera transactions are real testnet transactions. Not real money.
 
@@ -14,8 +26,8 @@ Built solo at **ETHGlobal Mumbai 2026** for the Hedera tracks *Tokenize Anything
 
 ## Demo
 
-- **Video (5 min or less):** [Watch on YouTube](https://www.youtube.com/watch?v=MzwFGgrLNO4)
-- **Live app:** Run locally (see below); live deployment link to follow
+- **Demo video:** [Watch on YouTube](https://www.youtube.com/watch?v=MzwFGgrLNO4)
+- **Live app:** [udhaar-teal.vercel.app](https://udhaar-teal.vercel.app) (Hedera testnet; pick a persona on the login page)
 
 Six personas, each a real testnet account (three of them buyers). Pick one on the login page, or switch in the header:
 
@@ -30,14 +42,14 @@ Six personas, each a real testnet account (three of them buyers). Pick one on th
 
 ## How it works
 
-One invoice, end to end (the **INV-0042** story below is an illustration; the live on-chain run is INV-0001, linked under [Proof](#proof-on-hedera-testnet)):
+One invoice, end to end. This is the run in the demo video, **INV-0048** (bond [`0.0.11342882`](https://hashscan.io/testnet/contract/0.0.11342882)); the step-by-step transaction table under [Proof](#proof-on-hedera-testnet) is the earlier INV-0001 run:
 
 1. **Upload.** Ramesh uploads a ₹1,00,000 invoice owed by BigBuild Ltd, due in 90 days. Udhaar refuses a tampered e-invoice QR or an amount over the new-company limit, then writes the invoice's fingerprint to a public **HCS registry**. An invoice that was already financed is rejected.
 2. **Buyer confirms.** BigBuild posts a message to an HCS topic, signed by its own account, saying it owes the amount.
 3. **Risk check.** The risk engine scores the buyer. BigBuild gets **Grade A**, which earns investors **12% a year**.
 4. **Tokenize.** The admin issues an ATS bond: **100 units of ₹1,000 face value**, maturity on the due date, allowlist-only transfers. All 100 units go to Ramesh.
 5. **Investors buy.** Priya is KYC-approved first: the operator's KYC card shows a **wallet check** read from the mirror node (a warning if the account is under 7 days old or its latest 100 transfers touch a blocklisted account; the blocklist is mock data), and approving with warnings asks for confirmation. Then Priya pays **₹970.41 per unit** in uINR (a test rupee stablecoin), so Ramesh receives **₹97,041 today**. A 1% fee goes on top to an investor protection pool.
-6. **Pay your supplier.** Ramesh sends 20 units to Suresh, his sand supplier, as payment for sand. The token rejects any recipient who isn't KYC-verified.
+6. **Pay your supplier.** Ramesh sends 20 units to his sand supplier, Shree Sand Traders, as payment for sand. The token rejects any recipient who isn't KYC-verified.
 7. **Controls.** If something looks wrong, the operator **pauses** the token or **freezes** units on one holder.
 8. **Repayment.** At maturity BigBuild pays ₹1,00,000 to a REPAYMENT account, by itself through a [Hedera scheduled transaction](#scheduled-repayment) or with the manual Pay button. The backend sees it on the mirror node, then for every holder **burns their units first and pays them second**: ₹1,000 per unit, fee-free. Priya turns ₹970.41 per unit into ₹1,000.
 
@@ -117,8 +129,8 @@ flowchart TD
   API --> TRUST["Trust layer<br/>GSTIN · mock IRP · Trust Score"]
   API --> ATS["ATS bond contracts v8<br/>allowlist · pause · freeze · redeem"]
   API --> HTS["uINR (HTS token)<br/>1% pool fee"]
-  API --> HCS["HCS topics<br/>registry · confirmations · agent audit"]
-  API --> MIRROR["Mirror node<br/>repayment detection"]
+  API --> HCS["HCS topics<br/>registry · confirmations · agent audit · NAV feed"]
+  API --> MIRROR["Mirror node<br/>repayments · KYC wallet check · trust history"]
   TRUST --> MIRROR
   ATS --> HEDERA[("Hedera testnet")]
   HTS --> HEDERA
@@ -283,6 +295,13 @@ The facilitator is public and needs no API key. To use another, set `FACILITATOR
 | A company's Trust Score and its on-chain repayment history | `GET /trust/company/:id` |
 | Sign a demo e-invoice | `POST /mock-irp/e-invoice` |
 
+**Demo video run (invoice INV-0048)**
+
+| Item | Link |
+|---|---|
+| Invoice bond (ATS) | [0.0.11342882](https://hashscan.io/testnet/contract/0.0.11342882) |
+| NAV ₹970.41 published on the HCS NAV feed (90 days to maturity) | [1793985298.664793104](https://hashscan.io/testnet/transaction/1793985298.664793104) |
+
 **Full lifecycle through the API (invoice INV-0001, bond [0.0.11327849](https://hashscan.io/testnet/contract/0.0.11327849))**
 
 | Step | Transaction |
@@ -321,14 +340,14 @@ The facilitator is public and needs no API key. To use another, set `FACILITATOR
 | Requirement | Where it's met |
 |---|---|
 | Use ATS to issue and manage the asset | One ATS v8 bond per invoice, deployed through the factory (`backend/src/ats/bond.ts`) |
-| Deploy and demo on Hedera testnet | [Proof](#proof-on-hedera-testnet) above, full INV-0001 lifecycle |
+| Deploy and demo on Hedera testnet | [Proof](#proof-on-hedera-testnet) above: the INV-0048 run from the video, and the full INV-0001 lifecycle with every transaction. Live at [udhaar-teal.vercel.app](https://udhaar-teal.vercel.app) |
 | Issuance, configuration, lifecycle operation | Issue, allowlist and roles, then redemption at maturity, freeze and pause |
 | Compliance controls | KYC allowlist, a KYC wallet check (account age and transfers against a mock blocklist, read from the mirror node), transfer restrictions, freeze, pause, GSTIN and e-invoice checks |
 | Custom fees and distributions | 1% pool fee on uINR; repayment paid to every holder |
 | Scheduled Transactions | ✅ When a bond is issued, a `ScheduleCreateTransaction` wraps the buyer's uINR repayment to REPAYMENT, set to expire at maturity and wait for that expiry, so it runs on its own. A bond maturing beyond the network's 62-day limit is scheduled by a periodic check once it is within it. The existing repayment then burns and pays as usual. If the schedule fails, manual repay stays open ([details](#scheduled-repayment)) |
 | Contribution back to ATS | ✅ Opened [hashgraph/asset-tokenization-studio#1412](https://github.com/hashgraph/asset-tokenization-studio/pull/1412), a developer guide for server-side (headless) signing that answers open issue #1397; the guide is also at [`docs/ats-server-side-signing.md`](docs/ats-server-side-signing.md) |
 | Contracts verified on HashScan (where applicable) | No custom Solidity was written. Every bond is deployed by the official ATS v8 factory [`0.0.9213391`](https://hashscan.io/testnet/contract/0.0.9213391) |
-| Oracle pricing / NAV feed | A daily NAV per token on the HCS topic [`0.0.11337348`](https://hashscan.io/testnet/topic/0.0.11337348) (`GET /nav/:invoiceId`, `POST /nav/publish`; see the Oracle / NAV feed table below) |
+| Oracle pricing / NAV feed | A daily NAV per token on the HCS topic [`0.0.11337348`](https://hashscan.io/testnet/topic/0.0.11337348) (`GET /nav/:invoiceId`, `POST /nav/publish`; NAV and its HCS proof are also in the paid risk report) |
 | Public repo, video of 5 minutes or less | Public GitHub repo. Video: [watch on YouTube](https://www.youtube.com/watch?v=MzwFGgrLNO4) |
 
 **AI Agents That Pay: x402 on Hedera**
@@ -341,12 +360,6 @@ The facilitator is public and needs no API key. To use another, set `FACILITATOR
 | Setup, architecture, payment flow | This README |
 | Extras beyond the requirements | A daily NAV feed on HCS, and the buyer's repayment run by a Hedera [scheduled transaction](#scheduled-repayment) so the whole lifecycle can finish with no human action |
 | Video of 5 minutes or less | [Watch on YouTube](https://www.youtube.com/watch?v=MzwFGgrLNO4) |
-
-**Oracle / NAV feed**
-
-| Requirement | Where it's met |
-|---|---|
-| Oracle / NAV feed | A daily NAV per token on the HCS topic "Udhaar NAV feed" (`backend/src/nav.ts`), on demand with `POST /nav/publish`. Free read: `GET /nav/:invoiceId`. The current NAV and its HCS proof are in the paid risk report. Published on testnet: [topic 0.0.11337348](https://hashscan.io/testnet/topic/0.0.11337348), NAV messages for [INV-0006](https://hashscan.io/testnet/transaction/1793958355.504763920) and [INV-0007](https://hashscan.io/testnet/transaction/1793958358.878345104) |
 
 ## Run it locally
 
