@@ -55,6 +55,10 @@ export const config = {
   dataDir: process.env.DATA_DIR ?? `${BACKEND_ROOT}data/`,
   /** Committed seed data, separate from dataDir so tests and deployments that move the store still find it. */
   riskDataDir: process.env.RISK_DATA_DIR ?? `${BACKEND_ROOT}data/risk/`,
+  /** The sanitized snapshot copied into an empty DATA_DIR on first start. */
+  seedStorePath: `${BACKEND_ROOT}seed/store.json`,
+  /** Origins allowed to call the API from a browser. FRONTEND_ORIGIN is comma-separated; unset allows only local web dev. */
+  frontendOrigins: (process.env.FRONTEND_ORIGIN?.trim() ? process.env.FRONTEND_ORIGIN.split(",") : ["http://localhost:3000", "http://127.0.0.1:3000"]).map((origin) => origin.trim().replace(/[/]+$/, "")).filter(Boolean),
   hcsRecordPath: `${BACKEND_ROOT}deployments/hcs.json`,
   uinrTokenId: readUinrTokenId(),
   /** A single transaction that could cost more than this is refused until a person approves it. */

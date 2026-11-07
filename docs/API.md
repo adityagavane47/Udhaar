@@ -174,6 +174,8 @@ Set these in `.env`, then restart the server.
 | `DEMO_ADMIN_PASSCODE` | None | Required for admin login |
 | `DEMO_ADMIN_TOKEN_MINUTES` | `30` | How long an admin token lasts |
 | `DEMO_SHORT_MATURITY_MINUTES` | off | Demo only. A number from 3 to 1440 lets an admin tokenize with a maturity that many minutes away. Shown to the web app by `GET /health` |
+| `FRONTEND_ORIGIN` | `http://localhost:3000` | Browser origins allowed by CORS, comma-separated. See [DEPLOY.md](DEPLOY.md) |
+| `DATA_DIR` | `backend/data/` | Where `store.json` lives. An empty folder is filled from `backend/seed/store.json` on server start |
 | `SCHEDULE_WATCHER` | on | Set to `off` to stop the server creating and following repayment schedules. `SCHEDULE_CHECK_SECONDS` (default `30`) sets how often it checks |
 | `NAV_SCHEDULER` | on | Set to `off` to stop the server publishing NAV once a day. `POST /nav/publish` still works |
 | `DEMO_INVESTOR_TOKEN_MINUTES` | `30` | How long an investor session lasts |

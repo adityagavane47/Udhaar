@@ -172,7 +172,7 @@ async function balances() {
 export function createApp() {
   const app = express();
   if (config.trustProxyHops > 0) app.set("trust proxy", config.trustProxyHops);
-  app.use(cors({ exposedHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE"] }));
+  app.use(cors({ origin: config.frontendOrigins, exposedHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE"] }));
   app.use(express.json({ limit: "256kb" }));
 
   app.get("/health", (_req, res) => {
