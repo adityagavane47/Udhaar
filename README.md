@@ -20,6 +20,19 @@ Built solo at **ETHGlobal Mumbai 2026** for the Hedera tracks *Tokenize Anything
 | Know what is real and what is mocked | [Real vs mock](#what-is-real-and-what-is-a-mock) |
 | See our contribution back to ATS | [hashgraph/asset-tokenization-studio#1412](https://github.com/hashgraph/asset-tokenization-studio/pull/1412) |
 
+![Udhaar: invoice financing on Hedera](docs/images/cover.png)
+
+### Screenshots
+
+| | |
+|---|---|
+| ![Invoice folio: INV-0048, Grade A, ₹970.41 per unit, NAV published on Hedera](docs/images/folio.png) | ![Trust check: seller 824, buyer 887, 12 checks passed](docs/images/trust.png) |
+| **Invoice folio:** price, grade and today's NAV, published on Hedera | **Trust check:** buyer score from on-chain repayments, 12-point checklist |
+| ![Ramesh pays his sand supplier with invoice units](docs/images/pay-supplier.png) | ![Auto-invest agent run: x402 reports paid, INV-0048 bought, fraud skipped](docs/images/agent.png) |
+| **Pay your supplier:** Ramesh pays Shree Sand Traders with invoice units | **x402 agent:** paid ₹1 per report, bought the clean invoice, skipped the fraud ring |
+| ![Scheduled repayment 0.0.11347101 executed on HashScan](docs/images/schedule.png) | |
+| **Scheduled Transactions:** the buyer's repayment executed by itself at maturity | |
+
 > ⚠️ **Testnet demo with simulated data.** Companies, people, KYC, GST and bureau data, and invoices are fictional. All Hedera transactions are real testnet transactions. Not real money.
 
 ---
